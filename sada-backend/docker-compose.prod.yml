@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16.4
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - POSTGRES_DB=sada
+    networks:
+      - project
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - project
+    volumes:
+      - redis_data:/data
+    restart: always
+
+  web:
+    build: ./
+    restart: always
+    env_file:
+      - .env.production
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=sada
+      - VIRTUAL_PORT=3000
+    ports:
+      - "3000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - project
+      - web
+
+networks:
+  project:
+  web:
+    external: true
+
+volumes:
+  postgres_data:
+  redis_data:
