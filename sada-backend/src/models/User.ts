@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, Index } from "typeorm";
+import { Exclude } from "class-transformer";
 import { RoomParticipant } from "./RoomParticipant";
 import { Follow } from "./Follow";
 
@@ -7,6 +8,7 @@ export class User {
     @PrimaryGeneratedColumn("uuid")
     id!: string;
 
+    @Exclude()
     @Column({ unique: true })
     apple_id!: string;
 
@@ -23,14 +25,16 @@ export class User {
     @Column({ nullable: true })
     avatar_url!: string;
 
+    @Exclude()
     @Column({ default: false })
     verified!: boolean;
 
     @Column({ default: 'en' })
     language!: string;
 
+    @Exclude()
     @Column({ default: 0 })
-    gem_balance!: number; // Stored as integer
+    gem_balance!: number;
 
     @OneToMany(() => Follow, follow => follow.following)
     followers!: Follow[];

@@ -16,7 +16,7 @@ export class Room {
 
     @Column({ length: 100 })
     @Index()
-    title!: string; // For search
+    title!: string;
 
     @Column("text", { nullable: true })
     description!: string;
@@ -27,7 +27,7 @@ export class Room {
 
     @Column({ length: 20, default: 'live' })
     @Index()
-    status!: string; // 'live', 'ended'
+    status!: string;
 
     @Column({ default: 0 })
     listener_count!: number;
