@@ -8,6 +8,7 @@ export enum NotificationType {
     SPEAKER_APPROVED = "speaker_approved",
     SPEAKER_REJECTED = "speaker_rejected",
     ROOM_SCHEDULED = "room_scheduled",
+    WITHDRAWAL = "withdrawal",
 }
 
 @Entity("notifications")
