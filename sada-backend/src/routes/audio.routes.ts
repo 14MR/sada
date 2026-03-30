@@ -4,6 +4,7 @@ import { validate } from "../middleware/validation";
 import {
     createSessionSchema,
     joinSessionSchema,
+    leaveSessionSchema,
     renegotiateSchema,
     muteSchema,
 } from "../validators/audio.validator";
@@ -20,7 +21,7 @@ router.get("/sessions/room/:roomId", AudioController.getSessionByRoom);
 router.post("/sessions/:sessionId/join", validate(joinSessionSchema), AudioController.joinSession);
 
 // Leave a session
-router.post("/sessions/:sessionId/leave", AudioController.leaveSession);
+router.post("/sessions/:sessionId/leave", validate(leaveSessionSchema), AudioController.leaveSession);
 
 // List participants
 router.get("/sessions/:sessionId/participants", AudioController.getParticipants);

@@ -174,16 +174,15 @@ export class CallsService {
             throw new Error(`Participant ${userId} not found in session ${sessionId}`);
         }
 
-        const url = callsUrl(`/sessions/${sessionId}/tracks/new`);
+        const url = callsUrl(`/sessions/${sessionId}/renegotiate`);
 
         logger.info({ sessionId, userId, trackId: participant.trackId }, "Renegotiating track");
 
         const response = await fetch(url, {
-            method: "POST",
+            method: "PUT",
             headers: authHeaders(),
             body: JSON.stringify({
                 sessionDescription: { sdp: offerSdp, type: "offer" },
-                mediaTypes: { audio: true, video: false },
                 trackId: participant.trackId,
             }),
         });
@@ -264,10 +263,6 @@ export class CallsService {
     /**
      * Get session info by session ID.
      */
-    static getSession(sessionId: string): SessionInfo | undefined {
-        return sessions.get(sessionId);
-    }
-
     /**
      * List participants in a session.
      */

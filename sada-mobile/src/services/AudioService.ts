@@ -135,12 +135,18 @@ class AudioServiceImpl {
             // ─── Step 1: Get or create SFU session ─────────────────────────
             let sessionId: string | null = null;
 
-            // Check if session already exists
-            const lookupResp = await client.get(`/audio/sessions/room/${roomId}`);
-            if (lookupResp.data?.sessionId) {
-                sessionId = lookupResp.data.sessionId;
-                console.log('📡 Found existing SFU session:', sessionId);
-            } else {
+            try {
+                // Check if session already exists
+                const lookupResp = await client.get(`/audio/sessions/room/${roomId}`);
+                if (lookupResp.data?.sessionId) {
+                    sessionId = lookupResp.data.sessionId;
+                    console.log('📡 Found existing SFU session:', sessionId);
+                }
+            } catch {
+                // 404 means no session yet — will create below
+            }
+
+            if (!sessionId) {
                 // Create new session
                 const createResp = await client.post('/audio/sessions', { roomId });
                 sessionId = createResp.data.sessionId;
