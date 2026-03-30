@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import { RoomService } from "../services/room.service";
-import { AuthService } from "../services/auth.service"; // Assume we might need to verify user or get from request
 
 export class RoomController {
     static async create(req: Request, res: Response) {
@@ -27,24 +26,12 @@ export class RoomController {
     static async list(req: Request, res: Response) {
         try {
             const category = req.query.category as string;
-            const status = req.query.status as string || 'live';
-            const rooms = await RoomService.getLiveRooms(category, status);
+            const q = req.query.q as string;
+            const rooms = await RoomService.getLiveRooms(category, q);
             return res.json(rooms);
         } catch (error) {
             console.error("List Rooms Error:", error);
             return res.status(500).json({ error: "Failed to list rooms" });
-        }
-    }
-
-    static async search(req: Request, res: Response) {
-        try {
-            const q = req.query.q as string;
-            if (!q) return res.status(400).json({ error: "Search query required" });
-            const rooms = await RoomService.searchRooms(q);
-            return res.json(rooms);
-        } catch (error) {
-            console.error("Search Rooms Error:", error);
-            return res.status(500).json({ error: "Failed to search rooms" });
         }
     }
 
