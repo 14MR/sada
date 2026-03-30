@@ -13,6 +13,7 @@ import adminRoutes from './routes/admin.routes';
 import notificationRoutes from './routes/notification.routes';
 import withdrawalRoutes from './routes/withdrawal.routes';
 import recordingRoutes from './routes/recording.routes';
+import reactionRoutes from './routes/reaction.routes';
 
 export function createApp() {
   const app = express();
@@ -33,6 +34,7 @@ export function createApp() {
   app.use('/notifications', notificationRoutes);
   app.use('/withdrawals', withdrawalRoutes);
   app.use('/recordings', recordingRoutes);
+  app.use('/reactions', reactionRoutes);
 
   // Health check
   app.get('/health', (req, res) => {
