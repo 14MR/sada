@@ -4,7 +4,6 @@ import { Room } from "../models/Room";
 import { Report, ReportStatus } from "../models/Report";
 import { GemTransaction } from "../models/GemTransaction";
 import { AdminAction } from "../models/AdminAction";
-import { FindOptionsWhere } from "typeorm";
 
 const userRepo = AppDataSource.getRepository(User);
 const roomRepo = AppDataSource.getRepository(Room);
@@ -14,95 +13,40 @@ const adminActionRepo = AppDataSource.getRepository(AdminAction);
 
 export class AdminService {
     static async getStats() {
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-
-        const [totalUsers, totalRooms, totalReports, gemsAllTimeResult, gemsTodayResult] =
+        const [totalUsers, totalRooms, liveRooms, pendingReports, gemsTransacted] =
             await Promise.all([
                 userRepo.count(),
                 roomRepo.count(),
-                reportRepo.count(),
+                roomRepo.count({ where: { status: "live" } }),
+                reportRepo.count({ where: { status: ReportStatus.PENDING } }),
                 gemRepo.createQueryBuilder("tx").select("COALESCE(SUM(tx.amount), 0)", "total").getRawOne(),
-                gemRepo.createQueryBuilder("tx")
-                    .select("COALESCE(SUM(tx.amount), 0)", "total")
-                    .where("tx.created_at >= :todayStart", { todayStart })
-                    .getRawOne(),
             ]);
 
         return {
             totalUsers,
-            totalRooms,
-            totalReports,
-            gemsTransacted: {
-                allTime: Number(gemsAllTimeResult.total),
-                today: Number(gemsTodayResult.total),
-            },
+            rooms: { live: liveRooms, total: totalRooms },
+            gemsTransacted: Number(gemsTransacted.total),
+            reportsPending: pendingReports,
         };
     }
 
-    static async getReports(status?: string, limit = 20, offset = 0) {
-        const where: FindOptionsWhere<Report> = {};
-        if (status && Object.values(ReportStatus).includes(status as ReportStatus)) {
-            where.status = status as ReportStatus;
-        }
+    static async getUsers(limit = 20, offset = 0) {
+        const [users, total] = await userRepo.findAndCount({
+            order: { created_at: "DESC" },
+            take: limit,
+            skip: offset,
+        });
+        return { users, total, limit, offset };
+    }
 
+    static async getReports(limit = 20, offset = 0) {
         const [reports, total] = await reportRepo.findAndCount({
-            where,
             relations: ["reporter", "reported_user"],
             order: { created_at: "DESC" },
             take: limit,
             skip: offset,
         });
-
         return { reports, total, limit, offset };
-    }
-
-    static async reviewReport(
-        reportId: string,
-        action: "actioned" | "dismissed",
-        banUser: boolean,
-        adminKey: string
-    ) {
-        const report = await reportRepo.findOne({
-            where: { id: reportId },
-        });
-        if (!report) throw new Error("Report not found");
-
-        report.status = action === "actioned" ? ReportStatus.ACTIONED : ReportStatus.DISMISSED;
-        await reportRepo.save(report);
-
-        if (banUser && report.reported_user_id) {
-            await userRepo.update(report.reported_user_id, { banned: true });
-        }
-
-        const log = new AdminAction();
-        log.admin_key = adminKey;
-        log.action_type = action;
-        log.target_report_id = reportId;
-        log.target_user_id = report.reported_user_id;
-        log.details = { banUser };
-        await adminActionRepo.save(log);
-
-        return report;
-    }
-
-    static async getUsers(q?: string, banned?: string, limit = 20, offset = 0) {
-        const qb = userRepo.createQueryBuilder("u");
-
-        if (q) {
-            qb.andWhere("u.username ILIKE :q", { q: `%${q}%` });
-        }
-
-        if (banned === "true") {
-            qb.andWhere("u.banned = true");
-        } else if (banned === "false") {
-            qb.andWhere("u.banned = false");
-        }
-
-        qb.orderBy("u.created_at", "DESC").take(limit).skip(offset);
-
-        const [users, total] = await qb.getManyAndCount();
-        return { users, total, limit, offset };
     }
 
     static async banUser(userId: string, adminKey: string) {
@@ -137,5 +81,22 @@ export class AdminService {
         await adminActionRepo.save(log);
 
         return user;
+    }
+
+    static async reviewReport(reportId: string, action: "reviewed" | "dismissed", adminKey: string) {
+        const report = await reportRepo.findOne({ where: { id: reportId } });
+        if (!report) throw new Error("Report not found");
+
+        report.status = action === "reviewed" ? ReportStatus.ACTIONED : ReportStatus.DISMISSED;
+        await reportRepo.save(report);
+
+        const log = new AdminAction();
+        log.admin_key = adminKey;
+        log.action_type = action;
+        log.target_report_id = reportId;
+        log.target_user_id = report.reported_user_id;
+        await adminActionRepo.save(log);
+
+        return report;
     }
 }

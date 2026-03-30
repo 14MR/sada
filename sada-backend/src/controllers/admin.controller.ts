@@ -12,55 +12,27 @@ export class AdminController {
         }
     }
 
-    static async getReports(req: Request, res: Response) {
-        try {
-            const { status, limit, offset } = req.query;
-            const result = await AdminService.getReports(
-                status as string,
-                limit ? parseInt(limit as string) : 20,
-                offset ? parseInt(offset as string) : 0
-            );
-            return res.json(result);
-        } catch (error) {
-            console.error("Admin Reports Error:", error);
-            return res.status(500).json({ error: "Failed to fetch reports" });
-        }
-    }
-
-    static async reviewReport(req: Request, res: Response) {
-        try {
-            const id = req.params.id as string;
-            const { action, banUser } = req.body;
-
-            if (!action || !["actioned", "dismissed"].includes(action)) {
-                return res.status(400).json({ error: "Invalid action. Must be 'actioned' or 'dismissed'" });
-            }
-
-            const adminKey = req.headers["x-admin-key"] as string;
-            const report = await AdminService.reviewReport(id, action, !!banUser, adminKey);
-            return res.json(report);
-        } catch (error: any) {
-            if (error.message === "Report not found") {
-                return res.status(404).json({ error: error.message });
-            }
-            console.error("Review Report Error:", error);
-            return res.status(500).json({ error: "Failed to review report" });
-        }
-    }
-
     static async getUsers(req: Request, res: Response) {
         try {
-            const { q, banned, limit, offset } = req.query;
-            const result = await AdminService.getUsers(
-                q as string,
-                banned as string,
-                limit ? parseInt(limit as string) : 20,
-                offset ? parseInt(offset as string) : 0
-            );
+            const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+            const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+            const result = await AdminService.getUsers(limit, offset);
             return res.json(result);
         } catch (error) {
             console.error("Admin Users Error:", error);
             return res.status(500).json({ error: "Failed to fetch users" });
+        }
+    }
+
+    static async getReports(req: Request, res: Response) {
+        try {
+            const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+            const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+            const result = await AdminService.getReports(limit, offset);
+            return res.json(result);
+        } catch (error) {
+            console.error("Admin Reports Error:", error);
+            return res.status(500).json({ error: "Failed to fetch reports" });
         }
     }
 
@@ -91,6 +63,27 @@ export class AdminController {
             }
             console.error("Unban User Error:", error);
             return res.status(500).json({ error: "Failed to unban user" });
+        }
+    }
+
+    static async reviewReport(req: Request, res: Response) {
+        try {
+            const id = req.params.id as string;
+            const { action } = req.body;
+
+            if (!action || !["reviewed", "dismissed"].includes(action)) {
+                return res.status(400).json({ error: "Invalid action. Must be 'reviewed' or 'dismissed'" });
+            }
+
+            const adminKey = req.headers["x-admin-key"] as string;
+            const report = await AdminService.reviewReport(id, action, adminKey);
+            return res.json(report);
+        } catch (error: any) {
+            if (error.message === "Report not found") {
+                return res.status(404).json({ error: error.message });
+            }
+            console.error("Review Report Error:", error);
+            return res.status(500).json({ error: "Failed to review report" });
         }
     }
 }
