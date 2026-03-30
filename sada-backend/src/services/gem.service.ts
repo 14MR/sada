@@ -73,7 +73,7 @@ export class GemService {
             }
         }
 
-        return await AppDataSource.manager.transaction(async transactionalEntityManager => {
+        const txResult = await AppDataSource.manager.transaction(async transactionalEntityManager => {
             const user = await transactionalEntityManager.findOne(User, { where: { id: userId } });
             if (!user) throw new Error("User not found");
 
@@ -90,13 +90,14 @@ export class GemService {
 
             const saved = await transactionalEntityManager.save(tx);
 
-            // Mark receipt as processed after successful commit
-            if (receiptData) {
-                PaymentService.markProcessed(PaymentService.receiptHash(receiptData), saved.id);
-            }
-
-            return saved;
+            return { saved, receiptHash: receiptData ? PaymentService.receiptHash(receiptData) : null, transactionId: saved.id };
         });
+
+        // Mark receipt as processed AFTER transaction commits successfully
+        if (txResult.receiptHash) {
+            PaymentService.markProcessed(txResult.receiptHash, txResult.transactionId);
+        }
+        return txResult.saved;
     }
 
     static async sendGift(senderId: string, receiverId: string, amount: number, roomId?: string) {

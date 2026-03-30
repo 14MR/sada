@@ -6,8 +6,6 @@ import { reportSchema, blockSchema, unblockSchema } from "../validators/moderati
 
 const router = Router();
 
-router.use(authenticate);
-
 router.post("/report", validate(reportSchema), ModerationController.report);
 router.post("/block", validate(blockSchema), ModerationController.block);
 router.post("/unblock", validate(unblockSchema), ModerationController.unblock);

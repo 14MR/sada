@@ -35,6 +35,10 @@ app.use(cors({
 
 app.use(express.json());
 
+// XSS sanitization
+import { sanitize } from "./middleware/sanitize";
+app.use(sanitize);
+
 // Request logging
 app.use(requestLogger);
 

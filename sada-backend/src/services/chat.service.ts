@@ -58,8 +58,11 @@ export class ChatService {
         });
 
         this.io.on("connection", (socket: Socket) => {
-            socket.on("identify", (userId: string) => {
-                socket.join(`user_${userId}`);
+            socket.on("identify", () => {
+                const user = (socket as any).user;
+                if (user?.id) {
+                    socket.join(`user_${user.id}`);
+                }
             });
             socket.on("join_room", (roomId: string) => {
                 socket.join(roomId);
