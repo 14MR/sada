@@ -9,6 +9,7 @@ import { Category } from "../models/Category";
 import { SpeakerRequest } from "../models/SpeakerRequest";
 import { Report } from "../models/Report";
 import { UserBlock } from "../models/UserBlock";
+import { AdminAction } from "../models/AdminAction";
 
 export const AppDataSource = new DataSource({
     type: "postgres",
@@ -19,7 +20,7 @@ export const AppDataSource = new DataSource({
     database: vars.db.database,
     synchronize: true,
     logging: false,
-    entities: [User, Room, RoomParticipant, Follow, GemTransaction, Category, SpeakerRequest, Report, UserBlock],
+    entities: [User, Room, RoomParticipant, Follow, GemTransaction, Category, SpeakerRequest, Report, UserBlock, AdminAction],
     subscribers: [],
     migrations: [],
 });

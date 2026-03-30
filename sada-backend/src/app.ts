@@ -9,6 +9,7 @@ import followRoutes from './routes/follow.routes';
 import categoryRoutes from './routes/category.routes';
 import creatorRoutes from './routes/creator.routes';
 import moderationRoutes from './routes/moderation.routes';
+import adminRoutes from './routes/admin.routes';
 
 export function createApp() {
   const app = express();
@@ -25,6 +26,7 @@ export function createApp() {
   app.use('/categories', categoryRoutes);
   app.use('/creator', creatorRoutes);
   app.use('/moderation', moderationRoutes);
+  app.use('/admin', adminRoutes);
 
   // Health check
   app.get('/health', (req, res) => {

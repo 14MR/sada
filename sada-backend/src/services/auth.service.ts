@@ -39,6 +39,10 @@ export class AuthService {
     static async mapUser(appleId: string, email: string | undefined, fullName: string | undefined) {
         let user = await userRepository.findOneBy({ apple_id: appleId });
 
+        if (user && user.banned) {
+            throw new Error("User is banned");
+        }
+
         if (!user) {
             // Create new user
             user = new User();
