@@ -2,12 +2,10 @@ import { AppDataSource } from "../config/database";
 import { Room } from "../models/Room";
 import { RoomParticipant } from "../models/RoomParticipant";
 import { User } from "../models/User";
-import { Category } from "../models/Category";
 import { AudioService } from "./audio.service";
 
 const roomRepository = AppDataSource.getRepository(Room);
 const participantRepository = AppDataSource.getRepository(RoomParticipant);
-const categoryRepository = AppDataSource.getRepository(Category);
 
 export class RoomService {
     static async createRoom(host: User, title: string, categoryId?: string, description?: string, scheduledAt?: Date) {
