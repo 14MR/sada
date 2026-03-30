@@ -5,6 +5,7 @@ const router = Router();
 
 router.post("/", RoomController.create);
 router.get("/", RoomController.list);
+router.get("/search", RoomController.search);
 router.get("/:id", RoomController.get);
 router.post("/:id/join", RoomController.join);
 router.post("/:id/leave", RoomController.leave);

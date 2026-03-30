@@ -8,23 +8,15 @@ export class RoomController {
             // In a real app, user is attached to req by middleware
             // For MVP, we pass userId in body or header if not using full middleware yet
             // Let's assume we pass { userId, title, category, description } in body for now
-            const { userId, title, category, description } = req.body;
+            const { userId, title, categoryId, description, scheduledAt } = req.body;
 
             // TODO: Replace with req.user from middleware
-            const user = await AuthService.mapUser(userId, undefined, undefined); // This is hacky, assumes userId is appleId. 
-            // Better: Fetch user by DB ID
-            // Let's assume for this step we have a proper middleware or we fetch user by ID
-            // Fix: We need a way to get the User entity.
-            // Let's assume the auth middleware puts { id } in req.headers['user-id'] for this phase? 
-            // Or just fetch by ID.
-
-            // Re-fetching user for safety
             const { UserService } = require("../services/user.service");
             const host = await UserService.getProfile(userId);
 
             if (!host) return res.status(404).json({ error: "Host not found" });
 
-            const room = await RoomService.createRoom(host, title, category, description);
+            const room = await RoomService.createRoom(host, title, categoryId, description, scheduledAt ? new Date(scheduledAt) : undefined);
             return res.status(201).json(room);
         } catch (error) {
             console.error("Create Room Error:", error);
@@ -35,11 +27,24 @@ export class RoomController {
     static async list(req: Request, res: Response) {
         try {
             const category = req.query.category as string;
-            const rooms = await RoomService.getLiveRooms(category);
+            const status = req.query.status as string || 'live';
+            const rooms = await RoomService.getLiveRooms(category, status);
             return res.json(rooms);
         } catch (error) {
             console.error("List Rooms Error:", error);
             return res.status(500).json({ error: "Failed to list rooms" });
+        }
+    }
+
+    static async search(req: Request, res: Response) {
+        try {
+            const q = req.query.q as string;
+            if (!q) return res.status(400).json({ error: "Search query required" });
+            const rooms = await RoomService.searchRooms(q);
+            return res.json(rooms);
+        } catch (error) {
+            console.error("Search Rooms Error:", error);
+            return res.status(500).json({ error: "Failed to search rooms" });
         }
     }
 
