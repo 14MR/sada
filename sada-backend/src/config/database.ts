@@ -5,6 +5,8 @@ import { Room } from "../models/Room";
 import { RoomParticipant } from "../models/RoomParticipant";
 import { Follow } from "../models/Follow";
 import { GemTransaction } from "../models/GemTransaction";
+import { Report } from "../models/Report";
+import { AdminAction } from "../models/AdminAction";
 
 export const AppDataSource = new DataSource({
     type: "postgres",
@@ -15,7 +17,7 @@ export const AppDataSource = new DataSource({
     database: vars.db.database,
     synchronize: true, // Set to false in production
     logging: false,
-    entities: [User, Room, RoomParticipant, Follow, GemTransaction],
+    entities: [User, Room, RoomParticipant, Follow, GemTransaction, Report, AdminAction],
     subscribers: [],
     migrations: [],
 });
