@@ -7,6 +7,18 @@ const BASE_URL = 'https://sada.mustafin.dev';
 
 console.log('🔌 Socket Base URL:', BASE_URL);
 
+/**
+ * SocketService - handles real-time chat and room events via Socket.io.
+ *
+ * Audio is now handled via Cloudflare Calls SFU (see AudioService.ts).
+ * Socket.io is kept for:
+ *   - Text chat (send_message / receive_message)
+ *   - Room join/leave events (for participant list UI updates)
+ *   - Other real-time notifications
+ *
+ * Audio signaling (signal/offer/answer/candidate) has been removed since
+ * the SFU handles all media routing through the backend REST API.
+ */
 class SocketServiceImpl {
     socket: Socket | null = null;
 
@@ -71,21 +83,21 @@ class SocketServiceImpl {
         this.socket?.off('receive_message');
     }
 
-    sendSignal(roomId: string, signal: any) {
-        this.socket?.emit('signal', { roomId, signal });
+    /**
+     * Listen for participant events (join/leave notifications).
+     * Used to update the speaker/listener UI in real-time.
+     */
+    onParticipantUpdate(callback: (data: any) => void) {
+        this.socket?.on('participant_update', callback);
     }
 
-    onSignal(callback: (data: { senderId: string, signal: any }) => void) {
-        this.socket?.on('signal', callback);
-    }
-
-    offSignal() {
-        this.socket?.off('signal');
+    offParticipantUpdate() {
+        this.socket?.off('participant_update');
     }
 
     private async getCurrentUser() {
         // Helper to get cached user info
-        const json = await SecureStore.getItemAsync('user_profile'); // We need to store this on login!
+        const json = await SecureStore.getItemAsync('user_profile');
         return json ? JSON.parse(json) : null;
     }
 }

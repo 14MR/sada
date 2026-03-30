@@ -12,52 +12,62 @@ import client from '../api/client';
 export const RoomScreen = ({ route, navigation }: any) => {
     const { room } = route.params as { room: Room };
     const [isMuted, setIsMuted] = useState(true);
+    const [isConnected, setIsConnected] = useState(false);
     const [speakers, setSpeakers] = useState([room.host]);
     const [listeners, setListeners] = useState<any[]>([]);
 
     useEffect(() => {
-        const setupAudio = async () => {
+        const setupRoom = async () => {
             try {
-                // 1. Init Local Microphone
+                // 1. Init local microphone
                 await AudioService.init();
 
-                // 2. Map ICE Servers from Backend
+                // 2. Join room via REST API (for participant tracking)
                 const userId = await SecureStore.getItemAsync('user_id');
                 const response = await client.post(`/rooms/${room.id}/join`, { userId });
 
-                if (response.data.audio?.iceServers) {
-                    AudioService.setIceServers(response.data.audio.iceServers);
-                }
-
-                // 3. Connect Socket and Join Room
+                // 3. Connect Socket.io for chat and participant events
                 await SocketService.connect();
                 SocketService.joinRoom(room.id);
 
-                // 4. Join Audio Signaling Room
-                await AudioService.joinRoom(room.id, SocketService);
+                // 4. Listen for participant updates
+                SocketService.onParticipantUpdate((data) => {
+                    if (data.speakers) setSpeakers(data.speakers);
+                    if (data.listeners) setListeners(data.listeners);
+                });
+
+                // 5. Join SFU audio session
+                const role = room.host?.id === userId ? 'host' : 'listener';
+                const success = await AudioService.joinRoom(room.id, role);
+                setIsConnected(success);
 
             } catch (err) {
-                console.error("Failed to setup room audio/socket:", err);
+                console.error("Failed to setup room:", err);
             }
         };
 
-        setupAudio();
+        setupRoom();
 
         return () => {
+            // Cleanup on unmount
             AudioService.leaveRoom();
+            SocketService.offParticipantUpdate();
             SocketService.leaveRoom(room.id);
             SocketService.disconnect();
         };
     }, []);
 
     const toggleMute = async () => {
-        await AudioService.toggleMute();
-        setIsMuted(!isMuted);
+        const nowEnabled = await AudioService.toggleMute();
+        setIsMuted(!nowEnabled);
     };
 
-    const handleLeave = () => {
+    const handleLeave = async () => {
+        await AudioService.leaveRoom();
+        SocketService.offParticipantUpdate();
+        SocketService.leaveRoom(room.id);
+        SocketService.disconnect();
         navigation.goBack();
-        // Trigger leave room API
     };
 
     return (
@@ -94,8 +104,18 @@ export const RoomScreen = ({ route, navigation }: any) => {
 
                 <Text style={styles.sectionHeader}>Listeners ({listeners.length})</Text>
                 <View style={styles.listenerRow}>
-                    {/* Render listeners here */}
-                    <Text style={{ color: theme.colors.textSecondary }}>No listeners yet...</Text>
+                    {listeners.length > 0 ? (
+                        listeners.map((listener, index) => (
+                            <View key={listener.id || index} style={styles.gridItem}>
+                                <View style={styles.avatar}>
+                                    <Text style={styles.avatarText}>{listener.display_name?.[0]}</Text>
+                                </View>
+                                <Text style={styles.name}>{listener.display_name}</Text>
+                            </View>
+                        ))
+                    ) : (
+                        <Text style={{ color: theme.colors.textSecondary }}>No listeners yet...</Text>
+                    )}
                 </View>
 
             </ScrollView>

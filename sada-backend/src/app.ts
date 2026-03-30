@@ -18,6 +18,7 @@ import notificationRoutes from './routes/notification.routes';
 import withdrawalRoutes from './routes/withdrawal.routes';
 import recordingRoutes from './routes/recording.routes';
 import reactionRoutes from './routes/reaction.routes';
+import audioRoutes from './routes/audio.routes';
 
 function getCorsOptions(): cors.CorsOptions {
   const origins = process.env.CORS_ORIGINS;
@@ -86,6 +87,7 @@ export function createApp() {
   app.use('/withdrawals', withdrawalRoutes);
   app.use('/recordings', recordingRoutes);
   app.use('/reactions', reactionRoutes);
+  app.use('/audio', audioRoutes);
 
   // Error handler
   app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
