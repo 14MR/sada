@@ -1,5 +1,6 @@
 import { AppDataSource } from "../config/database";
 import { SpeakerRequest } from "../models/SpeakerRequest";
+import { Room } from "../models/Room";
 
 const requestRepository = AppDataSource.getRepository(SpeakerRequest);
 
@@ -54,6 +55,12 @@ export class SpeakerRequestService {
 
     /** Host rejects */
     static async reject(roomId: string, requestId: string, hostId: string) {
+        // Verify the rejecting user is the room host
+        const roomRepository = AppDataSource.getRepository(Room);
+        const room = await roomRepository.findOne({ where: { id: roomId } });
+        if (!room) throw new Error("Room not found");
+        if (room.host_id !== hostId) throw new Error("Only the host can reject speaker requests");
+
         const request = await requestRepository.findOne({
             where: { id: requestId, room_id: roomId },
         });

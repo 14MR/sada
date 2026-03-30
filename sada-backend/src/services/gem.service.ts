@@ -34,7 +34,7 @@ export class GemService {
         if (amount <= 0) throw new Error("Amount must be positive");
         if (senderId === receiverId) throw new Error("Cannot gift yourself");
 
-        return await AppDataSource.manager.transaction(async transactionalEntityManager => {
+        const savedTx = await AppDataSource.manager.transaction(async transactionalEntityManager => {
             const sender = await transactionalEntityManager.findOne(User, { where: { id: senderId } });
             const receiver = await transactionalEntityManager.findOne(User, { where: { id: receiverId } });
 
@@ -57,34 +57,34 @@ export class GemService {
             tx.type = TransactionType.GIFT;
             if (roomId) tx.reference_id = roomId;
 
-            const savedTx = await transactionalEntityManager.save(tx);
-
-            // Notify Receiver
-            try {
-                ChatService.getInstance().sendToUser(receiverId, "notification", {
-                    type: "gift_received",
-                    message: `You received ${amount} gems!`,
-                    senderId: sender.id,
-                    amount: amount
-                });
-            } catch (e) {
-                console.warn("Failed to send socket notification", e);
-            }
-
-            try {
-                await NotificationService.create(
-                    receiverId,
-                    NotificationType.GIFT,
-                    `You received ${amount} gems!`,
-                    undefined,
-                    { senderId: sender.id, amount }
-                );
-            } catch (e) {
-                console.warn("Failed to create notification", e);
-            }
-
-            return savedTx;
+            return await transactionalEntityManager.save(tx);
         });
+
+        // Notify Receiver (outside transaction so notification failure doesn't roll back the gem transfer)
+        try {
+            ChatService.getInstance().sendToUser(receiverId, "notification", {
+                type: "gift_received",
+                message: `You received ${amount} gems!`,
+                senderId: senderId,
+                amount: amount
+            });
+        } catch (e) {
+            console.warn("Failed to send socket notification", e);
+        }
+
+        try {
+            await NotificationService.create(
+                receiverId,
+                NotificationType.GIFT,
+                `You received ${amount} gems!`,
+                undefined,
+                { senderId: senderId, amount }
+            );
+        } catch (e) {
+            console.warn("Failed to create notification", e);
+        }
+
+        return savedTx;
     }
 
     static async getBalance(userId: string) {

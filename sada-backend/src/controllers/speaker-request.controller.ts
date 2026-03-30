@@ -8,7 +8,7 @@ export class SpeakerRequestController {
             const userId = (req as any).user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
-            const { roomId } = req.params as { roomId: string };
+            const { id: roomId } = req.params as { id: string };
             const { message } = req.body;
 
             const request = await SpeakerRequestService.raiseHand(roomId, userId, message);
@@ -22,7 +22,7 @@ export class SpeakerRequestController {
     /** GET /rooms/:roomId/speaker-queue — host sees pending requests */
     static async getQueue(req: Request, res: Response) {
         try {
-            const { roomId } = req.params as { roomId: string };
+            const { id: roomId } = req.params as { id: string };
             const queue = await SpeakerRequestService.getPending(roomId);
             return res.json(queue);
         } catch (error) {
@@ -36,7 +36,7 @@ export class SpeakerRequestController {
             const userId = (req as any).user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
-            const { roomId, requestId } = req.params as { roomId: string; requestId: string };
+            const { id: roomId, requestId } = req.params as { id: string; requestId: string };
             const request = await SpeakerRequestService.approve(roomId, requestId, userId);
             return res.json(request);
         } catch (error: any) {
@@ -53,7 +53,7 @@ export class SpeakerRequestController {
             const userId = (req as any).user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
-            const { roomId, requestId } = req.params as { roomId: string; requestId: string };
+            const { id: roomId, requestId } = req.params as { id: string; requestId: string };
             const request = await SpeakerRequestService.reject(roomId, requestId, userId);
             return res.json(request);
         } catch (error: any) {
@@ -70,7 +70,7 @@ export class SpeakerRequestController {
             const userId = (req as any).user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
-            const { roomId } = req.params as { roomId: string };
+            const { id: roomId } = req.params as { id: string };
             const request = await SpeakerRequestService.cancel(roomId, userId);
             return res.json(request);
         } catch (error: any) {

@@ -12,7 +12,10 @@ export class AuthController {
 
             const result = await AuthService.signInWithApple(identityToken, fullName);
             return res.json(result);
-        } catch (error) {
+        } catch (error: any) {
+            if (error.message === "User is banned") {
+                return res.status(403).json({ error: "Account is banned" });
+            }
             console.error("Signin Error:", error);
             return res.status(500).json({ error: "Authentication failed" });
         }

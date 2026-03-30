@@ -29,30 +29,6 @@ export class ModerationService {
         return await reportRepository.save(report);
     }
 
-    static async getReports(status?: ReportStatus, limit: number = 20, offset: number = 0) {
-        const where = status ? { status } : {};
-        const [reports, total] = await reportRepository.findAndCount({
-            where,
-            relations: ["reporter", "reported_user"],
-            order: { created_at: "DESC" },
-            take: limit,
-            skip: offset,
-        });
-        return { reports, total, hasMore: offset + limit < total };
-    }
-
-    static async reviewReport(reportId: string, adminId: string, status: ReportStatus) {
-        const report = await reportRepository.findOneBy({ id: reportId });
-        if (!report) throw new Error("Report not found");
-        if (report.status !== ReportStatus.PENDING) throw new Error("Report already reviewed");
-
-        report.status = status;
-        report.reviewed_at = new Date();
-        report.reviewed_by = adminId;
-
-        return await reportRepository.save(report);
-    }
-
     // === Blocks ===
 
     static async blockUser(blockerId: string, blockedId: string) {
@@ -81,15 +57,5 @@ export class ModerationService {
             relations: ["blocked"],
         });
         return blocks.map((b) => b.blocked);
-    }
-
-    static async isBlocked(userId1: string, userId2: string) {
-        const block = await blockRepository.findOne({
-            where: [
-                { blocker_id: userId1, blocked_id: userId2 },
-                { blocker_id: userId2, blocked_id: userId1 },
-            ],
-        });
-        return !!block;
     }
 }

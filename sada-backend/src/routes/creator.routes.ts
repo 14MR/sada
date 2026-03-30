@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { CreatorController } from "../controllers/creator.controller";
+import { authenticate } from "../middleware/auth";
 
 const router = Router();
+
+router.use(authenticate);
 
 router.get("/dashboard", CreatorController.dashboard);
 router.get("/earnings", CreatorController.earnings);

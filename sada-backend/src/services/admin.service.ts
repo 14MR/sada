@@ -57,7 +57,7 @@ export class AdminService {
         await userRepo.save(user);
 
         const log = new AdminAction();
-        log.admin_key = adminKey;
+        log.admin_key = "[REDACTED]";
         log.action_type = "ban_user";
         log.target_user_id = userId;
         log.details = { banned: true };
@@ -74,7 +74,7 @@ export class AdminService {
         await userRepo.save(user);
 
         const log = new AdminAction();
-        log.admin_key = adminKey;
+        log.admin_key = "[REDACTED]";
         log.action_type = "unban_user";
         log.target_user_id = userId;
         log.details = { banned: false };
@@ -91,7 +91,7 @@ export class AdminService {
         await reportRepo.save(report);
 
         const log = new AdminAction();
-        log.admin_key = adminKey;
+        log.admin_key = "[REDACTED]";
         log.action_type = action;
         log.target_report_id = reportId;
         log.target_user_id = report.reported_user_id;
