@@ -10,7 +10,13 @@ import followRoutes from './routes/follow.routes';
 export function createApp() {
   const app = express();
 
-  app.use(cors());
+  const corsOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map(o => o.trim())
+    : [];
+
+  app.use(cors({
+    origin: corsOrigins.length > 0 ? corsOrigins : false,
+  }));
   app.use(express.json());
 
   // Routes
