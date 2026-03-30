@@ -51,6 +51,20 @@ export function createApp() {
   // Request logging
   app.use(requestLogger);
 
+  // Health check (before authenticate, so it's always accessible)
+  app.get('/health', async (req, res) => {
+    try {
+      const { AppDataSource } = await import('./config/database');
+      if (AppDataSource.isInitialized) {
+        res.json({ status: 'ok', uptime: process.uptime(), memory: process.memoryUsage().heapUsed });
+      } else {
+        res.status(503).json({ status: 'degraded', error: 'Database not connected' });
+      }
+    } catch {
+      res.status(503).json({ status: 'degraded', error: 'Database check failed' });
+    }
+  });
+
   // Auth middleware applied globally (skips signin and health)
   app.use(authenticate);
 
@@ -72,11 +86,6 @@ export function createApp() {
   app.use('/withdrawals', withdrawalRoutes);
   app.use('/recordings', recordingRoutes);
   app.use('/reactions', reactionRoutes);
-
-  // Health check
-  app.get('/health', (req, res) => {
-    res.json({ status: 'ok' });
-  });
 
   // Error handler
   app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

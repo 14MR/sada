@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { WithdrawalController } from "../controllers/withdrawal.controller";
-import { authenticate } from "../middleware/auth";
 import { adminAuth } from "../middleware/admin";
 import { validate } from "../middleware/validation";
 import { requestWithdrawalSchema, processWithdrawalSchema } from "../validators/withdrawal.validator";
@@ -8,8 +7,8 @@ import { requestWithdrawalSchema, processWithdrawalSchema } from "../validators/
 const router = Router();
 
 // User routes (auth required)
-router.post("/", authenticate, validate(requestWithdrawalSchema), WithdrawalController.request);
-router.get("/", authenticate, WithdrawalController.list);
+router.post("/", validate(requestWithdrawalSchema), WithdrawalController.request);
+router.get("/", WithdrawalController.list);
 
 // Admin routes
 router.get("/pending", adminAuth, WithdrawalController.pending);

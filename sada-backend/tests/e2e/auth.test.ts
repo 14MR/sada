@@ -40,7 +40,7 @@ describe('Auth E2E', () => {
     it('should return 200 with status ok', async () => {
       const res = await request(getApp()).get('/health');
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({ status: 'ok' });
+      expect(res.body.status).toBe('ok');
     });
   });
 

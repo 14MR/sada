@@ -57,13 +57,8 @@ export class GemService {
     static async purchaseGems(userId: string, amount: number, receiptData?: string, platform?: "apple" | "google") {
         if (amount <= 0) throw new Error("Amount must be positive");
 
-        // Payment verification & idempotency when receipt is provided
+        // Payment verification when receipt is provided
         if (receiptData) {
-            const hash = PaymentService.receiptHash(receiptData);
-            if (PaymentService.isDuplicate(hash)) {
-                throw new Error("Duplicate purchase — receipt already processed");
-            }
-
             const verification = platform === "google"
                 ? await PaymentService.verifyGooglePurchase(receiptData, `gems_${amount}`)
                 : await PaymentService.verifyApplePurchase(receiptData);
@@ -74,6 +69,14 @@ export class GemService {
         }
 
         const txResult = await AppDataSource.manager.transaction(async transactionalEntityManager => {
+            // Idempotency check inside transaction to prevent TOCTOU race
+            if (receiptData) {
+                const hash = PaymentService.receiptHash(receiptData);
+                if (PaymentService.isDuplicate(hash)) {
+                    throw new Error("Duplicate purchase — receipt already processed");
+                }
+            }
+
             const user = await transactionalEntityManager.findOne(User, { where: { id: userId } });
             if (!user) throw new Error("User not found");
 
