@@ -37,13 +37,13 @@ export class RoomRecording {
     @Column("text", { nullable: true })
     description!: string | null;
 
-    @Column({ name: "duration_seconds", nullable: true })
+    @Column({ type: "integer", name: "duration_seconds", nullable: true })
     duration_seconds!: number | null;
 
-    @Column({ name: "file_url", nullable: true })
+    @Column({ type: "varchar", name: "file_url", nullable: true })
     file_url!: string | null;
 
-    @Column({ name: "file_size_bytes", nullable: true })
+    @Column({ type: "integer", name: "file_size_bytes", nullable: true })
     file_size_bytes!: number | null;
 
     @Column({ length: 20, default: RecordingStatus.RECORDING })

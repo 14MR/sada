@@ -44,7 +44,7 @@ export class Withdrawal {
     @Column({ type: "jsonb", nullable: true })
     payout_details!: Record<string, any> | null;
 
-    @Column({ nullable: true })
+    @Column({ type: "varchar", nullable: true })
     stripe_transfer_id!: string | null;
 
     @CreateDateColumn({ name: "requested_at" })

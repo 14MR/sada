@@ -54,7 +54,7 @@ export class Report {
     @CreateDateColumn()
     created_at!: Date;
 
-    @Column({ nullable: true })
+    @Column({ type: "datetime", nullable: true })
     reviewed_at!: Date | null;
 
     @Column({ type: "uuid", nullable: true })

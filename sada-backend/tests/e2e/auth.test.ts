@@ -1,58 +1,131 @@
-import { createTestApp, authHeader, generateToken, TEST_USER_ID } from './helpers';
+import request from 'supertest';
+import { setupTestDB, clearDatabase, createTestUser, getApp } from './helpers';
+import { AppDataSource } from '../../src/config/database';
+import { User } from '../../src/models/User';
 
-const request = createTestApp();
+// Mock database to use in-memory SQLite
+jest.mock('../../src/config/database', () => require('./testDb'));
 
-describe('E2E - Health & Auth', () => {
+// Mock AudioService to avoid network calls
+jest.mock('../../src/services/audio.service', () => ({
+  AudioService: {
+    createSession: jest.fn().mockResolvedValue({
+      provider: 'test', sessionId: 'test-session', iceServers: [],
+      connectionDetails: { websocketUrl: 'ws://test', token: 'mock' },
+    }),
+    generateToken: jest.fn().mockResolvedValue({
+      iceServers: [],
+      connectionDetails: { websocketUrl: 'ws://test', token: 'mock-token' },
+    }),
+  },
+}));
+
+jest.mock('../../src/services/chat.service', () => ({
+  ChatService: {
+    getInstance: jest.fn().mockReturnValue({ sendToUser: jest.fn() }),
+    initialize: jest.fn(),
+  },
+}));
+
+describe('Auth E2E', () => {
+  beforeAll(async () => {
+    await setupTestDB();
+  });
+
+  beforeEach(async () => {
+    await clearDatabase();
+  });
+
   describe('GET /health', () => {
     it('should return 200 with status ok', async () => {
-      const res = await request.get('/health');
+      const res = await request(getApp()).get('/health');
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ status: 'ok' });
     });
   });
 
-  describe('Protected endpoints without token', () => {
-    it('should return 401 when accessing /withdrawals without token', async () => {
-      const res = await request.get('/withdrawals');
-      expect(res.status).toBe(401);
+  describe('POST /auth/signin', () => {
+    it('should create a new user on first sign-in', async () => {
+      const response = await request(getApp())
+        .post('/auth/signin')
+        .send({ identityToken: 'test-apple-id-001', fullName: 'John Doe' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.user).toBeDefined();
+      expect(response.body.user.display_name).toBe('John Doe');
+      expect(response.body.token).toBeDefined();
+
+      const users = await AppDataSource.getRepository(User).find();
+      expect(users).toHaveLength(1);
+      expect(users[0].apple_id).toBe('test-apple-id-001');
     });
 
-    it('should return 401 when accessing /reactions without token', async () => {
-      const res = await request.post('/reactions').send({});
-      expect(res.status).toBe(401);
+    it('should login existing user on subsequent sign-in', async () => {
+      const first = await request(getApp())
+        .post('/auth/signin')
+        .send({ identityToken: 'test-apple-id-002', fullName: 'First Name' });
+
+      expect(first.status).toBe(200);
+      const userId = first.body.user.id;
+
+      const second = await request(getApp())
+        .post('/auth/signin')
+        .send({ identityToken: 'test-apple-id-002', fullName: 'Updated Name' });
+
+      expect(second.status).toBe(200);
+      expect(second.body.user.id).toBe(userId);
+      expect(second.body.user.display_name).toBe('First Name');
+      expect(second.body.token).toBeDefined();
+
+      const users = await AppDataSource.getRepository(User).find();
+      expect(users).toHaveLength(1);
     });
 
-    it('should return 401 with an invalid token', async () => {
-      const res = await request
-        .get('/withdrawals')
-        .set('Authorization', 'Bearer invalid.token.here');
-      expect(res.status).toBe(401);
+    it('should return 400 if identityToken is missing', async () => {
+      const response = await request(getApp())
+        .post('/auth/signin')
+        .send({ fullName: 'No Token' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('identityToken');
+    });
+
+    it('should return 403 for banned users', async () => {
+      await createTestUser({ banned: true, apple_id: 'banned-apple-id' });
+
+      const response = await request(getApp())
+        .post('/auth/signin')
+        .send({ identityToken: 'banned-apple-id' });
+
+      expect(response.status).toBe(403);
+      expect(response.body.error).toContain('banned');
     });
   });
 
-  describe('Protected endpoints with valid token', () => {
-    it('should return 401 for a malformed (non-Bearer) Authorization header', async () => {
-      const res = await request
-        .get('/withdrawals')
-        .set('Authorization', generateToken());
-      expect(res.status).toBe(401);
+  describe('Protected routes authentication', () => {
+    it('should return 401 when accessing protected route without token', async () => {
+      const response = await request(getApp()).get('/creator/dashboard');
+      expect(response.status).toBe(401);
     });
 
-    it('should accept valid token on a protected route (DB-dependent, may get 500)', async () => {
-      const res = await request
-        .get('/withdrawals')
-        .set(authHeader());
-      // With valid auth: route runs but may fail at DB layer (500) or succeed (200)
-      // We only assert it did NOT reject auth
-      expect(res.status).not.toBe(401);
+    it('should return 401 with invalid token', async () => {
+      const response = await request(getApp())
+        .get('/creator/dashboard')
+        .set('Authorization', 'Bearer invalid_token_here');
+
+      expect(response.status).toBe(401);
     });
 
-    it('should accept valid token on /reactions POST (DB-dependent, may get 500)', async () => {
-      const res = await request
-        .post('/reactions')
-        .set(authHeader())
-        .send({ targetType: 'room', targetId: 'room-1', emoji: '👍' });
-      expect(res.status).not.toBe(401);
+    it('should return data with valid token', async () => {
+      const { user, token } = await createTestUser();
+
+      const response = await request(getApp())
+        .get('/creator/dashboard')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.user).toBeDefined();
+      expect(response.body.user.id).toBe(user.id);
     });
   });
 });
