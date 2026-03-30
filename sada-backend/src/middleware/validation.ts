@@ -10,7 +10,8 @@ export const validate = (schema: ZodObject, source: "body" | "query" | "params" 
             if (error instanceof ZodError) {
                 return res.status(400).json({ error: error.issues[0].message });
             }
-            console.error(error);
+ catch (error) {
+                console.error(error);
             return res.status(500).json({ error: "Internal server error" });
         }
     };
