@@ -36,26 +36,22 @@ export class RoomService {
 
         await participantRepository.save(participant);
 
-        // Notify host's followers that a room started
-        try {
-            const followRepository = AppDataSource.getRepository(Follow);
-            const followers = await followRepository.find({
-                where: { following: { id: host.id } },
-                relations: ["follower"],
-            });
-
-            for (const follow of followers) {
-                await NotificationService.create(
+        // Notify host's followers that a room started (fire-and-forget)
+        const followRepository = AppDataSource.getRepository(Follow);
+        followRepository.find({
+            where: { following: { id: host.id } },
+            relations: ["follower"],
+        }).then((followers) => {
+            Promise.all(followers.map((follow) =>
+                NotificationService.create(
                     follow.follower.id,
                     NotificationType.ROOM_STARTED,
                     `${host.username || "Someone"} started a room: ${title}`,
                     undefined,
                     { roomId: savedRoom.id, hostId: host.id }
-                );
-            }
-        } catch (e) {
-            console.warn("Failed to notify followers", e);
-        }
+                ).catch((e) => console.warn("Failed to notify follower", e))
+            ));
+        }).catch((e) => console.warn("Failed to fetch followers for notification", e));
 
         // Return room + audio details (simple merge for MVP response)
         return { ...savedRoom, audio: audioSession };

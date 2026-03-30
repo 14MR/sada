@@ -83,7 +83,7 @@ export class CreatorService {
         if (from) query.andWhere("tx.created_at >= :from", { from });
         if (to) query.andWhere("tx.created_at <= :to", { to });
 
-        const transactions = await query.orderBy("tx.created_at", "DESC").getMany();
+        const transactions = await query.orderBy("tx.created_at", "DESC").limit(1000).getMany();
 
         const totalGems = transactions.reduce((sum, tx) => sum + tx.amount, 0);
 
@@ -118,7 +118,7 @@ export class CreatorService {
 
     /** Top supporters — users who gifted the most gems */
     static async getTopSupporters(userId: string, limit: number) {
-        return await gemRepository
+        const raw = await gemRepository
             .createQueryBuilder("tx")
             .leftJoinAndSelect("tx.sender", "sender")
             .select("tx.sender_id", "userId")
@@ -131,5 +131,11 @@ export class CreatorService {
             .orderBy("totalGems", "DESC")
             .limit(limit)
             .getRawMany();
+
+        return raw.map((row: any) => ({
+            ...row,
+            totalGems: parseInt(row.totalGems, 10),
+            giftCount: parseInt(row.giftCount, 10),
+        }));
     }
 }
