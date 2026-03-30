@@ -1,24 +1,13 @@
 import { Request, Response } from "express";
 import { RoomService } from "../services/room.service";
-import { AuthService } from "../services/auth.service"; // Assume we might need to verify user or get from request
+import { AuthenticatedRequest } from "../middleware/auth";
 
 export class RoomController {
-    static async create(req: Request, res: Response) {
+    static async create(req: AuthenticatedRequest, res: Response) {
         try {
-            // In a real app, user is attached to req by middleware
-            // For MVP, we pass userId in body or header if not using full middleware yet
-            // Let's assume we pass { userId, title, category, description } in body for now
-            const { userId, title, category, description } = req.body;
+            const { title, category, description } = req.body;
+            const userId = req.user!.id;
 
-            // TODO: Replace with req.user from middleware
-            const user = await AuthService.mapUser(userId, undefined, undefined); // This is hacky, assumes userId is appleId. 
-            // Better: Fetch user by DB ID
-            // Let's assume for this step we have a proper middleware or we fetch user by ID
-            // Fix: We need a way to get the User entity.
-            // Let's assume the auth middleware puts { id } in req.headers['user-id'] for this phase? 
-            // Or just fetch by ID.
-
-            // Re-fetching user for safety
             const { UserService } = require("../services/user.service");
             const host = await UserService.getProfile(userId);
 
@@ -54,10 +43,10 @@ export class RoomController {
         }
     }
 
-    static async join(req: Request, res: Response) {
+    static async join(req: AuthenticatedRequest, res: Response) {
         try {
             const id = req.params.id as string;
-            const { userId } = req.body;
+            const userId = req.user!.id;
 
             const { UserService } = require("../services/user.service");
             const user = await UserService.getProfile(userId);
@@ -70,10 +59,10 @@ export class RoomController {
         }
     }
 
-    static async leave(req: Request, res: Response) {
+    static async leave(req: AuthenticatedRequest, res: Response) {
         try {
             const id = req.params.id as string;
-            const { userId } = req.body;
+            const userId = req.user!.id;
             await RoomService.leaveRoom(userId, id);
             return res.json({ success: true });
         } catch (error) {
@@ -81,10 +70,11 @@ export class RoomController {
         }
     }
 
-    static async manageSpeaker(req: Request, res: Response) {
+    static async manageSpeaker(req: AuthenticatedRequest, res: Response) {
         try {
             const id = req.params.id as string;
-            const { userId, targetUserId, role } = req.body; // userId is the requester (Host)
+            const { targetUserId, role } = req.body;
+            const userId = req.user!.id;
 
             if (!targetUserId || !role) {
                 return res.status(400).json({ error: "Missing targetUserId or role" });
@@ -97,10 +87,10 @@ export class RoomController {
         }
     }
 
-    static async end(req: Request, res: Response) {
+    static async end(req: AuthenticatedRequest, res: Response) {
         try {
             const id = req.params.id as string;
-            const { userId } = req.body; // Host ID
+            const userId = req.user!.id;
             await RoomService.endRoom(userId, id);
             return res.json({ success: true });
         } catch (error: any) {

@@ -1,8 +1,9 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { UserService } from "../services/user.service";
+import { AuthenticatedRequest } from "../middleware/auth";
 
 export class UserController {
-    static async getProfile(req: Request, res: Response) {
+    static async getProfile(req: AuthenticatedRequest, res: Response) {
         try {
             const id = req.params.id as string;
             const user = await UserService.getProfile(id);
@@ -16,14 +17,15 @@ export class UserController {
         }
     }
 
-    static async updateProfile(req: Request, res: Response) {
+    static async updateProfile(req: AuthenticatedRequest, res: Response) {
         try {
             const id = req.params.id as string;
+
+            if (req.user!.id !== id) {
+                return res.status(403).json({ error: "Cannot update another user's profile" });
+            }
+
             const updates = req.body;
-
-            // In a real app, ensure the requester is the user itself or admin
-            // e.g. if (req.user.id !== id) return res.status(403)
-
             const updatedUser = await UserService.updateProfile(id, updates);
             return res.status(200).json(updatedUser);
         } catch (error: any) {
@@ -31,10 +33,14 @@ export class UserController {
         }
     }
 
-    static async deleteAccount(req: Request, res: Response) {
+    static async deleteAccount(req: AuthenticatedRequest, res: Response) {
         try {
             const id = req.params.id as string;
-            // TODO: Auth Check - Ensure only the user can delete themselves
+
+            if (req.user!.id !== id) {
+                return res.status(403).json({ error: "Cannot delete another user's account" });
+            }
+
             await UserService.deleteUser(id);
             return res.status(200).json({ success: true, message: "Account deleted successfully" });
         } catch (error: any) {

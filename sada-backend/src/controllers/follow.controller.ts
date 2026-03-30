@@ -1,13 +1,12 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { FollowService } from "../services/follow.service";
+import { AuthenticatedRequest } from "../middleware/auth";
 
 export class FollowController {
-    static async follow(req: Request, res: Response) {
+    static async follow(req: AuthenticatedRequest, res: Response) {
         try {
-            const id = req.params.id as string; // ID of user to follow
-            const { userId } = req.body; // Current user ID (follower)
-
-            if (!userId) return res.status(401).json({ error: "Unauthorized" });
+            const id = req.params.id as string;
+            const userId = req.user!.id;
 
             await FollowService.followUser(userId, id);
             return res.status(200).json({ success: true, message: "Followed successfully" });
@@ -16,12 +15,10 @@ export class FollowController {
         }
     }
 
-    static async unfollow(req: Request, res: Response) {
+    static async unfollow(req: AuthenticatedRequest, res: Response) {
         try {
-            const id = req.params.id as string; // ID of user to unfollow
-            const { userId } = req.body; // Current user ID (follower)
-
-            if (!userId) return res.status(401).json({ error: "Unauthorized" });
+            const id = req.params.id as string;
+            const userId = req.user!.id;
 
             await FollowService.unfollowUser(userId, id);
             return res.status(200).json({ success: true, message: "Unfollowed successfully" });
@@ -30,7 +27,7 @@ export class FollowController {
         }
     }
 
-    static async listFollowers(req: Request, res: Response) {
+    static async listFollowers(req: AuthenticatedRequest, res: Response) {
         try {
             const id = req.params.id as string;
             const followers = await FollowService.getFollowers(id);
@@ -40,7 +37,7 @@ export class FollowController {
         }
     }
 
-    static async listFollowing(req: Request, res: Response) {
+    static async listFollowing(req: AuthenticatedRequest, res: Response) {
         try {
             const id = req.params.id as string;
             const following = await FollowService.getFollowing(id);

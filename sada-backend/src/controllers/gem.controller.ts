@@ -1,11 +1,12 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { GemService } from "../services/gem.service";
+import { AuthenticatedRequest } from "../middleware/auth";
 
 export class GemController {
-    static async purchase(req: Request, res: Response) {
+    static async purchase(req: AuthenticatedRequest, res: Response) {
         try {
-            const { userId, amount } = req.body;
-            // In a real app, verify payment signature here
+            const { amount } = req.body;
+            const userId = req.user!.id;
             const tx = await GemService.purchaseGems(userId, amount);
             return res.json(tx);
         } catch (error: any) {
@@ -13,9 +14,10 @@ export class GemController {
         }
     }
 
-    static async gift(req: Request, res: Response) {
+    static async gift(req: AuthenticatedRequest, res: Response) {
         try {
-            const { userId, receiverId, amount, roomId } = req.body;
+            const { receiverId, amount, roomId } = req.body;
+            const userId = req.user!.id;
             const tx = await GemService.sendGift(userId, receiverId, amount, roomId);
             return res.json(tx);
         } catch (error: any) {
@@ -23,7 +25,7 @@ export class GemController {
         }
     }
 
-    static async getBalance(req: Request, res: Response) {
+    static async getBalance(req: AuthenticatedRequest, res: Response) {
         try {
             const userId = req.params.userId as string;
             const balance = await GemService.getBalance(userId);
@@ -33,7 +35,7 @@ export class GemController {
         }
     }
 
-    static async getHistory(req: Request, res: Response) {
+    static async getHistory(req: AuthenticatedRequest, res: Response) {
         try {
             const userId = req.params.userId as string;
             const history = await GemService.getHistory(userId);
