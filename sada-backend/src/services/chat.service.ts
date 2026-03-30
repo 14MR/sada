@@ -68,8 +68,15 @@ export class ChatService {
                 socket.join(roomId);
                 socket.to(roomId).emit("user_joined", { socketId: socket.id });
             });
-            socket.on("send_message", (data: { roomId: string, message: string, userId: string, username: string }) => {
-                this.io.to(data.roomId).emit("receive_message", data);
+            socket.on("send_message", (data: { roomId: string, message: string }) => {
+                const user = (socket as any).user;
+                // Use authenticated identity — never trust client-provided userId/username
+                this.io.to(data.roomId).emit("receive_message", {
+                    roomId: data.roomId,
+                    message: data.message,
+                    userId: user?.id,
+                    username: user?.username,
+                });
             });
             socket.on("signal", (data: { roomId: string, signal: any }) => {
                 socket.to(data.roomId).emit("signal", { senderId: socket.id, signal: data.signal });

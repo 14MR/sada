@@ -51,6 +51,10 @@ export function createApp() {
   // Request logging
   app.use(requestLogger);
 
+  // Rate limiting BEFORE auth so unauthenticated brute-force attempts are also throttled
+  app.use('/auth', authLimiter);
+  app.use(apiLimiter);
+
   // Health check (before authenticate, so it's always accessible)
   app.get('/health', async (req, res) => {
     try {
@@ -67,10 +71,6 @@ export function createApp() {
 
   // Auth middleware applied globally (skips signin and health)
   app.use(authenticate);
-
-  // Rate limiting
-  app.use('/auth', authLimiter);
-  app.use(apiLimiter);
 
   // Routes
   app.use('/auth', authRoutes);

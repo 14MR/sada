@@ -42,14 +42,23 @@ export class PaymentService {
         return crypto.createHash("sha256").update(receiptData).digest("hex");
     }
 
-    /** Check if receipt was already processed (prevents duplicate gem credits) */
-    static isDuplicate(receiptHash: string): boolean {
-        return processedReceipts.has(receiptHash);
+    /** Atomically check-and-reserve a receipt hash. Returns true if it was already claimed. */
+    static tryClaim(receiptHash: string): boolean {
+        if (processedReceipts.has(receiptHash)) {
+            return true; // already claimed — duplicate
+        }
+        processedReceipts.set(receiptHash, "pending");
+        return false;
     }
 
-    /** Mark receipt as processed */
+    /** Update receipt record with real transaction ID after commit */
     static markProcessed(receiptHash: string, transactionId: string): void {
         processedReceipts.set(receiptHash, transactionId);
+    }
+
+    /** Remove a claimed receipt if the transaction failed (rollback) */
+    static releaseClaim(receiptHash: string): void {
+        processedReceipts.delete(receiptHash);
     }
 }
 
@@ -68,39 +77,49 @@ export class GemService {
             }
         }
 
-        const txResult = await AppDataSource.manager.transaction(async transactionalEntityManager => {
-            // Idempotency check inside transaction to prevent TOCTOU race
-            if (receiptData) {
-                const hash = PaymentService.receiptHash(receiptData);
-                if (PaymentService.isDuplicate(hash)) {
-                    throw new Error("Duplicate purchase — receipt already processed");
-                }
+        // Atomically check-and-reserve the receipt hash BEFORE the async transaction.
+        // This prevents the TOCTOU race where two concurrent requests both pass
+        // isDuplicate() at their respective await boundaries.
+        let receiptHash: string | null = null;
+        if (receiptData) {
+            receiptHash = PaymentService.receiptHash(receiptData);
+            if (PaymentService.tryClaim(receiptHash)) {
+                throw new Error("Duplicate purchase — receipt already processed");
             }
-
-            const user = await transactionalEntityManager.findOne(User, { where: { id: userId } });
-            if (!user) throw new Error("User not found");
-
-            user.gem_balance += amount;
-            await transactionalEntityManager.save(user);
-
-            const tx = new GemTransaction();
-            tx.receiver = user;
-            tx.amount = amount;
-            tx.type = TransactionType.PURCHASE;
-            if (receiptData) {
-                tx.reference_id = PaymentService.receiptHash(receiptData);
-            }
-
-            const saved = await transactionalEntityManager.save(tx);
-
-            return { saved, receiptHash: receiptData ? PaymentService.receiptHash(receiptData) : null, transactionId: saved.id };
-        });
-
-        // Mark receipt as processed AFTER transaction commits successfully
-        if (txResult.receiptHash) {
-            PaymentService.markProcessed(txResult.receiptHash, txResult.transactionId);
         }
-        return txResult.saved;
+
+        try {
+            const txResult = await AppDataSource.manager.transaction(async transactionalEntityManager => {
+                const user = await transactionalEntityManager.findOne(User, { where: { id: userId } });
+                if (!user) throw new Error("User not found");
+
+                user.gem_balance += amount;
+                await transactionalEntityManager.save(user);
+
+                const tx = new GemTransaction();
+                tx.receiver = user;
+                tx.amount = amount;
+                tx.type = TransactionType.PURCHASE;
+                if (receiptHash) {
+                    tx.reference_id = receiptHash;
+                }
+
+                const saved = await transactionalEntityManager.save(tx);
+                return { saved, transactionId: saved.id };
+            });
+
+            // Update the claim with the real transaction ID after commit
+            if (receiptHash) {
+                PaymentService.markProcessed(receiptHash, txResult.transactionId);
+            }
+            return txResult.saved;
+        } catch (err) {
+            // Release the claim if the transaction failed so the receipt can be retried
+            if (receiptHash) {
+                PaymentService.releaseClaim(receiptHash);
+            }
+            throw err;
+        }
     }
 
     static async sendGift(senderId: string, receiverId: string, amount: number, roomId?: string) {
