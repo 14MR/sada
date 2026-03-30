@@ -3,6 +3,7 @@ import express from "express";
 import { createServer } from "http";
 import { AppDataSource } from "./config/database";
 import { vars } from "./config/env";
+import { authenticate, requireAuth } from "./middleware/auth";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/users.routes";
 import roomRoutes from "./routes/rooms.routes";
@@ -16,12 +17,17 @@ const port = vars.port;
 
 app.use(express.json());
 
-// Routes
+// Global JWT authentication (populates req.user if token present)
+app.use(authenticate);
+
+// Public routes
 app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/users", followRoutes);
+
+// Protected routes
+app.use("/api/users", requireAuth, userRoutes);
+app.use("/api/users", requireAuth, followRoutes);
 app.use("/api/rooms", roomRoutes);
-app.use("/api/gems", gemRoutes);
+app.use("/api/gems", requireAuth, gemRoutes);
 
 // Basic health check
 app.get("/", (req, res) => {

@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { AppDataSource } from './config/database';
+import { authenticate, requireAuth } from './middleware/auth';
 import authRoutes from './routes/auth.routes';
 import usersRoutes from './routes/users.routes';
 import roomsRoutes from './routes/rooms.routes';
@@ -38,12 +39,17 @@ export function createApp() {
   // Auth rate limiting
   app.use('/auth', authLimiter);
 
-  // Routes
+  // Global JWT authentication (populates req.user if token present)
+  app.use(authenticate);
+
+  // Public routes (no auth required)
   app.use('/auth', authRoutes);
-  app.use('/users', usersRoutes);
+
+  // Protected routes (require valid JWT)
+  app.use('/users', requireAuth, usersRoutes);
   app.use('/rooms', roomsRoutes);
-  app.use('/gems', gemRoutes);
-  app.use('/follow', followRoutes);
+  app.use('/gems', requireAuth, gemRoutes);
+  app.use('/follow', requireAuth, followRoutes);
 
   // Health check
   app.get('/health', (req, res) => {
