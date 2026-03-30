@@ -13,9 +13,13 @@ export const AppDataSource = new DataSource({
     username: vars.db.username,
     password: vars.db.password,
     database: vars.db.database,
-    synchronize: true, // Set to false in production
-    logging: false,
+    synchronize: false,
+    logging: process.env.DB_LOGGING === 'true',
     entities: [User, Room, RoomParticipant, Follow, GemTransaction],
     subscribers: [],
     migrations: [],
 });
+
+console.warn(
+    "WARNING: TypeORM synchronize is disabled. Run migrations manually to apply schema changes."
+);
