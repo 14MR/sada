@@ -7,6 +7,7 @@ import roomsRoutes from './routes/rooms.routes';
 import gemRoutes from './routes/gem.routes';
 import followRoutes from './routes/follow.routes';
 import categoryRoutes from './routes/category.routes';
+import creatorRoutes from './routes/creator.routes';
 
 export function createApp() {
   const app = express();
@@ -21,6 +22,7 @@ export function createApp() {
   app.use('/gems', gemRoutes);
   app.use('/follow', followRoutes);
   app.use('/categories', categoryRoutes);
+  app.use('/creator', creatorRoutes);
 
   // Health check
   app.get('/health', (req, res) => {
