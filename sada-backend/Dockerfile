@@ -2,16 +2,10 @@ FROM node:23-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies
 RUN npm ci
 
-# Copy source code
 COPY . .
-
-# Build TypeScript
 RUN npm run build
 
 # Production stage
@@ -19,17 +13,18 @@ FROM node:23-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Install production dependencies only
+COPY package*.json ./
 RUN npm ci --only=production
 
-# Copy built application from builder
 COPY --from=builder /app/dist ./dist
 
-# Expose port
+USER appuser
+
 EXPOSE 3000
 
-# Start the application
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+
 CMD ["npm", "start"]

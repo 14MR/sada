@@ -5,7 +5,9 @@ import rateLimit from "express-rate-limit";
 import { createServer } from "http";
 import { AppDataSource } from "./config/database";
 import { vars } from "./config/env";
+import logger from "./config/logger";
 import { authenticate } from "./middleware/auth";
+import { requestLogger } from "./middleware/requestLogger";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/users.routes";
 import roomRoutes from "./routes/rooms.routes";
@@ -32,6 +34,9 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Request logging
+app.use(requestLogger);
 
 // Auth middleware (skips / and /api/auth/signin)
 app.use(authenticate);
@@ -66,23 +71,50 @@ app.use("/api/withdrawals", withdrawalRoutes);
 app.use("/api/recordings", recordingRoutes);
 app.use("/api/reactions", reactionRoutes);
 
-// Basic health check
-app.get("/", (req, res) => {
-    res.send("SADA Backend is running 🚀");
+// Enhanced health check
+app.get("/", async (req, res) => {
+    const mem = process.memoryUsage();
+    const health: Record<string, any> = {
+        status: "ok",
+        version: process.env.npm_package_version || "1.0.0",
+        uptime: process.uptime(),
+        memory: {
+            rss: `${Math.round(mem.rss / 1024 / 1024)}MB`,
+            heapUsed: `${Math.round(mem.heapUsed / 1024 / 1024)}MB`,
+            heapTotal: `${Math.round(mem.heapTotal / 1024 / 1024)}MB`,
+        },
+    };
+
+    try {
+        if (AppDataSource.isInitialized) {
+            await AppDataSource.query("SELECT 1");
+            health.database = "connected";
+        } else {
+            health.database = "not initialized";
+            health.status = "degraded";
+        }
+    } catch {
+        health.database = "error";
+        health.status = "unhealthy";
+        return res.status(503).json(health);
+    }
+
+    const code = health.status === "ok" ? 200 : 503;
+    res.status(code).json(health);
 });
 
 // Initialize Database and Start Server
 AppDataSource.initialize()
     .then(() => {
-        console.log("Data Source has been initialized!");
+        logger.info("Data Source has been initialized");
 
         // Initialize Chat Service (Socket.io)
         ChatService.initialize(httpServer);
 
         httpServer.listen(port, () => {
-            console.log(`Server started on port ${port}`);
+            logger.info({ port }, "Server started");
         });
     })
     .catch((err) => {
-        console.error("Error during Data Source initialization", err);
+        logger.fatal(err, "Error during Data Source initialization");
     });

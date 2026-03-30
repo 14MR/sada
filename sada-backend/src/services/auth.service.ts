@@ -3,6 +3,7 @@ import appleSignin from "apple-signin-auth";
 import { User } from "../models/User";
 import { AppDataSource } from "../config/database";
 import { getJwtSecret } from "../middleware/auth";
+import logger from "../config/logger";
 
 const userRepository = AppDataSource.getRepository(User);
 
@@ -24,7 +25,7 @@ export class AuthService {
                 email: payload.email ?? undefined,
             };
         } catch (err) {
-            console.error("Apple Sign-In verification failed", err);
+            logger.error({ err }, "Apple Sign-In verification failed");
             throw new Error("Invalid Apple Identity Token");
         }
     }

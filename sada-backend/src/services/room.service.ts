@@ -7,6 +7,7 @@ import { AudioService } from "./audio.service";
 import { NotificationService } from "./notification.service";
 import { NotificationType } from "../models/Notification";
 import { Follow } from "../models/Follow";
+import logger from "../config/logger";
 
 const roomRepository = AppDataSource.getRepository(Room);
 const participantRepository = AppDataSource.getRepository(RoomParticipant);
@@ -49,9 +50,9 @@ export class RoomService {
                     `${host.username || "Someone"} started a room: ${title}`,
                     undefined,
                     { roomId: savedRoom.id, hostId: host.id }
-                ).catch((e) => console.warn("Failed to notify follower", e))
+                ).catch((e) => logger.warn({ err: e }, "Failed to notify follower"))
             ));
-        }).catch((e) => console.warn("Failed to fetch followers for notification", e));
+        }).catch((e) => logger.warn({ err: e }, "Failed to fetch followers for notification"));
 
         // Return room + audio details (simple merge for MVP response)
         return { ...savedRoom, audio: audioSession };

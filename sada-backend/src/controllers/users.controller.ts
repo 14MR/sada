@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { UserService } from "../services/user.service";
+import logger from "../config/logger";
 
 export class UserController {
     static async getProfile(req: Request, res: Response) {
@@ -11,7 +12,7 @@ export class UserController {
             }
             return res.json(user);
         } catch (error) {
-            console.error("Get Profile Error:", error);
+            logger.error({ err: error }, "Get Profile Error");
             return res.status(500).json({ error: "Failed to fetch profile" });
         }
     }

@@ -2,6 +2,7 @@ import { AppDataSource } from "../config/database";
 import { User } from "../models/User";
 import { NotificationService } from "./notification.service";
 import { NotificationType } from "../models/Notification";
+import logger from "../config/logger";
 
 interface ExpoPushMessage {
     to: string | string[];
@@ -132,7 +133,7 @@ export class PushService {
             const result = await response.json();
             return result.data || [];
         } catch (err) {
-            console.error("Push notification send failed", err);
+            logger.error({ err }, "Push notification send failed");
             return messages.map(() => ({ status: "error", message: String(err) }));
         }
     }
@@ -150,7 +151,7 @@ export class PushService {
 
         // Send push notification (non-blocking)
         this.sendToUser(userId, title, body || "", data).catch(err => {
-            console.warn("Push notification failed", err);
+            logger.warn({ err }, "Push notification failed");
         });
     }
 }

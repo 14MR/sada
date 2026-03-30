@@ -5,6 +5,7 @@ import { User } from "../models/User";
 import { ChatService } from "./chat.service";
 import { NotificationService } from "./notification.service";
 import { NotificationType } from "../models/Notification";
+import logger from "../config/logger";
 
 // In-memory receipt hash store for idempotency (prod should use Redis/DB)
 const processedReceipts = new Map<string, string>();
@@ -134,7 +135,7 @@ export class GemService {
                 amount
             });
         } catch (e) {
-            console.warn("Failed to send socket notification", e);
+            logger.warn({ err: e }, "Failed to send socket notification");
         }
 
         try {
@@ -146,7 +147,7 @@ export class GemService {
                 { senderId, amount }
             );
         } catch (e) {
-            console.warn("Failed to create notification", e);
+            logger.warn({ err: e }, "Failed to create notification");
         }
 
         return savedTx;

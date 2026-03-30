@@ -1,4 +1,5 @@
 import { vars } from "../config/env";
+import logger from "../config/logger";
 
 export class AudioService {
     // Helper to fetch ICE servers from Cloudflare
@@ -18,14 +19,14 @@ export class AudioService {
 
             if (!response.ok) {
                 const text = await response.text();
-                console.error("Cloudflare TURN Error:", text);
+                logger.error({ text }, "Cloudflare TURN Error");
                 return []; // Fallback or throw
             }
 
             const data = await response.json();
             return data.iceServers;
         } catch (error) {
-            console.error("Failed to fetch ICE servers:", error);
+            logger.error({ err: error }, "Failed to fetch ICE servers");
             return [];
         }
     }
@@ -37,7 +38,7 @@ export class AudioService {
 
         // TODO: To generate real sessions/tokens, we need the Cloudflare Realtime App Secret.
         // For now, we return valid-looking config using the real App ID.
-        console.log(`[AudioService] Creating session for room ${roomId} by host ${hostId}`);
+        logger.debug({ roomId, hostId }, "Creating session");
 
         const iceServers = await this.getIceServers();
 
@@ -56,7 +57,7 @@ export class AudioService {
 
     static async generateToken(roomId: string, userId: string, role: string) {
         const { appId } = vars.cloudflare;
-        console.log(`[AudioService] Generating token for user ${userId} in room ${roomId} with role ${role}`);
+        logger.debug({ roomId, userId, role }, "Generating token");
 
         const iceServers = await this.getIceServers();
 

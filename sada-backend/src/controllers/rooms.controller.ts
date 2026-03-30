@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { RoomService } from "../services/room.service";
 import { AuthService } from "../services/auth.service"; // Assume we might need to verify user or get from request
+import logger from "../config/logger";
 
 export class RoomController {
     static async create(req: Request, res: Response) {
@@ -19,7 +20,7 @@ export class RoomController {
             const room = await RoomService.createRoom(host, title, categoryId, description, scheduledAt ? new Date(scheduledAt) : undefined);
             return res.status(201).json(room);
         } catch (error) {
-            console.error("Create Room Error:", error);
+            logger.error({ err: error }, "Create Room Error");
             return res.status(500).json({ error: "Failed to create room" });
         }
     }
@@ -31,7 +32,7 @@ export class RoomController {
             const rooms = await RoomService.getLiveRooms(category, status);
             return res.json(rooms);
         } catch (error) {
-            console.error("List Rooms Error:", error);
+            logger.error({ err: error }, "List Rooms Error");
             return res.status(500).json({ error: "Failed to list rooms" });
         }
     }
@@ -43,7 +44,7 @@ export class RoomController {
             const rooms = await RoomService.searchRooms(q);
             return res.json(rooms);
         } catch (error) {
-            console.error("Search Rooms Error:", error);
+            logger.error({ err: error }, "Search Rooms Error");
             return res.status(500).json({ error: "Failed to search rooms" });
         }
     }

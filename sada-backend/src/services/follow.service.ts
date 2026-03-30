@@ -4,6 +4,7 @@ import { User } from "../models/User";
 import { ChatService } from "./chat.service";
 import { NotificationService } from "./notification.service";
 import { NotificationType } from "../models/Notification";
+import logger from "../config/logger";
 
 const followRepository = AppDataSource.getRepository(Follow);
 const userRepository = AppDataSource.getRepository(User);
@@ -41,7 +42,7 @@ export class FollowService {
                 followerId: follower.id
             });
         } catch (e) {
-            console.warn("Failed to send socket notification", e);
+            logger.warn({ err: e }, "Failed to send socket notification");
         }
 
         try {
@@ -53,7 +54,7 @@ export class FollowService {
                 { followerId: follower.id }
             );
         } catch (e) {
-            console.warn("Failed to create notification", e);
+            logger.warn({ err: e }, "Failed to create notification");
         }
 
         return savedFollow;

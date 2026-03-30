@@ -3,6 +3,8 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { authenticate } from './middleware/auth';
 import { sanitize } from './middleware/sanitize';
+import { requestLogger } from './middleware/requestLogger';
+import logger from './config/logger';
 import authRoutes from './routes/auth.routes';
 import usersRoutes from './routes/users.routes';
 import roomsRoutes from './routes/rooms.routes';
@@ -46,6 +48,9 @@ export function createApp() {
   app.use(express.json());
   app.use(sanitize);
 
+  // Request logging
+  app.use(requestLogger);
+
   // Auth middleware applied globally (skips signin and health)
   app.use(authenticate);
 
@@ -75,7 +80,7 @@ export function createApp() {
 
   // Error handler
   app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error(err);
+    logger.error({ err, method: req.method, path: req.path }, 'Unhandled error');
     res.status(500).json({ error: 'Internal server error' });
   });
 

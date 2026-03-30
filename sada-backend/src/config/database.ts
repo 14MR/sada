@@ -15,6 +15,8 @@ import { Withdrawal } from "../models/Withdrawal";
 import { RoomRecording } from "../models/RoomRecording";
 import { ChatReaction } from "../models/ChatReaction";
 
+const isProd = process.env.NODE_ENV === "production";
+
 export const AppDataSource = new DataSource({
     type: "postgres",
     host: vars.db.host,
@@ -22,9 +24,9 @@ export const AppDataSource = new DataSource({
     username: vars.db.username,
     password: vars.db.password,
     database: vars.db.database,
-    synchronize: true,
+    synchronize: !isProd,
     logging: false,
     entities: [User, Room, RoomParticipant, Follow, GemTransaction, Category, SpeakerRequest, Report, UserBlock, AdminAction, Notification, Withdrawal, RoomRecording, ChatReaction],
     subscribers: [],
-    migrations: [],
+    migrations: [isProd ? "dist/migrations/*.js" : "src/migrations/*.ts"],
 });
