@@ -37,7 +37,7 @@ export class SpeakerRequest {
     @CreateDateColumn()
     created_at!: Date;
 
-    @Column({ nullable: true })
+    @Column({ type: "timestamp", nullable: true })
     resolved_at!: Date | null;
 
     @Column({ type: "uuid", nullable: true })

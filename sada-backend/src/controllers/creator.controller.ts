@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { CreatorService } from "../services/creator.service";
+import logger from "../config/logger";
 
 export class CreatorController {
     /** GET /creator/dashboard — requires auth */
@@ -12,7 +13,7 @@ export class CreatorController {
             return res.json(stats);
         } catch (error: any) {
             if (error.message === "User not found") return res.status(404).json({ error: error.message });
-            console.error("Creator Dashboard Error:", error);
+            logger.error({ err: error }, "Creator Dashboard Error");
             return res.status(500).json({ error: "Failed to load dashboard" });
         }
     }
@@ -31,7 +32,7 @@ export class CreatorController {
             );
             return res.json(earnings);
         } catch (error) {
-            console.error("Creator Earnings Error:", error);
+            logger.error({ err: error }, "Creator Earnings Error");
             return res.status(500).json({ error: "Failed to load earnings" });
         }
     }
@@ -47,7 +48,7 @@ export class CreatorController {
             const rooms = await CreatorService.getHostedRooms(userId, limit, offset);
             return res.json(rooms);
         } catch (error) {
-            console.error("Creator Rooms Error:", error);
+            logger.error({ err: error }, "Creator Rooms Error");
             return res.status(500).json({ error: "Failed to load rooms" });
         }
     }
@@ -62,7 +63,7 @@ export class CreatorController {
             const supporters = await CreatorService.getTopSupporters(userId, limit);
             return res.json(supporters);
         } catch (error) {
-            console.error("Top Supporters Error:", error);
+            logger.error({ err: error }, "Top Supporters Error");
             return res.status(500).json({ error: "Failed to load supporters" });
         }
     }

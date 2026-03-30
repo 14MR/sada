@@ -3,6 +3,7 @@ import { Withdrawal, WithdrawalStatus, PayoutMethod } from "../models/Withdrawal
 import { User } from "../models/User";
 import { NotificationService } from "./notification.service";
 import { NotificationType } from "../models/Notification";
+import logger from "../config/logger";
 
 const withdrawalRepository = AppDataSource.getRepository(Withdrawal);
 const userRepository = AppDataSource.getRepository(User);
@@ -106,7 +107,7 @@ export class WithdrawalService {
                 { withdrawalId, status: statusText, amount: (result as any).amount }
             );
         } catch (e) {
-            console.warn("Failed to create withdrawal notification", e);
+            logger.warn({ err: e }, "Failed to create withdrawal notification");
         }
 
         return result;

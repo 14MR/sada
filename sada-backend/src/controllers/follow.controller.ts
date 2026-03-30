@@ -4,12 +4,11 @@ import { FollowService } from "../services/follow.service";
 export class FollowController {
     static async follow(req: Request, res: Response) {
         try {
-            const id = req.params.id as string; // ID of user to follow
-            const { userId } = req.body; // Current user ID (follower)
+            const targetId = req.params.id as string;
+            const followerId = (req as any).user?.id;
+            if (!followerId) return res.status(401).json({ error: "Authentication required" });
 
-            if (!userId) return res.status(401).json({ error: "Unauthorized" });
-
-            await FollowService.followUser(userId, id);
+            await FollowService.followUser(followerId, targetId);
             return res.status(200).json({ success: true, message: "Followed successfully" });
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
@@ -18,12 +17,11 @@ export class FollowController {
 
     static async unfollow(req: Request, res: Response) {
         try {
-            const id = req.params.id as string; // ID of user to unfollow
-            const { userId } = req.body; // Current user ID (follower)
+            const targetId = req.params.id as string;
+            const followerId = (req as any).user?.id;
+            if (!followerId) return res.status(401).json({ error: "Authentication required" });
 
-            if (!userId) return res.status(401).json({ error: "Unauthorized" });
-
-            await FollowService.unfollowUser(userId, id);
+            await FollowService.unfollowUser(followerId, targetId);
             return res.status(200).json({ success: true, message: "Unfollowed successfully" });
         } catch (error: any) {
             return res.status(400).json({ error: error.message });

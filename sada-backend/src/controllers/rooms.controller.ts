@@ -1,16 +1,16 @@
 import { Request, Response } from "express";
 import { RoomService } from "../services/room.service";
 import { AuthService } from "../services/auth.service"; // Assume we might need to verify user or get from request
+import logger from "../config/logger";
 
 export class RoomController {
     static async create(req: Request, res: Response) {
         try {
-            // In a real app, user is attached to req by middleware
-            // For MVP, we pass userId in body or header if not using full middleware yet
-            // Let's assume we pass { userId, title, category, description } in body for now
-            const { userId, title, categoryId, description, scheduledAt } = req.body;
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
 
-            // TODO: Replace with req.user from middleware
+            const { title, categoryId, description, scheduledAt } = req.body;
+
             const { UserService } = require("../services/user.service");
             const host = await UserService.getProfile(userId);
 
@@ -19,7 +19,7 @@ export class RoomController {
             const room = await RoomService.createRoom(host, title, categoryId, description, scheduledAt ? new Date(scheduledAt) : undefined);
             return res.status(201).json(room);
         } catch (error) {
-            console.error("Create Room Error:", error);
+            logger.error({ err: error }, "Create Room Error");
             return res.status(500).json({ error: "Failed to create room" });
         }
     }
@@ -31,7 +31,7 @@ export class RoomController {
             const rooms = await RoomService.getLiveRooms(category, status);
             return res.json(rooms);
         } catch (error) {
-            console.error("List Rooms Error:", error);
+            logger.error({ err: error }, "List Rooms Error");
             return res.status(500).json({ error: "Failed to list rooms" });
         }
     }
@@ -43,7 +43,7 @@ export class RoomController {
             const rooms = await RoomService.searchRooms(q);
             return res.json(rooms);
         } catch (error) {
-            console.error("Search Rooms Error:", error);
+            logger.error({ err: error }, "Search Rooms Error");
             return res.status(500).json({ error: "Failed to search rooms" });
         }
     }
@@ -62,7 +62,8 @@ export class RoomController {
     static async join(req: Request, res: Response) {
         try {
             const id = req.params.id as string;
-            const { userId } = req.body;
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { UserService } = require("../services/user.service");
             const user = await UserService.getProfile(userId);
@@ -78,7 +79,9 @@ export class RoomController {
     static async leave(req: Request, res: Response) {
         try {
             const id = req.params.id as string;
-            const { userId } = req.body;
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
+
             await RoomService.leaveRoom(userId, id);
             return res.json({ success: true });
         } catch (error) {
@@ -89,13 +92,16 @@ export class RoomController {
     static async manageSpeaker(req: Request, res: Response) {
         try {
             const id = req.params.id as string;
-            const { userId, targetUserId, role } = req.body; // userId is the requester (Host)
+            const requesterId = (req as any).user?.id;
+            if (!requesterId) return res.status(401).json({ error: "Authentication required" });
+
+            const { targetUserId, role } = req.body;
 
             if (!targetUserId || !role) {
                 return res.status(400).json({ error: "Missing targetUserId or role" });
             }
 
-            const updatedParticipant = await RoomService.updateParticipantRole(userId, id, targetUserId, role);
+            const updatedParticipant = await RoomService.updateParticipantRole(requesterId, id, targetUserId, role);
             return res.json(updatedParticipant);
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
@@ -105,7 +111,9 @@ export class RoomController {
     static async end(req: Request, res: Response) {
         try {
             const id = req.params.id as string;
-            const { userId } = req.body; // Host ID
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
+
             await RoomService.endRoom(userId, id);
             return res.json({ success: true });
         } catch (error: any) {

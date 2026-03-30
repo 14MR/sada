@@ -1,35 +1,132 @@
+import crypto from "crypto";
 import { AppDataSource } from "../config/database";
 import { GemTransaction, TransactionType } from "../models/GemTransaction";
 import { User } from "../models/User";
 import { ChatService } from "./chat.service";
 import { NotificationService } from "./notification.service";
 import { NotificationType } from "../models/Notification";
+import logger from "../config/logger";
 
-const transactionRepository = AppDataSource.getRepository(GemTransaction);
-const userRepository = AppDataSource.getRepository(User);
+// In-memory receipt hash store for idempotency (prod should use Redis/DB)
+const processedReceipts = new Map<string, string>();
 
-export class GemService {
-    // Mock purchase: Add gems to user wallet
-    static async purchaseGems(userId: string, amount: number) {
-        if (amount <= 0) throw new Error("Amount must be positive");
+export class PaymentService {
+    /** Verify Apple App Store purchase receipt */
+    static async verifyApplePurchase(receiptData: string): Promise<{ valid: boolean; transactionId?: string }> {
+        if (process.env.NODE_ENV === "test") {
+            return { valid: true, transactionId: `apple_test_${Date.now()}` };
+        }
 
-        const user = await userRepository.findOneBy({ id: userId });
-        if (!user) throw new Error("User not found");
-
-        // Update balance
-        user.gem_balance += amount;
-        await userRepository.save(user);
-
-        // Record Transaction
-        const tx = new GemTransaction();
-        tx.receiver = user;
-        tx.amount = amount;
-        tx.type = TransactionType.PURCHASE;
-
-        return await transactionRepository.save(tx);
+        // TODO: Integrate with Apple App Store Server API v2
+        // - Decode JWS receipt from Apple
+        // - Verify signature against Apple's root CA
+        // - Validate bundleId, environment, transactionId
+        throw new Error("Apple purchase verification not yet configured for production");
     }
 
-    // Gift gems from one user to another (e.g., in a room)
+    /** Verify Google Play purchase receipt */
+    static async verifyGooglePurchase(receiptData: string, productId: string): Promise<{ valid: boolean; transactionId?: string }> {
+        if (process.env.NODE_ENV === "test") {
+            return { valid: true, transactionId: `google_test_${Date.now()}` };
+        }
+
+        // TODO: Integrate with Google Play Developer API
+        // - Use service account credentials
+        // - Call purchases.products.get or purchases.subscriptionsv2.get
+        // - Verify purchaseState, consumptionState, orderId
+        throw new Error("Google purchase verification not yet configured for production");
+    }
+
+    /** Compute receipt hash for idempotency */
+    static receiptHash(receiptData: string): string {
+        return crypto.createHash("sha256").update(receiptData).digest("hex");
+    }
+
+    /** Atomically check-and-reserve a receipt hash. Returns true if it was already claimed. */
+    static tryClaim(receiptHash: string): boolean {
+        if (processedReceipts.has(receiptHash)) {
+            return true; // already claimed — duplicate
+        }
+        processedReceipts.set(receiptHash, "pending");
+        return false;
+    }
+
+    /** Update receipt record with real transaction ID after commit */
+    static markProcessed(receiptHash: string, transactionId: string): void {
+        processedReceipts.set(receiptHash, transactionId);
+    }
+
+    /** Remove a claimed receipt if the transaction failed (rollback) */
+    static releaseClaim(receiptHash: string): void {
+        processedReceipts.delete(receiptHash);
+    }
+}
+
+export class GemService {
+    static async purchaseGems(userId: string, amount: number, receiptData?: string, platform?: "apple" | "google") {
+        if (amount <= 0) throw new Error("Amount must be positive");
+
+        // Require receipt verification outside of test environment
+        if (process.env.NODE_ENV !== "test" && !receiptData) {
+            throw new Error("Payment receipt is required");
+        }
+
+        // Payment verification when receipt is provided
+        if (receiptData) {
+            const verification = platform === "google"
+                ? await PaymentService.verifyGooglePurchase(receiptData, `gems_${amount}`)
+                : await PaymentService.verifyApplePurchase(receiptData);
+
+            if (!verification.valid) {
+                throw new Error("Payment verification failed");
+            }
+        }
+
+        // Atomically check-and-reserve the receipt hash BEFORE the async transaction.
+        // This prevents the TOCTOU race where two concurrent requests both pass
+        // isDuplicate() at their respective await boundaries.
+        let receiptHash: string | null = null;
+        if (receiptData) {
+            receiptHash = PaymentService.receiptHash(receiptData);
+            if (PaymentService.tryClaim(receiptHash)) {
+                throw new Error("Duplicate purchase — receipt already processed");
+            }
+        }
+
+        try {
+            const txResult = await AppDataSource.manager.transaction(async transactionalEntityManager => {
+                const user = await transactionalEntityManager.findOne(User, { where: { id: userId } });
+                if (!user) throw new Error("User not found");
+
+                user.gem_balance += amount;
+                await transactionalEntityManager.save(user);
+
+                const tx = new GemTransaction();
+                tx.receiver = user;
+                tx.amount = amount;
+                tx.type = TransactionType.PURCHASE;
+                if (receiptHash) {
+                    tx.reference_id = receiptHash;
+                }
+
+                const saved = await transactionalEntityManager.save(tx);
+                return { saved, transactionId: saved.id };
+            });
+
+            // Update the claim with the real transaction ID after commit
+            if (receiptHash) {
+                PaymentService.markProcessed(receiptHash, txResult.transactionId);
+            }
+            return txResult.saved;
+        } catch (err) {
+            // Release the claim if the transaction failed so the receipt can be retried
+            if (receiptHash) {
+                PaymentService.releaseClaim(receiptHash);
+            }
+            throw err;
+        }
+    }
+
     static async sendGift(senderId: string, receiverId: string, amount: number, roomId?: string) {
         if (amount <= 0) throw new Error("Amount must be positive");
         if (senderId === receiverId) throw new Error("Cannot gift yourself");
@@ -41,15 +138,12 @@ export class GemService {
             if (!sender || !receiver) throw new Error("User not found");
             if (sender.gem_balance < amount) throw new Error("Insufficient balance");
 
-            // Deduct from sender
             sender.gem_balance -= amount;
             await transactionalEntityManager.save(sender);
 
-            // Add to receiver
             receiver.gem_balance += amount;
             await transactionalEntityManager.save(receiver);
 
-            // Record Transaction
             const tx = new GemTransaction();
             tx.sender = sender;
             tx.receiver = receiver;
@@ -65,11 +159,11 @@ export class GemService {
             ChatService.getInstance().sendToUser(receiverId, "notification", {
                 type: "gift_received",
                 message: `You received ${amount} gems!`,
-                senderId: senderId,
-                amount: amount
+                senderId,
+                amount
             });
         } catch (e) {
-            console.warn("Failed to send socket notification", e);
+            logger.warn({ err: e }, "Failed to send socket notification");
         }
 
         try {
@@ -78,22 +172,24 @@ export class GemService {
                 NotificationType.GIFT,
                 `You received ${amount} gems!`,
                 undefined,
-                { senderId: senderId, amount }
+                { senderId, amount }
             );
         } catch (e) {
-            console.warn("Failed to create notification", e);
+            logger.warn({ err: e }, "Failed to create notification");
         }
 
         return savedTx;
     }
 
     static async getBalance(userId: string) {
+        const userRepository = AppDataSource.getRepository(User);
         const user = await userRepository.findOneBy({ id: userId });
         if (!user) throw new Error("User not found");
         return { balance: user.gem_balance };
     }
 
     static async getHistory(userId: string) {
+        const transactionRepository = AppDataSource.getRepository(GemTransaction);
         return await transactionRepository.find({
             where: [
                 { receiver: { id: userId } },

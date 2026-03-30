@@ -4,19 +4,25 @@ import { GemService } from "../services/gem.service";
 export class GemController {
     static async purchase(req: Request, res: Response) {
         try {
-            const { userId, amount } = req.body;
-            // In a real app, verify payment signature here
-            const tx = await GemService.purchaseGems(userId, amount);
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+            const { amount, receiptData, platform } = req.body;
+            const tx = await GemService.purchaseGems(userId, amount, receiptData, platform);
             return res.json(tx);
         } catch (error: any) {
-            return res.status(400).json({ error: error.message });
+            const status = error.message.includes("Duplicate") ? 409 : 400;
+            return res.status(status).json({ error: error.message });
         }
     }
 
     static async gift(req: Request, res: Response) {
         try {
-            const { userId, receiverId, amount, roomId } = req.body;
-            const tx = await GemService.sendGift(userId, receiverId, amount, roomId);
+            const senderId = (req as any).user?.id;
+            if (!senderId) return res.status(401).json({ error: "Authentication required" });
+
+            const { receiverId, amount, roomId } = req.body;
+            const tx = await GemService.sendGift(senderId, receiverId, amount, roomId);
             return res.json(tx);
         } catch (error: any) {
             return res.status(400).json({ error: error.message });

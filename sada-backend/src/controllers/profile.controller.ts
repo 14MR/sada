@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { ProfileService } from "../services/profile.service";
+import logger from "../config/logger";
 
 export class ProfileController {
     static async getProfile(req: Request, res: Response) {
@@ -14,7 +15,7 @@ export class ProfileController {
             }
             return res.json(profile);
         } catch (error) {
-            console.error("Get Public Profile Error:", error);
+            logger.error({ err: error }, "Get Public Profile Error");
             return res.status(500).json({ error: "Failed to fetch profile" });
         }
     }
@@ -40,7 +41,7 @@ export class ProfileController {
             const users = await ProfileService.getSuggestedUsers(limit);
             return res.json(users);
         } catch (error) {
-            console.error("Get Suggested Users Error:", error);
+            logger.error({ err: error }, "Get Suggested Users Error");
             return res.status(500).json({ error: "Failed to fetch suggested users" });
         }
     }

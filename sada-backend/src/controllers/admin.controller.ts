@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { AdminService } from "../services/admin.service";
+import logger from "../config/logger";
 
 export class AdminController {
     static async getStats(req: Request, res: Response) {
@@ -7,7 +8,7 @@ export class AdminController {
             const stats = await AdminService.getStats();
             return res.json(stats);
         } catch (error) {
-            console.error("Admin Stats Error:", error);
+            logger.error({ err: error }, "Admin Stats Error");
             return res.status(500).json({ error: "Failed to fetch stats" });
         }
     }
@@ -19,7 +20,7 @@ export class AdminController {
             const result = await AdminService.getUsers(limit, offset);
             return res.json(result);
         } catch (error) {
-            console.error("Admin Users Error:", error);
+            logger.error({ err: error }, "Admin Users Error");
             return res.status(500).json({ error: "Failed to fetch users" });
         }
     }
@@ -31,7 +32,7 @@ export class AdminController {
             const result = await AdminService.getReports(limit, offset);
             return res.json(result);
         } catch (error) {
-            console.error("Admin Reports Error:", error);
+            logger.error({ err: error }, "Admin Reports Error");
             return res.status(500).json({ error: "Failed to fetch reports" });
         }
     }
@@ -46,7 +47,7 @@ export class AdminController {
             if (error.message === "User not found") {
                 return res.status(404).json({ error: error.message });
             }
-            console.error("Ban User Error:", error);
+            logger.error({ err: error }, "Ban User Error");
             return res.status(500).json({ error: "Failed to ban user" });
         }
     }
@@ -61,7 +62,7 @@ export class AdminController {
             if (error.message === "User not found") {
                 return res.status(404).json({ error: error.message });
             }
-            console.error("Unban User Error:", error);
+            logger.error({ err: error }, "Unban User Error");
             return res.status(500).json({ error: "Failed to unban user" });
         }
     }
@@ -82,7 +83,7 @@ export class AdminController {
             if (error.message === "Report not found") {
                 return res.status(404).json({ error: error.message });
             }
-            console.error("Review Report Error:", error);
+            logger.error({ err: error }, "Review Report Error");
             return res.status(500).json({ error: "Failed to review report" });
         }
     }
