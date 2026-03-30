@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "test_secret";
-
 export function getJwtSecret(): string {
-    return JWT_SECRET;
+    const secret = process.env.JWT_SECRET;
+    if (!secret && process.env.NODE_ENV !== "test") {
+        throw new Error("JWT_SECRET environment variable is required");
+    }
+    return secret || "test_only_secret";
 }
 
 export function authenticate(req: Request, res: Response, next: NextFunction) {
@@ -25,7 +27,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
 
     const token = authHeader.split(" ")[1];
     try {
-        const payload = jwt.verify(token, JWT_SECRET) as { id: string; username: string };
+        const payload = jwt.verify(token, getJwtSecret()) as { id: string; username: string };
         (req as any).user = payload;
         next();
     } catch {
