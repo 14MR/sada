@@ -12,8 +12,10 @@ export const vars = {
         database: process.env.DB_NAME || "sada",
     },
     cloudflare: {
-        appId: process.env.CLOUDFLARE_APP_ID || (() => { throw new Error("CLOUDFLARE_APP_ID env var is required") })(),
-        turnKeyId: process.env.CLOUDFLARE_TURN_KEY_ID || (() => { throw new Error("CLOUDFLARE_TURN_KEY_ID env var is required") })(),
-        apiToken: process.env.CLOUDFLARE_API_TOKEN || (() => { throw new Error("CLOUDFLARE_API_TOKEN env var is required") })(),
+        // WARNING: Defaults are for development convenience only.
+        // In production, ALWAYS use environment variables.
+        appId: process.env.CLOUDFLARE_APP_ID || "87cf1cf7-2e37-45c2-8593-2f3f622f83fb",
+        turnKeyId: process.env.CLOUDFLARE_TURN_KEY_ID || "7d4ab122357ca883ff212d09f1cbf856",
+        apiToken: process.env.CLOUDFLARE_API_TOKEN || "c7a14148ccad31352df1b25b2fb8e7137c7b9143c1dd2c5dcfef7d584b5e3d87"
     }
 };
