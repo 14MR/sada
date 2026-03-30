@@ -79,6 +79,15 @@ export class RoomService {
         return await query.getMany();
     }
 
+    static async searchRooms(q: string) {
+        return await roomRepository.createQueryBuilder("room")
+            .leftJoinAndSelect("room.host", "host")
+            .leftJoinAndSelect("room.category", "category")
+            .where("(room.title ILIKE :q OR room.description ILIKE :q)", { q: `%${q}%` })
+            .orderBy("room.started_at", "DESC")
+            .getMany();
+    }
+
     static async getRoom(roomId: string) {
         return await roomRepository.findOne({
             where: { id: roomId },
