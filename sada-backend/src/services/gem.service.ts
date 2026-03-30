@@ -2,6 +2,8 @@ import { AppDataSource } from "../config/database";
 import { GemTransaction, TransactionType } from "../models/GemTransaction";
 import { User } from "../models/User";
 import { ChatService } from "./chat.service";
+import { NotificationService } from "./notification.service";
+import { NotificationType } from "../models/Notification";
 
 const transactionRepository = AppDataSource.getRepository(GemTransaction);
 const userRepository = AppDataSource.getRepository(User);
@@ -67,6 +69,18 @@ export class GemService {
                 });
             } catch (e) {
                 console.warn("Failed to send socket notification", e);
+            }
+
+            try {
+                await NotificationService.create(
+                    receiverId,
+                    NotificationType.GIFT,
+                    `You received ${amount} gems!`,
+                    undefined,
+                    { senderId: sender.id, amount }
+                );
+            } catch (e) {
+                console.warn("Failed to create notification", e);
             }
 
             return savedTx;

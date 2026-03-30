@@ -3,6 +3,9 @@ import { Room } from "../models/Room";
 import { RoomParticipant } from "../models/RoomParticipant";
 import { User } from "../models/User";
 import { AudioService } from "./audio.service";
+import { NotificationService } from "./notification.service";
+import { NotificationType } from "../models/Notification";
+import { Follow } from "../models/Follow";
 
 const roomRepository = AppDataSource.getRepository(Room);
 const participantRepository = AppDataSource.getRepository(RoomParticipant);
@@ -29,6 +32,27 @@ export class RoomService {
         participant.role = 'host';
 
         await participantRepository.save(participant);
+
+        // Notify host's followers that a room started
+        try {
+            const followRepository = AppDataSource.getRepository(Follow);
+            const followers = await followRepository.find({
+                where: { following: { id: host.id } },
+                relations: ["follower"],
+            });
+
+            for (const follow of followers) {
+                await NotificationService.create(
+                    follow.follower.id,
+                    NotificationType.ROOM_STARTED,
+                    `${host.username || "Someone"} started a room: ${title}`,
+                    undefined,
+                    { roomId: savedRoom.id, hostId: host.id }
+                );
+            }
+        } catch (e) {
+            console.warn("Failed to notify followers", e);
+        }
 
         // Return room + audio details (simple merge for MVP response)
         return { ...savedRoom, audio: audioSession };
