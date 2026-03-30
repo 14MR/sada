@@ -12,6 +12,7 @@ import moderationRoutes from './routes/moderation.routes';
 import adminRoutes from './routes/admin.routes';
 import notificationRoutes from './routes/notification.routes';
 import withdrawalRoutes from './routes/withdrawal.routes';
+import recordingRoutes from './routes/recording.routes';
 
 export function createApp() {
   const app = express();
@@ -31,6 +32,7 @@ export function createApp() {
   app.use('/admin', adminRoutes);
   app.use('/notifications', notificationRoutes);
   app.use('/withdrawals', withdrawalRoutes);
+  app.use('/recordings', recordingRoutes);
 
   // Health check
   app.get('/health', (req, res) => {
