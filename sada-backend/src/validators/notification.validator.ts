@@ -17,3 +17,7 @@ export const markAllReadSchema = z.object({
 export const unreadCountSchema = z.object({
     userId: z.string({ message: "userId is required" }).min(1),
 });
+
+export const registerPushTokenSchema = z.object({
+    token: z.string({ message: "Push token is required" }).min(1, "Push token is required"),
+});

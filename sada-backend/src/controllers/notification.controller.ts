@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { NotificationService } from "../services/notification.service";
+import { PushService } from "../services/push.service";
 
 export class NotificationController {
     static async list(req: Request, res: Response) {
@@ -54,6 +55,22 @@ export class NotificationController {
             return res.json({ count });
         } catch (error: any) {
             return res.status(500).json({ error: error.message });
+        }
+    }
+
+    /** POST /notifications/register-token — register Expo push token */
+    static async registerPushToken(req: Request, res: Response) {
+        try {
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+            const { token } = req.body;
+            if (!token) return res.status(400).json({ error: "Push token is required" });
+
+            await PushService.registerToken(userId, token);
+            return res.json({ success: true });
+        } catch (error: any) {
+            return res.status(400).json({ error: error.message });
         }
     }
 }

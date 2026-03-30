@@ -15,7 +15,12 @@ router.post("/:id/leave", validate(leaveRoomSchema), RoomController.leave);
 router.post("/:id/speakers", validate(manageSpeakerSchema), RoomController.manageSpeaker);
 router.post("/:id/end", validate(endRoomSchema), RoomController.end);
 
-// Speaker request queue (raise hand)
+// Speaker request RESTful endpoints
+router.post("/:id/speaker-requests", SpeakerRequestController.raiseHand);
+router.get("/:id/speaker-requests", SpeakerRequestController.getQueue);
+router.patch("/:id/speaker-requests/:requestId", SpeakerRequestController.resolve);
+
+// Legacy speaker request endpoints (backwards compatible)
 router.post("/:id/raise-hand", SpeakerRequestController.raiseHand);
 router.get("/:id/speaker-queue", SpeakerRequestController.getQueue);
 router.post("/:id/approve-speaker/:requestId", SpeakerRequestController.approve);

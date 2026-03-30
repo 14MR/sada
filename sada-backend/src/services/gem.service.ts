@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { AppDataSource } from "../config/database";
 import { GemTransaction, TransactionType } from "../models/GemTransaction";
 import { User } from "../models/User";
@@ -5,9 +6,71 @@ import { ChatService } from "./chat.service";
 import { NotificationService } from "./notification.service";
 import { NotificationType } from "../models/Notification";
 
+// In-memory receipt hash store for idempotency (prod should use Redis/DB)
+const processedReceipts = new Map<string, string>();
+
+export class PaymentService {
+    /** Verify Apple App Store purchase receipt */
+    static async verifyApplePurchase(receiptData: string): Promise<{ valid: boolean; transactionId?: string }> {
+        if (process.env.NODE_ENV === "test") {
+            return { valid: true, transactionId: `apple_test_${Date.now()}` };
+        }
+
+        // TODO: Integrate with Apple App Store Server API v2
+        // - Decode JWS receipt from Apple
+        // - Verify signature against Apple's root CA
+        // - Validate bundleId, environment, transactionId
+        throw new Error("Apple purchase verification not yet configured for production");
+    }
+
+    /** Verify Google Play purchase receipt */
+    static async verifyGooglePurchase(receiptData: string, productId: string): Promise<{ valid: boolean; transactionId?: string }> {
+        if (process.env.NODE_ENV === "test") {
+            return { valid: true, transactionId: `google_test_${Date.now()}` };
+        }
+
+        // TODO: Integrate with Google Play Developer API
+        // - Use service account credentials
+        // - Call purchases.products.get or purchases.subscriptionsv2.get
+        // - Verify purchaseState, consumptionState, orderId
+        throw new Error("Google purchase verification not yet configured for production");
+    }
+
+    /** Compute receipt hash for idempotency */
+    static receiptHash(receiptData: string): string {
+        return crypto.createHash("sha256").update(receiptData).digest("hex");
+    }
+
+    /** Check if receipt was already processed (prevents duplicate gem credits) */
+    static isDuplicate(receiptHash: string): boolean {
+        return processedReceipts.has(receiptHash);
+    }
+
+    /** Mark receipt as processed */
+    static markProcessed(receiptHash: string, transactionId: string): void {
+        processedReceipts.set(receiptHash, transactionId);
+    }
+}
+
 export class GemService {
-    static async purchaseGems(userId: string, amount: number) {
+    static async purchaseGems(userId: string, amount: number, receiptData?: string, platform?: "apple" | "google") {
         if (amount <= 0) throw new Error("Amount must be positive");
+
+        // Payment verification & idempotency when receipt is provided
+        if (receiptData) {
+            const hash = PaymentService.receiptHash(receiptData);
+            if (PaymentService.isDuplicate(hash)) {
+                throw new Error("Duplicate purchase — receipt already processed");
+            }
+
+            const verification = platform === "google"
+                ? await PaymentService.verifyGooglePurchase(receiptData, `gems_${amount}`)
+                : await PaymentService.verifyApplePurchase(receiptData);
+
+            if (!verification.valid) {
+                throw new Error("Payment verification failed");
+            }
+        }
 
         return await AppDataSource.manager.transaction(async transactionalEntityManager => {
             const user = await transactionalEntityManager.findOne(User, { where: { id: userId } });
@@ -20,8 +83,18 @@ export class GemService {
             tx.receiver = user;
             tx.amount = amount;
             tx.type = TransactionType.PURCHASE;
+            if (receiptData) {
+                tx.reference_id = PaymentService.receiptHash(receiptData);
+            }
 
-            return await transactionalEntityManager.save(tx);
+            const saved = await transactionalEntityManager.save(tx);
+
+            // Mark receipt as processed after successful commit
+            if (receiptData) {
+                PaymentService.markProcessed(PaymentService.receiptHash(receiptData), saved.id);
+            }
+
+            return saved;
         });
     }
 

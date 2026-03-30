@@ -4,12 +4,12 @@ import { GemService } from "../services/gem.service";
 export class GemController {
     static async purchase(req: Request, res: Response) {
         try {
-            const { userId, amount } = req.body;
-            // In a real app, verify payment signature here
-            const tx = await GemService.purchaseGems(userId, amount);
+            const { userId, amount, receiptData, platform } = req.body;
+            const tx = await GemService.purchaseGems(userId, amount, receiptData, platform);
             return res.json(tx);
         } catch (error: any) {
-            return res.status(400).json({ error: error.message });
+            const status = error.message.includes("Duplicate") ? 409 : 400;
+            return res.status(status).json({ error: error.message });
         }
     }
 

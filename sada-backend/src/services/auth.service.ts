@@ -2,37 +2,29 @@ import jwt from "jsonwebtoken";
 import appleSignin from "apple-signin-auth";
 import { User } from "../models/User";
 import { AppDataSource } from "../config/database";
-import { vars } from "../config/env";
 import { getJwtSecret } from "../middleware/auth";
 
 const userRepository = AppDataSource.getRepository(User);
 
 export class AuthService {
-    static async verifyAppleToken(identityToken: string) {
+    static async verifyAppleToken(identityToken: string): Promise<{ appleId: string; email: string | undefined }> {
+        // Mock fallback for test environment
+        if (process.env.NODE_ENV === "test") {
+            return { appleId: identityToken, email: undefined };
+        }
+
         try {
-            // Verify identity token with Apple
-            // In a real scenario, you'd also check the audience (clientID)
-            // const { sub: appleId, email } = await appleSignin.verifyIdToken(identityToken, {
-            //     audience: process.env.APPLE_CLIENT_ID,
-            //     ignoreExpiration: true, // simplified for dev/MVP if needed
-            // });
+            const payload = await appleSignin.verifyIdToken(identityToken, {
+                audience: process.env.APPLE_CLIENT_ID,
+                ignoreExpiration: false,
+            });
 
-            // For MVP development speed/mocking without a real frontend sending tokens:
-            // We can assume the token is the appleId if it's not a real JWT in dev mode, 
-            // OR use the library if we have real tokens.
-            // Let's assume we might receive a mock token in early dev.
-
-            // FIXME: Replace with actual verification for prod
-            const appleId = identityToken; // Placeholder until real token is available
-            const email = "user@example.com"; // Placeholder
-
-            // Real implementation would be:
-            // const payload = await appleSignin.verifyIdToken(identityToken, { audience: ... });
-            // return payload;
-
-            return { appleId, email };
+            return {
+                appleId: payload.sub,
+                email: payload.email ?? undefined,
+            };
         } catch (err) {
-            console.error("Apple Sign-In Error", err);
+            console.error("Apple Sign-In verification failed", err);
             throw new Error("Invalid Apple Identity Token");
         }
     }
@@ -45,10 +37,8 @@ export class AuthService {
         }
 
         if (!user) {
-            // Create new user
             user = new User();
             user.apple_id = appleId;
-            // Generate a random username initially
             user.username = `user_${Date.now()}`;
             user.display_name = fullName || "New User";
 
@@ -67,14 +57,11 @@ export class AuthService {
     }
 
     static async signInWithApple(identityToken: string, fullName?: string) {
-        // 1. Verify Token
-        // const { sub, email } = await this.verifyAppleToken(identityToken); 
-        // Using simplified mock for initial dev cycle as we don't have real iOS tokens yet
-        const sub = identityToken;
-        const email = "mock@test.com";
+        // 1. Verify Token (uses real Apple verification in prod, mock in test)
+        const { appleId, email } = await this.verifyAppleToken(identityToken);
 
         // 2. Find or Create User
-        const user = await this.mapUser(sub, email, fullName);
+        const user = await this.mapUser(appleId, email, fullName);
 
         // 3. Generate Session Token
         const token = this.generateToken(user);
