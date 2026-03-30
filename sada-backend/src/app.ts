@@ -1,11 +1,24 @@
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import { AppDataSource } from './config/database';
 import authRoutes from './routes/auth.routes';
 import usersRoutes from './routes/users.routes';
 import roomsRoutes from './routes/rooms.routes';
 import gemRoutes from './routes/gem.routes';
 import followRoutes from './routes/follow.routes';
+
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: 'Too many requests, please try again later.',
+});
+
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: 'Too many auth attempts, please try again later.',
+});
 
 export function createApp() {
   const app = express();
@@ -18,6 +31,12 @@ export function createApp() {
     origin: corsOrigins.length > 0 ? corsOrigins : false,
   }));
   app.use(express.json());
+
+  // General rate limiting
+  app.use(generalLimiter);
+
+  // Auth rate limiting
+  app.use('/auth', authLimiter);
 
   // Routes
   app.use('/auth', authRoutes);
