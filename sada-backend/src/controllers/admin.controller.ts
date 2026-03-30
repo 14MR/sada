@@ -30,17 +30,14 @@ export class AdminController {
     static async reviewReport(req: Request, res: Response) {
         try {
             const id = req.params.id as string;
-            const { status, action } = req.body;
+            const { action, banUser } = req.body;
 
-            if (!status || !["actioned", "dismissed"].includes(status)) {
-                return res.status(400).json({ error: "Invalid status. Must be 'actioned' or 'dismissed'" });
-            }
-            if (!action || !["warn", "ban", "none"].includes(action)) {
-                return res.status(400).json({ error: "Invalid action. Must be 'warn', 'ban', or 'none'" });
+            if (!action || !["actioned", "dismissed"].includes(action)) {
+                return res.status(400).json({ error: "Invalid action. Must be 'actioned' or 'dismissed'" });
             }
 
             const adminKey = req.headers["x-admin-key"] as string;
-            const report = await AdminService.reviewReport(id, status, action, adminKey);
+            const report = await AdminService.reviewReport(id, action, !!banUser, adminKey);
             return res.json(report);
         } catch (error: any) {
             if (error.message === "Report not found") {
@@ -53,9 +50,10 @@ export class AdminController {
 
     static async getUsers(req: Request, res: Response) {
         try {
-            const { q, limit, offset } = req.query;
-            const result = await AdminService.searchUsers(
+            const { q, banned, limit, offset } = req.query;
+            const result = await AdminService.getUsers(
                 q as string,
+                banned as string,
                 limit ? parseInt(limit as string) : 20,
                 offset ? parseInt(offset as string) : 0
             );
