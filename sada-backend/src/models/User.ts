@@ -17,11 +17,20 @@ export class User {
     @Column({ length: 100, nullable: true })
     display_name!: string;
 
-    @Column("text", { nullable: true })
+    @Column({ type: "varchar", nullable: true, length: 500 })
     bio!: string;
 
     @Column({ nullable: true })
     avatar_url!: string;
+
+    @Column({ default: false })
+    is_creator!: boolean;
+
+    @Column({ nullable: true, length: 50 })
+    twitter_handle!: string;
+
+    @Column({ nullable: true, length: 50 })
+    instagram_handle!: string;
 
     @Column({ default: false })
     verified!: boolean;
