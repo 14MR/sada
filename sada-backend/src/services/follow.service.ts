@@ -2,6 +2,8 @@ import { AppDataSource } from "../config/database";
 import { Follow } from "../models/Follow";
 import { User } from "../models/User";
 import { ChatService } from "./chat.service";
+import { NotificationService } from "./notification.service";
+import { NotificationType } from "../models/Notification";
 
 const followRepository = AppDataSource.getRepository(Follow);
 const userRepository = AppDataSource.getRepository(User);
@@ -40,6 +42,18 @@ export class FollowService {
             });
         } catch (e) {
             console.warn("Failed to send socket notification", e);
+        }
+
+        try {
+            await NotificationService.create(
+                followingId,
+                NotificationType.FOLLOW,
+                `${follower.username || "Someone"} started following you`,
+                undefined,
+                { followerId: follower.id }
+            );
+        } catch (e) {
+            console.warn("Failed to create notification", e);
         }
 
         return savedFollow;
