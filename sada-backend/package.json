@@ -19,16 +19,20 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@types/cors": "^2.8.19",
     "@types/jsonwebtoken": "^9.0.10",
     "apple-signin-auth": "^2.0.0",
+    "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.3.2",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.16.3",
     "reflect-metadata": "^0.2.2",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
-    "typeorm": "^0.3.28"
+    "typeorm": "^0.3.28",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

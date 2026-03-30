@@ -3,6 +3,7 @@ import appleSignin from "apple-signin-auth";
 import { User } from "../models/User";
 import { AppDataSource } from "../config/database";
 import { vars } from "../config/env";
+import { getJwtSecret } from "../middleware/auth";
 
 const userRepository = AppDataSource.getRepository(User);
 
@@ -60,7 +61,7 @@ export class AuthService {
     static generateToken(user: User) {
         return jwt.sign(
             { id: user.id, username: user.username },
-            process.env.JWT_SECRET || "default_secret",
+            getJwtSecret(),
             { expiresIn: "7d" }
         );
     }

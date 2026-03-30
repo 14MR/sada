@@ -39,6 +39,7 @@ describe('Social E2E', () => {
 
       const response = await request(getApp())
         .post(`/follow/${target.user.id}/follow`)
+        .set('Authorization', `Bearer ${follower.token}`)
         .send({ userId: follower.user.id });
 
       expect(response.status).toBe(200);
@@ -50,6 +51,7 @@ describe('Social E2E', () => {
 
       const response = await request(getApp())
         .post(`/follow/${user.user.id}/follow`)
+        .set('Authorization', `Bearer ${user.token}`)
         .send({ userId: user.user.id });
 
       expect(response.status).toBe(400);
@@ -61,6 +63,7 @@ describe('Social E2E', () => {
 
       const response = await request(getApp())
         .post('/follow/non-existent-id/follow')
+        .set('Authorization', `Bearer ${follower.token}`)
         .send({ userId: follower.user.id });
 
       expect(response.status).toBe(400);
@@ -72,10 +75,12 @@ describe('Social E2E', () => {
 
       await request(getApp())
         .post(`/follow/${target.user.id}/follow`)
+        .set('Authorization', `Bearer ${follower.token}`)
         .send({ userId: follower.user.id });
 
       const response = await request(getApp())
         .delete(`/follow/${target.user.id}/follow`)
+        .set('Authorization', `Bearer ${follower.token}`)
         .send({ userId: follower.user.id });
 
       expect(response.status).toBe(200);
@@ -88,14 +93,17 @@ describe('Social E2E', () => {
 
       await request(getApp())
         .post(`/follow/${target.user.id}/follow`)
+        .set('Authorization', `Bearer ${follower.token}`)
         .send({ userId: follower.user.id });
 
       await request(getApp())
         .delete(`/follow/${target.user.id}/follow`)
+        .set('Authorization', `Bearer ${follower.token}`)
         .send({ userId: follower.user.id });
 
       const followingRes = await request(getApp())
-        .get(`/follow/${follower.user.id}/following`);
+        .get(`/follow/${follower.user.id}/following`)
+        .set('Authorization', `Bearer ${follower.token}`);
 
       expect(followingRes.status).toBe(200);
       expect(followingRes.body).toHaveLength(0);
@@ -110,14 +118,17 @@ describe('Social E2E', () => {
 
       await request(getApp())
         .post(`/follow/${target.user.id}/follow`)
+        .set('Authorization', `Bearer ${fan1.token}`)
         .send({ userId: fan1.user.id });
 
       await request(getApp())
         .post(`/follow/${target.user.id}/follow`)
+        .set('Authorization', `Bearer ${fan2.token}`)
         .send({ userId: fan2.user.id });
 
       const response = await request(getApp())
-        .get(`/follow/${target.user.id}/followers`);
+        .get(`/follow/${target.user.id}/followers`)
+        .set('Authorization', `Bearer ${target.token}`);
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveLength(2);
@@ -130,14 +141,17 @@ describe('Social E2E', () => {
 
       await request(getApp())
         .post(`/follow/${target1.user.id}/follow`)
+        .set('Authorization', `Bearer ${user.token}`)
         .send({ userId: user.user.id });
 
       await request(getApp())
         .post(`/follow/${target2.user.id}/follow`)
+        .set('Authorization', `Bearer ${user.token}`)
         .send({ userId: user.user.id });
 
       const response = await request(getApp())
-        .get(`/follow/${user.user.id}/following`);
+        .get(`/follow/${user.user.id}/following`)
+        .set('Authorization', `Bearer ${user.token}`);
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveLength(2);
@@ -307,7 +321,8 @@ describe('Social E2E', () => {
       const user = await createTestUser({ username: 'notif_user' });
 
       const response = await request(getApp())
-        .get(`/notifications?userId=${user.user.id}`);
+        .get(`/notifications?userId=${user.user.id}`)
+        .set('Authorization', `Bearer ${user.token}`);
 
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body)).toBe(true);

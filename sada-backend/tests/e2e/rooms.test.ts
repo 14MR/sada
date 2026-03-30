@@ -37,10 +37,11 @@ describe('Rooms E2E', () => {
 
   describe('POST /rooms — Create room', () => {
     it('should create a room successfully', async () => {
-      const { user } = await createTestUser();
+      const { user, token } = await createTestUser();
 
       const response = await request(getApp())
         .post('/rooms/')
+        .set('Authorization', `Bearer ${token}`)
         .send({ userId: user.id, title: 'My Test Room', description: 'A room for testing' });
 
       expect(response.status).toBe(201);
@@ -54,11 +55,12 @@ describe('Rooms E2E', () => {
     });
 
     it('should create a room with category', async () => {
-      const { user } = await createTestUser();
+      const { user, token } = await createTestUser();
       const category = await createTestCategory();
 
       const response = await request(getApp())
         .post('/rooms/')
+        .set('Authorization', `Bearer ${token}`)
         .send({ userId: user.id, title: 'Categorized Room', categoryId: category.id });
 
       expect(response.status).toBe(201);
@@ -66,8 +68,11 @@ describe('Rooms E2E', () => {
     });
 
     it('should return 404 if host user not found', async () => {
+      const { token } = await createTestUser();
+
       const response = await request(getApp())
         .post('/rooms/')
+        .set('Authorization', `Bearer ${token}`)
         .send({ userId: 'non-existent-uuid', title: 'Ghost Room' });
 
       expect(response.status).toBe(404);
@@ -76,27 +81,28 @@ describe('Rooms E2E', () => {
 
   describe('GET /rooms — List rooms', () => {
     it('should list only live rooms', async () => {
-      const { user } = await createTestUser();
+      const { user, token } = await createTestUser();
       await createTestRoom(user.id, { title: 'Live Room 1', status: 'live' });
       await createTestRoom(user.id, { title: 'Live Room 2', status: 'live' });
       await createTestRoom(user.id, { title: 'Ended Room', status: 'ended' });
 
-      const response = await request(getApp()).get('/rooms/');
+      const response = await request(getApp())
+        .get('/rooms/')
+        .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveLength(2);
     });
 
     it('should filter rooms by category slug', async () => {
-      const { user } = await createTestUser();
+      const { user, token } = await createTestUser();
       const category = await createTestCategory();
-      // Controller passes status ('live') as the q param to getLiveRooms,
-      // so titles must contain "live" to pass the LIKE filter
       await createTestRoom(user.id, { categoryId: category.id, title: 'Live Cat Room' });
       await createTestRoom(user.id, { title: 'Live No Cat Room' });
 
       const response = await request(getApp())
-        .get(`/rooms/?category=${category.slug}`);
+        .get(`/rooms/?category=${category.slug}`)
+        .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveLength(1);
@@ -104,7 +110,12 @@ describe('Rooms E2E', () => {
     });
 
     it('should return empty array when no rooms exist', async () => {
-      const response = await request(getApp()).get('/rooms/');
+      const { token } = await createTestUser();
+
+      const response = await request(getApp())
+        .get('/rooms/')
+        .set('Authorization', `Bearer ${token}`);
+
       expect(response.status).toBe(200);
       expect(response.body).toHaveLength(0);
     });
@@ -112,7 +123,12 @@ describe('Rooms E2E', () => {
 
   describe('GET /rooms/search — Search rooms', () => {
     it('should require search query', async () => {
-      const response = await request(getApp()).get('/rooms/search');
+      const { token } = await createTestUser();
+
+      const response = await request(getApp())
+        .get('/rooms/search')
+        .set('Authorization', `Bearer ${token}`);
+
       expect(response.status).toBe(400);
       expect(response.body.error).toContain('Search query');
     });
@@ -120,10 +136,14 @@ describe('Rooms E2E', () => {
 
   describe('GET /categories', () => {
     it('should return 200 with an array of categories', async () => {
+      const { token } = await createTestUser();
       await createTestCategory({ name: 'Music', slug: 'music' });
       await createTestCategory({ name: 'Talk', slug: 'talk' });
 
-      const res = await request(getApp()).get('/categories');
+      const res = await request(getApp())
+        .get('/categories')
+        .set('Authorization', `Bearer ${token}`);
+
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
       expect(res.body).toHaveLength(2);
@@ -132,10 +152,12 @@ describe('Rooms E2E', () => {
 
   describe('GET /rooms/:id — Get room', () => {
     it('should return a room by ID', async () => {
-      const { user } = await createTestUser();
+      const { user, token } = await createTestUser();
       const room = await createTestRoom(user.id, { title: 'Specific Room' });
 
-      const response = await request(getApp()).get(`/rooms/${room.id}`);
+      const response = await request(getApp())
+        .get(`/rooms/${room.id}`)
+        .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
       expect(response.body.title).toBe('Specific Room');
@@ -144,7 +166,12 @@ describe('Rooms E2E', () => {
     });
 
     it('should return 404 for non-existent room', async () => {
-      const response = await request(getApp()).get('/rooms/non-existent-id');
+      const { token } = await createTestUser();
+
+      const response = await request(getApp())
+        .get('/rooms/non-existent-id')
+        .set('Authorization', `Bearer ${token}`);
+
       expect(response.status).toBe(404);
     });
   });
@@ -157,6 +184,7 @@ describe('Rooms E2E', () => {
       // 1. Create room
       const createRes = await request(getApp())
         .post('/rooms/')
+        .set('Authorization', `Bearer ${host.token}`)
         .send({ userId: host.user.id, title: 'Lifecycle Room' });
 
       expect(createRes.status).toBe(201);
@@ -165,6 +193,7 @@ describe('Rooms E2E', () => {
       // 2. Join room
       const joinRes = await request(getApp())
         .post(`/rooms/${roomId}/join`)
+        .set('Authorization', `Bearer ${listener.token}`)
         .send({ userId: listener.user.id });
 
       expect(joinRes.status).toBe(200);
@@ -179,6 +208,7 @@ describe('Rooms E2E', () => {
       // 3. Leave room
       const leaveRes = await request(getApp())
         .post(`/rooms/${roomId}/leave`)
+        .set('Authorization', `Bearer ${listener.token}`)
         .send({ userId: listener.user.id });
 
       expect(leaveRes.status).toBe(200);
@@ -191,6 +221,7 @@ describe('Rooms E2E', () => {
       // 4. End room
       const endRes = await request(getApp())
         .post(`/rooms/${roomId}/end`)
+        .set('Authorization', `Bearer ${host.token}`)
         .send({ userId: host.user.id });
 
       expect(endRes.status).toBe(200);
@@ -208,6 +239,7 @@ describe('Rooms E2E', () => {
 
       const joinRes = await request(getApp())
         .post(`/rooms/${room.id}/join`)
+        .set('Authorization', `Bearer ${listener.token}`)
         .send({ userId: listener.user.id });
 
       expect(joinRes.status).toBe(400);
@@ -221,6 +253,7 @@ describe('Rooms E2E', () => {
 
       const endRes = await request(getApp())
         .post(`/rooms/${room.id}/end`)
+        .set('Authorization', `Bearer ${other.token}`)
         .send({ userId: other.user.id });
 
       expect(endRes.status).toBe(400);
@@ -243,6 +276,7 @@ describe('Rooms E2E', () => {
 
       const response = await request(getApp())
         .post(`/rooms/${room.id}/speakers`)
+        .set('Authorization', `Bearer ${host.token}`)
         .send({ userId: host.user.id, targetUserId: listener.user.id, role: 'speaker' });
 
       expect(response.status).toBe(200);
@@ -256,6 +290,7 @@ describe('Rooms E2E', () => {
 
       const response = await request(getApp())
         .post(`/rooms/${room.id}/speakers`)
+        .set('Authorization', `Bearer ${listener.token}`)
         .send({ userId: listener.user.id, targetUserId: host.user.id, role: 'listener' });
 
       expect(response.status).toBe(400);

@@ -5,31 +5,26 @@ import { ChatService } from "./chat.service";
 import { NotificationService } from "./notification.service";
 import { NotificationType } from "../models/Notification";
 
-const transactionRepository = AppDataSource.getRepository(GemTransaction);
-const userRepository = AppDataSource.getRepository(User);
-
 export class GemService {
-    // Mock purchase: Add gems to user wallet
     static async purchaseGems(userId: string, amount: number) {
         if (amount <= 0) throw new Error("Amount must be positive");
 
-        const user = await userRepository.findOneBy({ id: userId });
-        if (!user) throw new Error("User not found");
+        return await AppDataSource.manager.transaction(async transactionalEntityManager => {
+            const user = await transactionalEntityManager.findOne(User, { where: { id: userId } });
+            if (!user) throw new Error("User not found");
 
-        // Update balance
-        user.gem_balance += amount;
-        await userRepository.save(user);
+            user.gem_balance += amount;
+            await transactionalEntityManager.save(user);
 
-        // Record Transaction
-        const tx = new GemTransaction();
-        tx.receiver = user;
-        tx.amount = amount;
-        tx.type = TransactionType.PURCHASE;
+            const tx = new GemTransaction();
+            tx.receiver = user;
+            tx.amount = amount;
+            tx.type = TransactionType.PURCHASE;
 
-        return await transactionRepository.save(tx);
+            return await transactionalEntityManager.save(tx);
+        });
     }
 
-    // Gift gems from one user to another (e.g., in a room)
     static async sendGift(senderId: string, receiverId: string, amount: number, roomId?: string) {
         if (amount <= 0) throw new Error("Amount must be positive");
         if (senderId === receiverId) throw new Error("Cannot gift yourself");
@@ -41,15 +36,12 @@ export class GemService {
             if (!sender || !receiver) throw new Error("User not found");
             if (sender.gem_balance < amount) throw new Error("Insufficient balance");
 
-            // Deduct from sender
             sender.gem_balance -= amount;
             await transactionalEntityManager.save(sender);
 
-            // Add to receiver
             receiver.gem_balance += amount;
             await transactionalEntityManager.save(receiver);
 
-            // Record Transaction
             const tx = new GemTransaction();
             tx.sender = sender;
             tx.receiver = receiver;
@@ -65,8 +57,8 @@ export class GemService {
             ChatService.getInstance().sendToUser(receiverId, "notification", {
                 type: "gift_received",
                 message: `You received ${amount} gems!`,
-                senderId: senderId,
-                amount: amount
+                senderId,
+                amount
             });
         } catch (e) {
             console.warn("Failed to send socket notification", e);
@@ -78,7 +70,7 @@ export class GemService {
                 NotificationType.GIFT,
                 `You received ${amount} gems!`,
                 undefined,
-                { senderId: senderId, amount }
+                { senderId, amount }
             );
         } catch (e) {
             console.warn("Failed to create notification", e);
@@ -88,12 +80,14 @@ export class GemService {
     }
 
     static async getBalance(userId: string) {
+        const userRepository = AppDataSource.getRepository(User);
         const user = await userRepository.findOneBy({ id: userId });
         if (!user) throw new Error("User not found");
         return { balance: user.gem_balance };
     }
 
     static async getHistory(userId: string) {
+        const transactionRepository = AppDataSource.getRepository(GemTransaction);
         return await transactionRepository.find({
             where: [
                 { receiver: { id: userId } },
