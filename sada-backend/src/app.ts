@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { authenticate } from './middleware/auth';
+import { sanitize } from './middleware/sanitize';
 import authRoutes from './routes/auth.routes';
 import usersRoutes from './routes/users.routes';
 import roomsRoutes from './routes/rooms.routes';
@@ -43,6 +44,7 @@ export function createApp() {
 
   app.use(cors(getCorsOptions()));
   app.use(express.json());
+  app.use(sanitize);
 
   // Auth middleware applied globally (skips signin and health)
   app.use(authenticate);
