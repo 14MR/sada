@@ -1,18 +1,13 @@
 import { Router } from "express";
 import { GemController } from "../controllers/gem.controller";
+import { validateBody } from "../middleware/validation";
+import { PurchaseGemsDto, GiftGemsDto } from "../dto/gem.dto";
 
 const router = Router();
 
-// /api/gems/purchase
-router.post("/purchase", GemController.purchase);
-
-// /api/gems/gift
-router.post("/gift", GemController.gift);
-
-// /api/gems/balance/:userId
+router.post("/purchase", validateBody(PurchaseGemsDto), GemController.purchase);
+router.post("/gift", validateBody(GiftGemsDto), GemController.gift);
 router.get("/balance/:userId", GemController.getBalance);
-
-// /api/gems/history/:userId
 router.get("/history/:userId", GemController.getHistory);
 
 export default router;
