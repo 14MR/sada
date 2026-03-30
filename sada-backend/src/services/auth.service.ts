@@ -56,7 +56,7 @@ export class AuthService {
     static generateToken(user: User) {
         return jwt.sign(
             { id: user.id, username: user.username },
-            process.env.JWT_SECRET || "default_secret",
+            (() => { if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET env var is required"); return process.env.JWT_SECRET; })(),
             { expiresIn: "7d" }
         );
     }
