@@ -2,18 +2,21 @@ import { AppDataSource } from "../config/database";
 import { Room } from "../models/Room";
 import { RoomParticipant } from "../models/RoomParticipant";
 import { User } from "../models/User";
+import { Category } from "../models/Category";
 import { AudioService } from "./audio.service";
 
 const roomRepository = AppDataSource.getRepository(Room);
 const participantRepository = AppDataSource.getRepository(RoomParticipant);
+const categoryRepository = AppDataSource.getRepository(Category);
 
 export class RoomService {
-    static async createRoom(host: User, title: string, category: string, description?: string) {
+    static async createRoom(host: User, title: string, categoryId?: string, description?: string, scheduledAt?: Date) {
         const room = new Room();
         room.host = host;
         room.title = title;
-        room.category = category;
+        room.categoryId = categoryId || null;
         room.description = description || "";
+        room.scheduledAt = scheduledAt || null;
         room.status = 'live';
 
         const savedRoom = await roomRepository.save(room);
@@ -34,14 +37,19 @@ export class RoomService {
         return { ...savedRoom, audio: audioSession };
     }
 
-    static async getLiveRooms(category?: string) {
+    static async getLiveRooms(categorySlug?: string, q?: string) {
         const query = roomRepository.createQueryBuilder("room")
             .leftJoinAndSelect("room.host", "host")
+            .leftJoinAndSelect("room.category", "category")
             .where("room.status = :status", { status: 'live' })
             .orderBy("room.started_at", "DESC");
 
-        if (category) {
-            query.andWhere("room.category = :category", { category });
+        if (categorySlug) {
+            query.andWhere("category.slug = :slug", { slug: categorySlug });
+        }
+
+        if (q) {
+            query.andWhere("(room.title ILIKE :q OR room.description ILIKE :q)", { q: `%${q}%` });
         }
 
         return await query.getMany();

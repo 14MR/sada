@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, OneToMany, Index } from "typeorm";
 import { User } from "./User";
 import { RoomParticipant } from "./RoomParticipant";
+import { Category } from "./Category";
 
 @Entity("rooms")
 export class Room {
@@ -16,18 +17,22 @@ export class Room {
 
     @Column({ length: 100 })
     @Index()
-    title!: string; // For search
+    title!: string;
 
     @Column("text", { nullable: true })
     description!: string;
 
-    @Column({ length: 50, nullable: true })
+    @Column({ type: "uuid", nullable: true, name: "category_id" })
     @Index()
-    category!: string;
+    categoryId!: string | null;
+
+    @ManyToOne(() => Category, { onDelete: "SET NULL" })
+    @JoinColumn({ name: "category_id" })
+    category!: Category | null;
 
     @Column({ length: 20, default: 'live' })
     @Index()
-    status!: string; // 'live', 'ended'
+    status!: string;
 
     @Column({ default: 0 })
     listener_count!: number;
@@ -37,6 +42,9 @@ export class Room {
 
     @Column({ nullable: true })
     ended_at!: Date;
+
+    @Column({ type: "timestamp", nullable: true, name: "scheduled_at" })
+    scheduledAt!: Date | null;
 
     @Column({ default: true })
     allow_speakers!: boolean;
