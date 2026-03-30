@@ -67,15 +67,17 @@ describe('Rooms E2E', () => {
       expect(response.body.categoryId).toBe(category.id);
     });
 
-    it('should return 404 if host user not found', async () => {
-      const { token } = await createTestUser();
+    it('should use authenticated user as host, not body userId', async () => {
+      const { user, token } = await createTestUser();
 
+      // Body userId is ignored — host is always the authenticated user
       const response = await request(getApp())
         .post('/rooms/')
         .set('Authorization', `Bearer ${token}`)
-        .send({ userId: 'non-existent-uuid', title: 'Ghost Room' });
+        .send({ title: 'Auth Room' });
 
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(201);
+      expect(response.body.host_id).toBe(user.id);
     });
   });
 

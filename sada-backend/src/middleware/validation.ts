@@ -5,7 +5,11 @@ import logger from "../config/logger";
 export const validate = (schema: ZodObject, source: "body" | "query" | "params" = "body") => {
     return (req: Request, res: Response, next: NextFunction) => {
         try {
-            schema.parse(req[source]);
+            const parsed = schema.parse(req[source]);
+            // Only assign back for body (query/params can be read-only in Express 5)
+            if (source === "body") {
+                req.body = parsed;
+            }
             next();
         } catch (error) {
             if (error instanceof ZodError) {

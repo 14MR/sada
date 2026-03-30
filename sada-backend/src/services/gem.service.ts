@@ -66,6 +66,11 @@ export class GemService {
     static async purchaseGems(userId: string, amount: number, receiptData?: string, platform?: "apple" | "google") {
         if (amount <= 0) throw new Error("Amount must be positive");
 
+        // Require receipt verification outside of test environment
+        if (process.env.NODE_ENV !== "test" && !receiptData) {
+            throw new Error("Payment receipt is required");
+        }
+
         // Payment verification when receipt is provided
         if (receiptData) {
             const verification = platform === "google"

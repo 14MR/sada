@@ -5,8 +5,8 @@ import { PushService } from "../services/push.service";
 export class NotificationController {
     static async list(req: Request, res: Response) {
         try {
-            const userId = req.query.userId as string;
-            if (!userId) return res.status(401).json({ error: "Unauthorized" });
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const limit = parseInt(req.query.limit as string) || 20;
             const offset = parseInt(req.query.offset as string) || 0;
@@ -20,10 +20,10 @@ export class NotificationController {
 
     static async markRead(req: Request, res: Response) {
         try {
-            const { userId } = req.body;
-            const notificationId = req.params.id as string;
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
 
-            if (!userId) return res.status(401).json({ error: "Unauthorized" });
+            const notificationId = req.params.id as string;
 
             const updated = await NotificationService.markRead(userId, notificationId);
             if (!updated) return res.status(404).json({ error: "Notification not found" });
@@ -36,8 +36,8 @@ export class NotificationController {
 
     static async markAllRead(req: Request, res: Response) {
         try {
-            const { userId } = req.body;
-            if (!userId) return res.status(401).json({ error: "Unauthorized" });
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const count = await NotificationService.markAllRead(userId);
             return res.json({ success: true, count });
@@ -48,8 +48,8 @@ export class NotificationController {
 
     static async unreadCount(req: Request, res: Response) {
         try {
-            const userId = req.query.userId as string;
-            if (!userId) return res.status(401).json({ error: "Unauthorized" });
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const count = await NotificationService.getUnreadCount(userId);
             return res.json({ count });

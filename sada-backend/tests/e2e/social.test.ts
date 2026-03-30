@@ -317,18 +317,18 @@ describe('Social E2E', () => {
   });
 
   describe('GET /notifications', () => {
-    it('should return notifications list for a user', async () => {
+    it('should return notifications list for authenticated user', async () => {
       const user = await createTestUser({ username: 'notif_user' });
 
       const response = await request(getApp())
-        .get(`/notifications?userId=${user.user.id}`)
+        .get('/notifications')
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body)).toBe(true);
     });
 
-    it('should return 401 when userId is missing', async () => {
+    it('should require authentication', async () => {
       const response = await request(getApp()).get('/notifications');
       expect(response.status).toBe(401);
     });

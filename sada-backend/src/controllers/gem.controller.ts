@@ -4,7 +4,10 @@ import { GemService } from "../services/gem.service";
 export class GemController {
     static async purchase(req: Request, res: Response) {
         try {
-            const { userId, amount, receiptData, platform } = req.body;
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+            const { amount, receiptData, platform } = req.body;
             const tx = await GemService.purchaseGems(userId, amount, receiptData, platform);
             return res.json(tx);
         } catch (error: any) {
@@ -15,8 +18,11 @@ export class GemController {
 
     static async gift(req: Request, res: Response) {
         try {
-            const { userId, receiverId, amount, roomId } = req.body;
-            const tx = await GemService.sendGift(userId, receiverId, amount, roomId);
+            const senderId = (req as any).user?.id;
+            if (!senderId) return res.status(401).json({ error: "Authentication required" });
+
+            const { receiverId, amount, roomId } = req.body;
+            const tx = await GemService.sendGift(senderId, receiverId, amount, roomId);
             return res.json(tx);
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
