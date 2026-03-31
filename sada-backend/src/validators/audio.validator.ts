@@ -9,9 +9,7 @@ export const joinSessionSchema = z.object({
     role: z.enum(["host", "speaker", "listener"]).optional().default("listener"),
 });
 
-export const leaveSessionSchema = z.object({
-    // body is empty — userId comes from JWT
-});
+export const leaveSessionSchema = z.object({});
 
 export const renegotiateSchema = z.object({
     offerSdp: z.string().min(1, "Offer SDP is required"),

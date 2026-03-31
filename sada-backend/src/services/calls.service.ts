@@ -321,4 +321,10 @@ export class CallsService {
             return [];
         }
     }
+
+    /** Test-only: clear all in-memory state */
+    static _reset() {
+        sessions.clear();
+        roomSessionIndex.clear();
+    }
 }
