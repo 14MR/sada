@@ -11,25 +11,20 @@ interface ChatMessage {
     content: string;
 }
 
-export const ChatOverlay = ({ roomId }: { roomId: string }) => {
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
+interface ChatOverlayProps {
+    roomId: string;
+    messages: ChatMessage[];
+    onSendMessage: (message: string) => void;
+}
+
+export const ChatOverlay = ({ roomId, messages, onSendMessage }: ChatOverlayProps) => {
     const [input, setInput] = useState('');
     const listRef = useRef<FlatList>(null);
 
-    useEffect(() => {
-        SocketService.onMessage((msg) => {
-            setMessages((prev) => [...prev, msg]);
-            setTimeout(() => listRef.current?.scrollToEnd(), 100);
-        });
-
-        return () => {
-            SocketService.offMessage();
-        };
-    }, []);
-
     const handleSend = () => {
         if (!input.trim()) return;
-        SocketService.sendMessage(roomId, input);
+        console.log('📤 Sending message:', input);
+        onSendMessage(input);
         setInput('');
     };
 
@@ -43,7 +38,46 @@ export const ChatOverlay = ({ roomId }: { roomId: string }) => {
                 <FlatList
                     ref={listRef}
                     data={messages}
-                    keyExtractor={(item, index) => index.toString()}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                        <View style={styles.messageRow}>
+                            <Text style={styles.sender}>{item.sender.display_name}: </Text>
+                            <Text style={styles.content}>{item.content}</Text>
+                        </View>
+                    )}
+                    inverted={false}
+                />
+            </View>
+
+            <View style={styles.inputRow}>
+                <TextInput
+                    style={styles.input}
+                    value={input}
+                    onChangeText={setInput}
+                    placeholder="Say something..."
+                    placeholderTextColor={theme.colors.textSecondary}
+                    returnKeyType="send"
+                    onSubmitEditing={handleSend}
+                />
+                <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
+                    <Text style={styles.sendText}>Send</Text>
+                </TouchableOpacity>
+            </View>
+        </KeyboardAvoidingView>
+    );
+};
+
+    return (
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+        >
+            <View style={styles.messagesContainer}>
+                <FlatList
+                    ref={listRef}
+                    data={messages}
+                    keyExtractor={(item) => item.id}
                     renderItem={({ item }) => (
                         <View style={styles.messageRow}>
                             <Text style={styles.sender}>{item.sender.display_name}: </Text>

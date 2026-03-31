@@ -4,45 +4,58 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { AudioService } from '../services/AudioService';
 import { SocketService } from '../services/SocketService';
-import { ChatOverlay } from '../components/ChatOverlay';
+import { ChatOverlay, ChatMessage } from '../components/ChatOverlay';
 import * as SecureStore from 'expo-secure-store';
 import { Room } from '../api/rooms';
 import client from '../api/client';
-
+ 
 export const RoomScreen = ({ route, navigation }: any) => {
     const { room } = route.params as { room: Room };
     const [isMuted, setIsMuted] = useState(true);
     const [speakers, setSpeakers] = useState([room.host]);
     const [listeners, setListeners] = useState<any[]>([]);
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
 
     useEffect(() => {
         const setupAudio = async () => {
             try {
-                // 1. Init Local Microphone
-                await AudioService.init();
-
+                // 1. Connect Socket FIRST
+                await SocketService.connect();
+                
+                // Wait for socket to connect
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
                 // 2. Map ICE Servers from Backend
                 const userId = await SecureStore.getItemAsync('user_id');
                 const response = await client.post(`/rooms/${room.id}/join`, { userId });
-
+                
                 if (response.data.audio?.iceServers) {
                     AudioService.setIceServers(response.data.audio.iceServers);
                 }
-
-                // 3. Connect Socket and Join Room
-                await SocketService.connect();
+                
+                // 3. Join Socket Room
                 SocketService.joinRoom(room.id);
-
-                // 4. Join Audio Signaling Room
+                
+                // 4. Init Local Microphone
+                await AudioService.init();
+                
+                // 5. Join Audio Signaling Room
                 await AudioService.joinRoom(room.id, SocketService);
-
+                
+                console.log('✅ Room setup complete:', room.id);
             } catch (err) {
-                console.error("Failed to setup room audio/socket:", err);
+                console.error("❌ Failed to setup room audio/socket:", err);
             }
         };
-
+        
         setupAudio();
-
+        
+        // Set up chat message listener
+        SocketService.onMessage((msg: any) => {
+            console.log('📩 Message received in RoomScreen:', msg);
+            setMessages((prev) => [...prev, msg]);
+        });
+        
         return () => {
             AudioService.leaveRoom();
             SocketService.leaveRoom(room.id);
@@ -99,8 +112,15 @@ export const RoomScreen = ({ route, navigation }: any) => {
                 </View>
 
             </ScrollView>
-
-            <ChatOverlay roomId={room.id} />
+            
+            <ChatOverlay roomId={room.id} messages={messages} onSendMessage={async (msg) => {
+                console.log('📤 Message sent from RoomScreen:', msg);
+                setMessages((prev) => [...prev, {
+                    id: Date.now().toString(),
+                    sender: { display_name: 'Me' },
+                    content: msg
+                }]);
+            }} />
 
             <View style={styles.controls}>
                 <TouchableOpacity

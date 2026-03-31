@@ -1,22 +1,24 @@
 import { Request, Response } from "express";
 import { GemService } from "../services/gem.service";
+import { AuthRequest } from "../middleware/auth.middleware";
 
 export class GemController {
-    static async purchase(req: Request, res: Response) {
+    static async purchase(req: AuthRequest, res: Response) {
         try {
-            const { userId, amount } = req.body;
-            // In a real app, verify payment signature here
-            const tx = await GemService.purchaseGems(userId, amount);
+            const { amount } = req.body;
+            const user = req.user!;
+            const tx = await GemService.purchaseGems(user.id, amount);
             return res.json(tx);
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
         }
     }
 
-    static async gift(req: Request, res: Response) {
+    static async gift(req: AuthRequest, res: Response) {
         try {
-            const { userId, receiverId, amount, roomId } = req.body;
-            const tx = await GemService.sendGift(userId, receiverId, amount, roomId);
+            const { receiverId, amount, roomId } = req.body;
+            const user = req.user!;
+            const tx = await GemService.sendGift(user.id, receiverId, amount, roomId);
             return res.json(tx);
         } catch (error: any) {
             return res.status(400).json({ error: error.message });

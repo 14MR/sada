@@ -30,43 +30,15 @@ export class AudioService {
         }
     }
 
-    // Mock Cloudflare RealtimeKit or similar provider
-    static async createSession(roomId: string, hostId: string) {
-        // App ID provided by user
-        const { appId } = vars.cloudflare;
-
-        // TODO: To generate real sessions/tokens, we need the Cloudflare Realtime App Secret.
-        // For now, we return valid-looking config using the real App ID.
-        console.log(`[AudioService] Creating session for room ${roomId} by host ${hostId}`);
+    static async getAudioConfig(roomId: string) {
+        console.log(`[AudioService] Getting audio config for room ${roomId}`);
 
         const iceServers = await this.getIceServers();
 
         return {
-            provider: "cloudflare-calls",
-            sessionId: `sess_${roomId}`,
-            appId: appId,
+            architecture: 'p2p-mesh',
             iceServers: iceServers,
-            connectionDetails: {
-                // In a real app, this would be the actual Cloudflare Calls API endpoint or similar
-                websocketUrl: `wss://rtc.live.cloudflare.com/v1/apps/${appId}/sessions/sess_${roomId}`,
-                token: `mock_token_needing_secret_key`
-            }
-        };
-    }
-
-    static async generateToken(roomId: string, userId: string, role: string) {
-        const { appId } = vars.cloudflare;
-        console.log(`[AudioService] Generating token for user ${userId} in room ${roomId} with role ${role}`);
-
-        const iceServers = await this.getIceServers();
-
-        return {
-            iceServers: iceServers,
-            connectionDetails: {
-                websocketUrl: `wss://rtc.live.cloudflare.com/v1/apps/${appId}/sessions/sess_${roomId}`,
-                // A real token requires signing with the App Secret
-                token: `mock_${role}_token_${userId}`
-            }
+            maxSpeakers: 5
         };
     }
 }

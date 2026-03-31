@@ -18,11 +18,8 @@ export class RoomService {
 
         const savedRoom = await roomRepository.save(room);
 
-        // Provision Audio Session
-        // We might store the sessionId in the room entity if needed, keeping it simple for now
-        const audioSession = await AudioService.createSession(savedRoom.id, host.id);
+        const audioConfig = await AudioService.getAudioConfig(savedRoom.id);
 
-        // Add host as participant
         const participant = new RoomParticipant();
         participant.room = savedRoom;
         participant.user = host;
@@ -30,8 +27,7 @@ export class RoomService {
 
         await participantRepository.save(participant);
 
-        // Return room + audio details (simple merge for MVP response)
-        return { ...savedRoom, audio: audioSession };
+        return { ...savedRoom, audio: audioConfig };
     }
 
     static async getLiveRooms(category?: string) {
@@ -75,10 +71,9 @@ export class RoomService {
             await roomRepository.save(room);
         }
 
-        // Generate Audio Token for joiner
-        const audioConnection = await AudioService.generateToken(roomId, user.id, participant.role);
+        const audioConfig = await AudioService.getAudioConfig(roomId);
 
-        return { participant, audio: audioConnection };
+        return { participant, audio: audioConfig };
     }
 
     static async leaveRoom(userId: string, roomId: string) {

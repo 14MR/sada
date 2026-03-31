@@ -12,10 +12,14 @@ export const vars = {
         database: process.env.DB_NAME || "sada",
     },
     cloudflare: {
-        // WARNING: Defaults are for development convenience only.
-        // In production, ALWAYS use environment variables.
-        appId: process.env.CLOUDFLARE_APP_ID || "87cf1cf7-2e37-45c2-8593-2f3f622f83fb",
-        turnKeyId: process.env.CLOUDFLARE_TURN_KEY_ID || "7d4ab122357ca883ff212d09f1cbf856",
-        apiToken: process.env.CLOUDFLARE_API_TOKEN || "c7a14148ccad31352df1b25b2fb8e7137c7b9143c1dd2c5dcfef7d584b5e3d87"
+        turnKeyId: process.env.CLOUDFLARE_TURN_KEY_ID,
+        apiToken: process.env.CLOUDFLARE_API_TOKEN
     }
 };
+
+const requiredEnvVars = ['CLOUDFLARE_TURN_KEY_ID', 'CLOUDFLARE_API_TOKEN', 'JWT_SECRET'];
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingVars.length > 0 && process.env.NODE_ENV === 'production') {
+    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+}

@@ -6,6 +6,8 @@ import { RoomParticipant } from "../models/RoomParticipant";
 import { Follow } from "../models/Follow";
 import { GemTransaction } from "../models/GemTransaction";
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 export const AppDataSource = new DataSource({
     type: "postgres",
     host: vars.db.host,
@@ -13,9 +15,9 @@ export const AppDataSource = new DataSource({
     username: vars.db.username,
     password: vars.db.password,
     database: vars.db.database,
-    synchronize: true, // Set to false in production
-    logging: false,
+    synchronize: !isProduction,
+    logging: !isProduction,
     entities: [User, Room, RoomParticipant, Follow, GemTransaction],
     subscribers: [],
-    migrations: [],
+    migrations: ["src/migrations/**/*.ts"],
 });

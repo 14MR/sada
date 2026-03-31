@@ -19,8 +19,9 @@ export const LoginScreen = ({ navigation }: any) => {
             const data = await AuthService.signIn(mockIdentityToken, mockName);
 
             await AuthService.saveToken(data.token);
-
-            // Store user ID for later use (simple approach for now)
+            
+            // Store user profile for chat (SocketService needs it)
+            await SecureStore.setItemAsync('user_profile', JSON.stringify(data.user));
             await SecureStore.setItemAsync('user_id', data.user.id);
 
             navigation.replace('Home');

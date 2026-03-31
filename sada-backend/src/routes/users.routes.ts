@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { UserController } from "../controllers/users.controller";
+import { authMiddleware } from "../middleware/auth.middleware";
 
 const router = Router();
 
-// In a real app, apply Auth middleware here
 router.get("/:id", UserController.getProfile);
-router.put("/:id", UserController.updateProfile);
-router.delete("/:id", UserController.deleteAccount);
+router.put("/:id", authMiddleware, UserController.updateProfile);
+router.delete("/:id", authMiddleware, UserController.deleteAccount);
 
 export default router;

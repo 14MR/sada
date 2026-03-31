@@ -2,18 +2,14 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { ENV } from '../config/env';
 
-// Production backend URL
-const BASE_URL = 'https://sada.mustafin.dev/api';
-
-console.log('🌐 API Base URL:', BASE_URL);
-
-console.log('🌐 API Base URL:', BASE_URL);
+console.log('🌐 API Base URL:', ENV.API_BASE_URL);
 console.log('📱 Is Device:', Constants.isDevice);
 console.log('📱 Platform:', Platform.OS);
 
 const client = axios.create({
-    baseURL: BASE_URL,
+    baseURL: ENV.API_BASE_URL,
     headers: {
         'Content-Type': 'application/json',
     },

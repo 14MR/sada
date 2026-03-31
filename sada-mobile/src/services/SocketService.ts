@@ -2,32 +2,50 @@ import { io, Socket } from 'socket.io-client';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
+import { ENV } from '../config/env';
 
-const BASE_URL = 'https://sada.mustafin.dev';
-
-console.log('🔌 Socket Base URL:', BASE_URL);
+console.log('🔌 Socket Base URL:', ENV.SOCKET_BASE_URL);
 
 class SocketServiceImpl {
     socket: Socket | null = null;
-
+    private isConnected: boolean = false;
+    
     async connect() {
         const token = await SecureStore.getItemAsync('auth_token');
         if (!token) {
             console.warn('Socket Connect: No token found');
             return;
         }
-
-        this.socket = io(BASE_URL, {
+        
+        // If already connected, don't reconnect
+        if (this.socket && this.isConnected) {
+            console.log('♻️ Socket already connected, skipping');
+            return;
+        }
+        
+        console.log('🔌 Connecting to socket:', ENV.SOCKET_BASE_URL);
+        console.log('🔑 Using token:', token.substring(0, 20) + '...'); 
+        
+        this.socket = io(ENV.SOCKET_BASE_URL, {
             auth: { token },
             transports: ['websocket'],
+            reconnection: true,
+            reconnectionAttempts: 5,
         });
-
+        
         this.socket.on('connect', () => {
-            console.log('Socket Connected:', this.socket?.id);
+            console.log('✅ Socket Connected:', this.socket?.id);
+            this.isConnected = true;
         });
-
+        
         this.socket.on('connect_error', (err) => {
-            console.error('Socket Connection Error:', err);
+            console.error('❌ Socket Connection Error:', err);
+            this.isConnected = false;
+        });
+        
+        this.socket.on('disconnect', (reason) => {
+            console.warn('⚠️ Socket Disconnected:', reason);
+            this.isConnected = false;
         });
     }
 
@@ -39,6 +57,9 @@ class SocketServiceImpl {
     }
 
     joinRoom(roomId: string) {
+        console.log('🏠 Joining room:', roomId);
+        console.log('🔌 Socket status:', this.socket?.connected ? 'CONNECTED' : 'DISCONNECTED');
+        console.log('🔌 Socket ID:', this.socket?.id);
         this.socket?.emit('join_room', roomId);
     }
 
@@ -48,16 +69,22 @@ class SocketServiceImpl {
 
     async sendMessage(roomId: string, message: string) {
         const user = await this.getCurrentUser();
-        this.socket?.emit('send_message', {
-            roomId,
-            message,
-            userId: user?.id,
-            username: user?.display_name
-        });
+        
+        // Fallback: If user_profile not stored, use user_id
+        const userId = user?.id || await SecureStore.getItemAsync('user_id');
+        const username = user?.display_name || 'Anonymous';
+        
+        const messageData = { roomId, message, userId, username };
+        console.log('📤 Sending message:', messageData);
+        console.log('🔌 Socket connected:', !!this.socket?.connected);
+        console.log('🔌 Socket ID:', this.socket?.id);
+        
+        this.socket?.emit('send_message', messageData);
     }
 
     onMessage(callback: (msg: any) => void) {
         this.socket?.on('receive_message', (data) => {
+            console.log('📩 Received message:', data);
             // Map backend format to UI format
             callback({
                 id: Math.random().toString(),
@@ -65,6 +92,7 @@ class SocketServiceImpl {
                 content: data.message
             });
         });
+        console.log('📩 Subscribed to receive_message');
     }
 
     offMessage() {

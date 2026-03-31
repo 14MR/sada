@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { UserService } from "../services/user.service";
+import { AuthRequest } from "../middleware/auth.middleware";
 
 export class UserController {
     static async getProfile(req: Request, res: Response) {
@@ -16,13 +17,15 @@ export class UserController {
         }
     }
 
-    static async updateProfile(req: Request, res: Response) {
+    static async updateProfile(req: AuthRequest, res: Response) {
         try {
             const id = req.params.id as string;
             const updates = req.body;
+            const user = req.user!;
 
-            // In a real app, ensure the requester is the user itself or admin
-            // e.g. if (req.user.id !== id) return res.status(403)
+            if (user.id !== id) {
+                return res.status(403).json({ error: "Forbidden: You can only update your own profile" });
+            }
 
             const updatedUser = await UserService.updateProfile(id, updates);
             return res.status(200).json(updatedUser);
@@ -31,10 +34,15 @@ export class UserController {
         }
     }
 
-    static async deleteAccount(req: Request, res: Response) {
+    static async deleteAccount(req: AuthRequest, res: Response) {
         try {
             const id = req.params.id as string;
-            // TODO: Auth Check - Ensure only the user can delete themselves
+            const user = req.user!;
+
+            if (user.id !== id) {
+                return res.status(403).json({ error: "Forbidden: You can only delete your own account" });
+            }
+
             await UserService.deleteUser(id);
             return res.status(200).json({ success: true, message: "Account deleted successfully" });
         } catch (error: any) {

@@ -9,25 +9,16 @@ const userRepository = AppDataSource.getRepository(User);
 export class AuthService {
     static async verifyAppleToken(identityToken: string) {
         try {
-            // Verify identity token with Apple
-            // In a real scenario, you'd also check the audience (clientID)
-            // const { sub: appleId, email } = await appleSignin.verifyIdToken(identityToken, {
-            //     audience: process.env.APPLE_CLIENT_ID,
-            //     ignoreExpiration: true, // simplified for dev/MVP if needed
-            // });
+            // In development, skip Apple verification for testing
+            if (process.env.NODE_ENV !== 'production') {
+                console.log("[DEV MODE] Skipping Apple token verification");
+                return { appleId: identityToken, email: `dev-${Date.now()}@example.com` };
+            }
 
-            // For MVP development speed/mocking without a real frontend sending tokens:
-            // We can assume the token is the appleId if it's not a real JWT in dev mode, 
-            // OR use the library if we have real tokens.
-            // Let's assume we might receive a mock token in early dev.
-
-            // FIXME: Replace with actual verification for prod
-            const appleId = identityToken; // Placeholder until real token is available
-            const email = "user@example.com"; // Placeholder
-
-            // Real implementation would be:
-            // const payload = await appleSignin.verifyIdToken(identityToken, { audience: ... });
-            // return payload;
+            const { sub: appleId, email } = await appleSignin.verifyIdToken(identityToken, {
+                audience: process.env.APPLE_CLIENT_ID,
+                ignoreExpiration: true,
+            });
 
             return { appleId, email };
         } catch (err) {
@@ -56,22 +47,16 @@ export class AuthService {
     static generateToken(user: User) {
         return jwt.sign(
             { id: user.id, username: user.username },
-            process.env.JWT_SECRET || "default_secret",
+            process.env.JWT_SECRET!,
             { expiresIn: "7d" }
         );
     }
 
     static async signInWithApple(identityToken: string, fullName?: string) {
-        // 1. Verify Token
-        // const { sub, email } = await this.verifyAppleToken(identityToken); 
-        // Using simplified mock for initial dev cycle as we don't have real iOS tokens yet
-        const sub = identityToken;
-        const email = "mock@test.com";
+        const { appleId, email } = await this.verifyAppleToken(identityToken);
 
-        // 2. Find or Create User
-        const user = await this.mapUser(sub, email, fullName);
+        const user = await this.mapUser(appleId, email, fullName);
 
-        // 3. Generate Session Token
         const token = this.generateToken(user);
 
         return { user, token };
