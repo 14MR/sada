@@ -1,6 +1,6 @@
 import { AppDataSource } from "../config/database";
 import { UserActivity, ActivityType } from "../models/UserActivity";
-import { LessThan } from "typeorm";
+import { LessThan, MoreThan } from "typeorm";
 
 const activityRepository = AppDataSource.getRepository(UserActivity);
 
@@ -23,16 +23,13 @@ export class ActivityService {
         const [activities, total] = await activityRepository.findAndCount({
             where: {
                 userId,
-                createdAt: LessThan(new Date()) as any,
+                createdAt: MoreThan(thirtyDaysAgo) as any,
             },
             order: { createdAt: "DESC" },
             skip: offset,
             take: limit,
         });
 
-        // Filter to last 30 days in JS for SQLite compatibility
-        const filtered = activities.filter((a) => new Date(a.createdAt) >= thirtyDaysAgo);
-
-        return { activities: filtered, total: filtered.length, limit, offset };
+        return { activities, total, limit, offset };
     }
 }
