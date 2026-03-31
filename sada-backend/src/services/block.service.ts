@@ -1,5 +1,6 @@
 import { AppDataSource } from "../config/database";
 import { UserBlock } from "../models/UserBlock";
+import { ModerationService } from "./moderation.service";
 
 const blockRepository = AppDataSource.getRepository(UserBlock);
 
@@ -15,34 +16,18 @@ export class BlockService {
         return !!block;
     }
 
-    /** Block a user */
+    /** Block a user — delegates to ModerationService */
     static async blockUser(blockerId: string, blockedId: string) {
-        if (blockerId === blockedId) throw new Error("Cannot block yourself");
-
-        const existing = await blockRepository.findOne({
-            where: { blocker_id: blockerId, blocked_id: blockedId },
-        });
-        if (existing) throw new Error("Already blocked");
-
-        const block = blockRepository.create({ blocker_id: blockerId, blocked_id: blockedId });
-        return await blockRepository.save(block);
+        return await ModerationService.blockUser(blockerId, blockedId);
     }
 
-    /** Unblock a user */
+    /** Unblock a user — delegates to ModerationService */
     static async unblockUser(blockerId: string, blockedId: string) {
-        const block = await blockRepository.findOne({
-            where: { blocker_id: blockerId, blocked_id: blockedId },
-        });
-        if (!block) throw new Error("Block not found");
-        await blockRepository.remove(block);
+        return await ModerationService.unblockUser(blockerId, blockedId);
     }
 
-    /** List blocked users */
+    /** List blocked users — delegates to ModerationService */
     static async getBlockedUsers(userId: string) {
-        const blocks = await blockRepository.find({
-            where: { blocker_id: userId },
-            relations: ["blocked"],
-        });
-        return blocks.map((b) => b.blocked);
+        return await ModerationService.getBlockedUsers(userId);
     }
 }

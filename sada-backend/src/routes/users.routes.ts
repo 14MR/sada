@@ -17,6 +17,9 @@ router.get("/blocked", BlockController.listBlocked);
 router.post("/block", validate(blockSchema), BlockController.block);
 router.delete("/block/:userId", BlockController.unblock);
 
+// Profile update
+router.patch("/me/profile", validate(updateProfileSchema), ProfileController.updateProfile);
+
 // Profile with public stats
 router.get("/:id/profile", ProfileController.getProfile);
 
