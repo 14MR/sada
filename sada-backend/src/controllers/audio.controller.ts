@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { CallsService } from "../services/calls.service";
+import { ChatService } from "../services/chat.service";
 import logger from "../config/logger";
 
 /** Express 5 params are string | string[] – cast safely */
@@ -19,6 +20,13 @@ export class AudioController {
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { roomId } = req.body;
+
+            // Verify the requesting user is the room host
+            const room = await import("../services/room.service").then(m => m.RoomService.getRoom(roomId));
+            if (!room) return res.status(404).json({ error: "Room not found" });
+            if (room.host?.id !== userId) {
+                return res.status(403).json({ error: "Only the room host can start an audio session" });
+            }
 
             const session = await CallsService.createSession(roomId, userId);
             const iceServers = await CallsService.getIceServers();
@@ -54,6 +62,15 @@ export class AudioController {
                 role || "listener",
             );
 
+            // Notify room of updated participant list
+            try {
+                const chat = ChatService.getInstance();
+                chat.emitToRoom(session.roomId, "participant_update", {
+                    speakers: CallsService.getParticipants(sessionId).filter(p => p.role !== "listener"),
+                    listeners: CallsService.getParticipants(sessionId).filter(p => p.role === "listener"),
+                });
+            } catch { /* ChatService may not be initialized in tests */ }
+
             return res.json({
                 answerSdp: answer.sessionDescription.sdp,
                 answerType: answer.sessionDescription.type,
@@ -79,7 +96,24 @@ export class AudioController {
 
             const sessionId = param(req, "sessionId");
 
+            // Get roomId before leave (for socket notification)
+            const sessionBefore = CallsService.getSession(sessionId);
+            const roomId = sessionBefore?.roomId;
+
             const result = await CallsService.leaveSession(sessionId, userId);
+
+            // Notify room of updated participant list (unless session ended)
+            if (!result.sessionEnded && roomId) {
+                try {
+                    const chat = ChatService.getInstance();
+                    const remaining = CallsService.getParticipants(sessionId);
+                    chat.emitToRoom(roomId, "participant_update", {
+                        speakers: remaining.filter(p => p.role !== "listener"),
+                        listeners: remaining.filter(p => p.role === "listener"),
+                    });
+                } catch { /* best effort */ }
+            }
+
             return res.json({ success: true, sessionEnded: result.sessionEnded });
         } catch (error) {
             logger.error({ err: error }, "Leave audio session error");
@@ -144,6 +178,20 @@ export class AudioController {
             const { muted } = req.body;
 
             CallsService.setMuteState(sessionId, userId, muted);
+
+            // Notify room of mute state change
+            try {
+                const session = CallsService.getSession(sessionId);
+                if (session) {
+                    const chat = ChatService.getInstance();
+                    const participants = CallsService.getParticipants(sessionId);
+                    chat.emitToRoom(session.roomId, "participant_update", {
+                        speakers: participants.filter(p => p.role !== "listener"),
+                        listeners: participants.filter(p => p.role === "listener"),
+                    });
+                }
+            } catch { /* best effort */ }
+
             return res.json({ success: true });
         } catch (error) {
             logger.error({ err: error }, "Set mute state error");

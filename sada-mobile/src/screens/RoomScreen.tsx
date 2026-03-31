@@ -123,9 +123,15 @@ export const RoomScreen = ({ route, navigation }: any) => {
             <ChatOverlay roomId={room.id} />
 
             <View style={styles.controls}>
+                {!isConnected && (
+                    <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginBottom: 4 }}>
+                        Connecting...
+                    </Text>
+                )}
                 <TouchableOpacity
-                    style={[styles.controlButton, isMuted && styles.mutedButton]}
+                    style={[styles.controlButton, isMuted && styles.mutedButton, !isConnected && { opacity: 0.5 }]}
                     onPress={toggleMute}
+                    disabled={!isConnected}
                 >
                     <Text style={styles.controlText}>{isMuted ? 'Unmute 🎙️' : 'Mute 🔇'}</Text>
                 </TouchableOpacity>

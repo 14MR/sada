@@ -123,7 +123,7 @@ export class CallsService {
             headers: authHeaders(),
             body: JSON.stringify({
                 sessionDescription: { sdp: offerSdp, type: "offer" },
-                mediaTypes: { audio: true, video: false },
+                tracks: [{ location: "local", trackName: "audio" }],
             }),
         });
 
@@ -263,6 +263,10 @@ export class CallsService {
     /**
      * Get session info by session ID.
      */
+    static getSession(sessionId: string): SessionInfo | undefined {
+        return sessions.get(sessionId);
+    }
+
     /**
      * List participants in a session.
      */
