@@ -54,3 +54,41 @@ export const listRoomsSchema = z.object({
     category: z.string().optional(),
     status: z.enum(["live", "ended", "scheduled"]).optional().default("live"),
 });
+
+// Room invites
+export const createInviteSchema = z.object({
+    type: z.enum(["direct", "link"]),
+    inviteeId: z.string().optional(),
+    maxUses: z.number().int().min(1).optional(),
+    expiresAt: z.string().optional(),
+}).refine((data) => {
+    if (data.type === "direct" && !data.inviteeId) return false;
+    return true;
+}, { message: "inviteeId is required for direct invites" });
+
+export const acceptInviteSchema = z.object({});
+
+export const listInvitesSchema = z.object({
+    limit: z.coerce.number().int().min(1).max(100).optional().default(50),
+    offset: z.coerce.number().int().min(0).optional().default(0),
+});
+
+// Room recommendations
+export const recommendedSchema = z.object({
+    limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+    offset: z.coerce.number().int().min(0).optional().default(0),
+});
+
+// Room clips
+export const createClipSchema = z.object({
+    startTime: z.number().int().min(0, "Start time must be non-negative"),
+    endTime: z.number().int().min(1, "End time must be positive"),
+    title: z.string().min(1).max(200, "Title must be at most 200 characters"),
+}).refine((data) => data.endTime > data.startTime, {
+    message: "End time must be after start time",
+});
+
+export const listClipsSchema = z.object({
+    limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+    offset: z.coerce.number().int().min(0).optional().default(0),
+});

@@ -1,5 +1,8 @@
 import { Request, Response } from "express";
 import { RoomService } from "../services/room.service";
+import { InviteService } from "../services/invite.service";
+import { RecommendationService } from "../services/recommendation.service";
+import { ClipService } from "../services/clip.service";
 import logger from "../config/logger";
 
 export class RoomController {
@@ -239,6 +242,132 @@ export class RoomController {
             }
             logger.error({ err: error }, "Get Room Replay Error");
             return res.status(500).json({ error: "Failed to get room replay" });
+        }
+    }
+
+    // ── Room Invites ────────────────────────────────────────────────
+
+    static async createInvite(req: Request, res: Response) {
+        try {
+            const roomId = req.params.id as string;
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+            const { type, inviteeId, maxUses, expiresAt } = req.body;
+
+            let invite;
+            if (type === 'direct') {
+                invite = await InviteService.createDirectInvite(userId, roomId, inviteeId);
+            } else {
+                invite = await InviteService.createLinkInvite(userId, roomId, maxUses, expiresAt ? new Date(expiresAt) : undefined);
+            }
+
+            return res.status(201).json(invite);
+        } catch (error: any) {
+            if (error.message.includes("not found") || error.message.includes("Only the host") || error.message.includes("not live") || error.message.includes("not active") || error.message.includes("yourself")) {
+                return res.status(400).json({ error: error.message });
+            }
+            logger.error({ err: error }, "Create Invite Error");
+            return res.status(500).json({ error: "Failed to create invite" });
+        }
+    }
+
+    static async acceptInvite(req: Request, res: Response) {
+        try {
+            const code = req.params.code as string;
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+            const result = await InviteService.acceptInvite(userId, code);
+            return res.json(result);
+        } catch (error: any) {
+            if (error.message.includes("not found") || error.message.includes("expired") || error.message.includes("maximum") || error.message.includes("not live") || error.message.includes("Cannot join") || error.message.includes("Invalid")) {
+                return res.status(400).json({ error: error.message });
+            }
+            logger.error({ err: error }, "Accept Invite Error");
+            return res.status(500).json({ error: "Failed to accept invite" });
+        }
+    }
+
+    static async listInvites(req: Request, res: Response) {
+        try {
+            const roomId = req.params.id as string;
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+            const invites = await InviteService.listInvites(roomId, userId);
+            return res.json(invites);
+        } catch (error: any) {
+            if (error.message.includes("not found") || error.message.includes("Only the host")) {
+                return res.status(403).json({ error: error.message });
+            }
+            logger.error({ err: error }, "List Invites Error");
+            return res.status(500).json({ error: "Failed to list invites" });
+        }
+    }
+
+    // ── Room Recommendations ────────────────────────────────────────
+
+    static async recommended(req: Request, res: Response) {
+        try {
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+            const limit = parseInt(req.query.limit as string) || 20;
+            const offset = parseInt(req.query.offset as string) || 0;
+
+            const rooms = await RecommendationService.getRecommended(userId, limit, offset);
+            return res.json(rooms);
+        } catch (error) {
+            logger.error({ err: error }, "Recommended Rooms Error");
+            return res.status(500).json({ error: "Failed to get recommendations" });
+        }
+    }
+
+    // ── Room Clips ──────────────────────────────────────────────────
+
+    static async createClip(req: Request, res: Response) {
+        try {
+            const roomId = req.params.id as string;
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+            const { startTime, endTime, title } = req.body;
+
+            const clip = await ClipService.createClip(userId, roomId, startTime, endTime, title);
+            return res.status(201).json(clip);
+        } catch (error: any) {
+            if (error.message.includes("not found") || error.message.includes("must be")) {
+                return res.status(400).json({ error: error.message });
+            }
+            logger.error({ err: error }, "Create Clip Error");
+            return res.status(500).json({ error: "Failed to create clip" });
+        }
+    }
+
+    static async listClips(req: Request, res: Response) {
+        try {
+            const roomId = req.params.id as string;
+            const limit = parseInt(req.query.limit as string) || 20;
+            const offset = parseInt(req.query.offset as string) || 0;
+
+            const result = await ClipService.listClips(roomId, limit, offset);
+            return res.json(result);
+        } catch (error) {
+            logger.error({ err: error }, "List Clips Error");
+            return res.status(500).json({ error: "Failed to list clips" });
+        }
+    }
+
+    static async getClip(req: Request, res: Response) {
+        try {
+            const clipId = req.params.id as string;
+            const clip = await ClipService.getClip(clipId);
+            if (!clip) return res.status(404).json({ error: "Clip not found" });
+            return res.json(clip);
+        } catch (error) {
+            logger.error({ err: error }, "Get Clip Error");
+            return res.status(500).json({ error: "Failed to get clip" });
         }
     }
 }

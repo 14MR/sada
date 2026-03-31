@@ -23,6 +23,9 @@ router.delete("/block/:userId", BlockController.unblock);
 router.get("/notification-preferences", NotificationPreferenceController.get);
 router.put("/notification-preferences", validate(bulkUpdatePreferencesSchema), NotificationPreferenceController.bulkUpdate);
 
+// Profile update
+router.patch("/me/profile", validate(updateProfileSchema), ProfileController.updateProfile);
+
 // Profile with public stats
 router.get("/:id/profile", ProfileController.getProfile);
 

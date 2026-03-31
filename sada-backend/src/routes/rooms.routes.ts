@@ -2,7 +2,7 @@ import { Router } from "express";
 import { RoomController } from "../controllers/rooms.controller";
 import { SpeakerRequestController } from "../controllers/speaker-request.controller";
 import { validate } from "../middleware/validation";
-import { createRoomSchema, joinRoomSchema, leaveRoomSchema, manageSpeakerSchema, endRoomSchema, searchRoomSchema, scheduleRoomSchema, listScheduledSchema, startRoomSchema, trendingSchema, categoryRoomsSchema, listRoomsSchema } from "../validators/room.validator";
+import { createRoomSchema, joinRoomSchema, leaveRoomSchema, manageSpeakerSchema, endRoomSchema, searchRoomSchema, scheduleRoomSchema, listScheduledSchema, startRoomSchema, trendingSchema, categoryRoomsSchema, listRoomsSchema, createInviteSchema, acceptInviteSchema, listInvitesSchema, recommendedSchema, createClipSchema, listClipsSchema } from "../validators/room.validator";
 
 const router = Router();
 
