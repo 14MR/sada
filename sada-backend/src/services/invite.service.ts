@@ -59,7 +59,7 @@ export class InviteService {
         if (!invite) throw new Error("Invite not found");
         if (invite.type !== 'link') throw new Error("Invalid invite code");
 
-        if (invite.expiresAt && new Date() > invite.expiresAt) {
+        if (invite.expiresAt && new Date() > new Date(invite.expiresAt)) {
             throw new Error("Invite has expired");
         }
 
@@ -114,7 +114,7 @@ export class InviteService {
 
         if (!invite) throw new Error("Invite not found");
 
-        if (invite.expiresAt && new Date() > invite.expiresAt) {
+        if (invite.expiresAt && new Date() > new Date(invite.expiresAt)) {
             throw new Error("Invite has expired");
         }
 

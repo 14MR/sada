@@ -29,16 +29,16 @@ export class RoomInvite {
     @JoinColumn({ name: "invitee_id" })
     invitee!: User | null;
 
-    @Column({ length: 32, nullable: true, unique: true, name: "invite_code" })
+    @Column({ type: "varchar", length: 32, nullable: true, unique: true, name: "invite_code" })
     inviteCode!: string | null;
 
-    @Column({ length: 10 })
+    @Column({ type: "varchar", length: 10 })
     type!: string; // 'direct' | 'link'
 
-    @Column({ nullable: true, name: "max_uses" })
+    @Column({ type: "int", nullable: true, name: "max_uses" })
     maxUses!: number | null;
 
-    @Column({ default: 0, name: "uses" })
+    @Column({ type: "int", default: 0, name: "uses" })
     uses!: number;
 
     @Column({ type: "timestamp", nullable: true, name: "expires_at" })

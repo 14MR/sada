@@ -22,13 +22,13 @@ export class RoomClip {
     @JoinColumn({ name: "creator_id" })
     creator!: User;
 
-    @Column({ name: "start_time" })
+    @Column({ type: "int", name: "start_time" })
     startTime!: number; // seconds
 
-    @Column({ name: "end_time" })
+    @Column({ type: "int", name: "end_time" })
     endTime!: number; // seconds
 
-    @Column({ length: 200 })
+    @Column({ type: "varchar", length: 200 })
     title!: string;
 
     @CreateDateColumn({ name: "created_at" })

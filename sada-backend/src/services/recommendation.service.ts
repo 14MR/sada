@@ -26,15 +26,7 @@ export class RecommendationService {
             }
         }
 
-        // 2. Social signal: rooms that user's followings are currently in
-        const followingRooms = await followRepository
-            .createQueryBuilder("f")
-            .innerJoin("f.following", "following")
-            .innerJoin("following.id", "p_user")  // This won't work, need participant join
-            .where("f.follower_id = :userId", { userId })
-            .getMany();
-
-        // Alternative approach: find followings, then find their active rooms
+        // 2. Social signal: find rooms that user's followings are currently in
         const followings = await followRepository.find({
             where: { follower: { id: userId } },
             select: { following: { id: true } },
