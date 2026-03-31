@@ -7,6 +7,9 @@ import { AudioService } from "./audio.service";
 import { NotificationService } from "./notification.service";
 import { NotificationType } from "../models/Notification";
 import { Follow } from "../models/Follow";
+import { BlockService } from "./block.service";
+import { ActivityService } from "./activity.service";
+import { ActivityType } from "../models/UserActivity";
 import logger from "../config/logger";
 
 const roomRepository = AppDataSource.getRepository(Room);
@@ -36,6 +39,9 @@ export class RoomService {
         participant.role = 'host';
 
         await participantRepository.save(participant);
+
+        // Record activity (fire-and-forget)
+        ActivityService.record(host.id, ActivityType.ROOM_CREATED, { roomId: savedRoom.id, title }).catch(() => {});
 
         // Notify host's followers that a room started (fire-and-forget)
         const followRepository = AppDataSource.getRepository(Follow);
@@ -95,6 +101,10 @@ export class RoomService {
         if (!room) throw new Error("Room not found");
         if (room.status !== 'live') throw new Error("Room has ended");
 
+        // Block enforcement: check if the joining user is blocked by the host (or vice versa)
+        const isBlocked = await BlockService.isBlocked(user.id, room.host_id);
+        if (isBlocked) throw new Error("Cannot join this room");
+
         let participant = await participantRepository.findOne({
             where: { room: { id: roomId }, user: { id: user.id } }
         });
@@ -113,6 +123,9 @@ export class RoomService {
 
         // Generate Audio Token for joiner
         const audioConnection = await AudioService.generateToken(roomId, user.id, participant.role);
+
+        // Record activity (fire-and-forget)
+        ActivityService.record(user.id, ActivityType.ROOM_JOINED, { roomId }).catch(() => {});
 
         return { participant, audio: audioConnection };
     }

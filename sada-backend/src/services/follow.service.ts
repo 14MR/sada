@@ -4,6 +4,9 @@ import { User } from "../models/User";
 import { ChatService } from "./chat.service";
 import { NotificationService } from "./notification.service";
 import { NotificationType } from "../models/Notification";
+import { BlockService } from "./block.service";
+import { ActivityService } from "./activity.service";
+import { ActivityType } from "../models/UserActivity";
 import logger from "../config/logger";
 
 const followRepository = AppDataSource.getRepository(Follow);
@@ -12,6 +15,10 @@ const userRepository = AppDataSource.getRepository(User);
 export class FollowService {
     static async followUser(followerId: string, followingId: string) {
         if (followerId === followingId) throw new Error("Cannot follow yourself");
+
+        // Block enforcement: check if either user has blocked the other
+        const isBlocked = await BlockService.isBlocked(followerId, followingId);
+        if (isBlocked) throw new Error("Cannot follow this user");
 
         const existingFollow = await followRepository.findOne({
             where: {
@@ -56,6 +63,9 @@ export class FollowService {
         } catch (e) {
             logger.warn({ err: e }, "Failed to create notification");
         }
+
+        // Record activity for the user being followed (fire-and-forget)
+        ActivityService.record(followingId, ActivityType.FOLLOWER_GAINED, { followerId: follower.id }).catch(() => {});
 
         return savedFollow;
     }

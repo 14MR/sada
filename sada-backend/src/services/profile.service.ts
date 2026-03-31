@@ -78,6 +78,19 @@ export class ProfileService {
         return await userRepository.save(user);
     }
 
+    static async searchUsers(query: string, limit: number = 20, offset: number = 0) {
+        if (!query || query.trim().length === 0) return [];
+
+        return await userRepository
+            .createQueryBuilder("user")
+            .where("(user.username ILIKE :q OR user.display_name ILIKE :q)", { q: `%${query.trim()}%` })
+            .orderBy("user.username", "ASC")
+            .skip(offset)
+            .take(limit)
+            .select(["user.id", "user.username", "user.display_name", "user.avatar_url", "user.is_creator", "user.verified"])
+            .getMany();
+    }
+
     static async getSuggestedUsers(limit: number = 10) {
         const users = await userRepository
             .createQueryBuilder("user")
