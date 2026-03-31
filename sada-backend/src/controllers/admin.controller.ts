@@ -15,9 +15,16 @@ export class AdminController {
 
     static async getUsers(req: Request, res: Response) {
         try {
-            const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
-            const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
-            const result = await AdminService.getUsers(limit, offset);
+            const result = await AdminService.getUsers({
+                limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
+                offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
+                search: req.query.search as string | undefined,
+                sort: req.query.sort as string | undefined,
+                order: req.query.order as "ASC" | "DESC" | undefined,
+                banned: req.query.banned !== undefined ? req.query.banned === "true" : undefined,
+                flagged: req.query.flagged !== undefined ? req.query.flagged === "true" : undefined,
+                is_creator: req.query.is_creator !== undefined ? req.query.is_creator === "true" : undefined,
+            });
             return res.json(result);
         } catch (error) {
             logger.error({ err: error }, "Admin Users Error");
@@ -64,6 +71,27 @@ export class AdminController {
             }
             logger.error({ err: error }, "Unban User Error");
             return res.status(500).json({ error: "Failed to unban user" });
+        }
+    }
+
+    static async patchUser(req: Request, res: Response) {
+        try {
+            const id = req.params.id as string;
+            const adminKey = req.headers["x-admin-key"] as string;
+            const user = await AdminService.patchUser(id, req.body, adminKey);
+            return res.json({
+                id: user.id,
+                username: user.username,
+                banned: user.banned,
+                verified: user.verified,
+                is_creator: user.is_creator,
+            });
+        } catch (error: any) {
+            if (error.message === "User not found") {
+                return res.status(404).json({ error: error.message });
+            }
+            logger.error({ err: error }, "Patch User Error");
+            return res.status(500).json({ error: "Failed to update user" });
         }
     }
 
