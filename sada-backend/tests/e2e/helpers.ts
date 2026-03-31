@@ -81,7 +81,7 @@ export async function createTestCategory(
 
 export async function createTestRoom(
   hostId: string,
-  overrides: { categoryId?: string; title?: string; description?: string; status?: string; listener_count?: number } = {},
+  overrides: { categoryId?: string; title?: string; description?: string; status?: string; listener_count?: number; scheduledAt?: Date } = {},
 ): Promise<Room> {
   const repo = AppDataSource.getRepository(Room);
   const room = new Room();
@@ -91,6 +91,7 @@ export async function createTestRoom(
   room.categoryId = overrides.categoryId || null;
   room.status = overrides.status || 'live';
   room.listener_count = overrides.listener_count ?? 0;
+  room.scheduledAt = overrides.scheduledAt || null;
   room.allow_speakers = true;
   room.chat_enabled = true;
   return await repo.save(room);
