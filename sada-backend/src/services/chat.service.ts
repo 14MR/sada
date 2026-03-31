@@ -42,6 +42,10 @@ export class ChatService {
         this.io.to(`user_${userId}`).emit(event, data);
     }
 
+    public emitToRoom(roomId: string, event: string, data: any) {
+        this.io.to(roomId).emit(event, data);
+    }
+
     private initializeConnection() {
         this.io.use((socket: Socket, next) => {
             const token = socket.handshake.auth?.token || socket.handshake.query?.token as string;

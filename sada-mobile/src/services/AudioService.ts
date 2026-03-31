@@ -5,7 +5,6 @@ let RTCPeerConnection: any;
 let MediaStream: any;
 let mediaDevices: any;
 let RTCSessionDescription: any;
-let RTCIceCandidate: any;
 let InCallManager: any;
 let isWebRTCAvailable = false;
 
@@ -15,7 +14,6 @@ try {
     MediaStream = WebRTC.MediaStream;
     mediaDevices = WebRTC.mediaDevices;
     RTCSessionDescription = WebRTC.RTCSessionDescription;
-    RTCIceCandidate = WebRTC.RTCIceCandidate;
 
     try {
         InCallManager = require('react-native-incall-manager').default;
@@ -35,7 +33,6 @@ try {
         getUserMedia: () => Promise.reject(new Error('WebRTC not available'))
     };
     RTCSessionDescription = class { };
-    RTCIceCandidate = class { };
 }
 
 export interface AudioState {
@@ -44,14 +41,36 @@ export interface AudioState {
     isSpeaking: boolean;
 }
 
+/**
+ * AudioServiceImpl - Cloudflare Calls SFU client
+ *
+ * Architecture:
+ *   - Each client creates a single RTCPeerConnection to the Cloudflare SFU
+ *   - Local audio is published upstream to the SFU
+ *   - Remote audio from all other participants arrives via ontrack on the same PC
+ *   - The backend mediates all Cloudflare API calls (offer/answer exchange)
+ *
+ * Flow:
+ *   1. Host creates room → backend creates Cloudflare Calls session
+ *   2. Client calls joinRoom() → init mic → create offer → send to backend
+ *   3. Backend forwards offer to Cloudflare → returns answer + trackId
+ *   4. Client sets remote description → audio flows through SFU
+ *   5. Remote tracks arrive via ontrack (one per participant)
+ */
 class AudioServiceImpl {
     private localStream: any = null;
-    private peerConnections: Map<string, any> = new Map();
-    private pendingConnections: Set<string> = new Set();
-    private iceServers: any[] = [];
+    private peerConnection: any = null;
     private roomId: string | null = null;
+    private sessionId: string | null = null;
+    private trackId: string | null = null;
+    private mid: string | null = null;
     private isInitializing = false;
+    private remoteStreams: Map<string, any> = new Map(); // mid → MediaStream
 
+    /**
+     * Request microphone permission and capture the local audio stream.
+     * Call this before joining a room (e.g. on app launch or room entry).
+     */
     async init() {
         if (!isWebRTCAvailable) {
             console.log('⚠️ Audio Init skipped - WebRTC not available');
@@ -73,210 +92,280 @@ class AudioServiceImpl {
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true,
-                    autoGainControl: true
+                    autoGainControl: true,
                 },
-                video: false
+                video: false,
             });
             this.localStream = stream;
             console.log('✅ Microphone access granted! Stream:', stream.id);
         } catch (e) {
             console.error('❌ Failed to get microphone access:', e);
+        } finally {
+            this.isInitializing = false;
         }
     }
 
-    setIceServers(iceServers: any[]) {
-        this.iceServers = iceServers;
-        console.log('❄️ ICE Servers updated:', iceServers?.length || 0);
-    }
+    /**
+     * Join an audio room via the Cloudflare Calls SFU.
+     *
+     * 1. Start InCallManager for audio session management
+     * 2. Look up or create the SFU session for the room
+     * 3. Create RTCPeerConnection with local audio track
+     * 4. Create offer SDP → send to backend → backend proxies to Cloudflare
+     * 5. Set remote answer SDP → media flows
+     */
+    async joinRoom(roomId: string, role: 'host' | 'speaker' | 'listener' = 'listener'): Promise<boolean> {
+        if (!isWebRTCAvailable) {
+            console.log('⚠️ Cannot join audio room - WebRTC not available');
+            return false;
+        }
 
-    async joinRoom(roomId: string, socketService: any) {
         this.roomId = roomId;
-        console.log('📞 Joining Audio Room:', roomId);
+        console.log('📞 Joining SFU Audio Room:', roomId);
 
         // Standard WebRTC Voice settings
         if (InCallManager) {
             InCallManager.start({ media: 'audio' });
             InCallManager.setForceSpeakerphoneOn(true);
             InCallManager.setKeepScreenOn(true);
-            InCallManager.setSpeakerphoneOn(true); // Extra force
+            InCallManager.setSpeakerphoneOn(true);
         }
-
-        // Ensure tracks are enabled
-        if (this.localStream) {
-            this.localStream.getAudioTracks().forEach((track: any) => {
-                track.enabled = true;
-                console.log(`🎙️ Track ${track.id} enabled for room.`);
-            });
-        }
-
-        // Listen for signals from others
-        socketService.onSignal(async (data: { senderId: string, signal: any }) => {
-            const { senderId, signal } = data;
-            const myId = socketService.socket?.id;
-
-            // IGNORE OUR OWN SIGNALS (if backend reflects them)
-            if (senderId === myId) return;
-
-            if (signal.type === 'offer') {
-                await this.handleOffer(senderId, signal, socketService);
-            } else if (signal.type === 'answer') {
-                await this.handleAnswer(senderId, signal);
-            } else if (signal.type === 'candidate') {
-                await this.handleCandidate(senderId, signal);
-            } else if (signal.type === 'join' || signal.type === 'presence') {
-                // Someone is here!
-                if (!myId) return;
-
-                if (myId > senderId) {
-                    console.log(`🙋 Discovery (${signal.type}) from ${senderId}. I (${myId}) will initiate.`);
-                    await this.createPeerConnection(senderId, socketService, true);
-                } else {
-                    console.log(`🙋 Discovery (${signal.type}) from ${senderId}. I (${myId}) will wait.`);
-                    // If we just received a 'join', and we are the "waiter", 
-                    // we MUST send a presence signal back so the newcomer knows we are here!
-                    if (signal.type === 'join') {
-                        socketService.sendSignal(this.roomId!, { type: 'presence' });
-                    }
-                }
-            }
-        });
-
-        // Tell everyone we joined audio
-        socketService.sendSignal(roomId, { type: 'join' });
-    }
-
-    private async createPeerConnection(peerId: string, socketService: any, isInitiator: boolean) {
-        if (this.peerConnections.has(peerId) || this.pendingConnections.has(peerId)) {
-            console.log(`♻️ Connection already active or pending for ${peerId}`);
-            return this.peerConnections.get(peerId);
-        }
-
-        this.pendingConnections.add(peerId);
 
         try {
-            console.log(`🤝 Creating PeerConnection for ${peerId} (Initiator: ${isInitiator})`);
+            // ─── Step 1: Get or create SFU session ─────────────────────────
+            let sessionId: string | null = null;
+
+            try {
+                // Check if session already exists
+                const lookupResp = await client.get(`/audio/sessions/room/${roomId}`);
+                if (lookupResp.data?.sessionId) {
+                    sessionId = lookupResp.data.sessionId;
+                    console.log('📡 Found existing SFU session:', sessionId);
+                }
+            } catch {
+                // 404 means no session yet — will create below
+            }
+
+            if (!sessionId) {
+                // Create new session
+                const createResp = await client.post('/audio/sessions', { roomId });
+                sessionId = createResp.data.sessionId;
+                console.log('📡 Created new SFU session:', sessionId);
+            }
+
+            this.sessionId = sessionId;
+
+            // ─── Step 2: Create PeerConnection + add local audio ────────────
+            // Close any existing PC before creating a new one
+            if (this.peerConnection) {
+                this.peerConnection.close();
+                this.peerConnection = null;
+            }
 
             const pc = new RTCPeerConnection({
-                iceServers: (this.iceServers && this.iceServers.length > 0)
-                    ? this.iceServers
-                    : [{ urls: 'stun:stun.l.google.com:19302' }]
+                iceServers: [], // SFU handles ICE internally
             });
+            this.peerConnection = pc;
 
-            this.peerConnections.set(peerId, pc);
-            this.pendingConnections.delete(peerId);
+            // Ensure local stream and add audio track
+            if (!this.localStream) {
+                await this.init();
+            }
 
-            pc.onconnectionstatechange = () => {
-                console.log(`🔌 Connection State [${peerId}]: ${pc.connectionState}`);
-            };
-
-            pc.oniceconnectionstatechange = () => {
-                console.log(`❄️ ICE Connection State [${peerId}]: ${pc.iceConnectionState}`);
-            };
-
-            // Add local tracks
             if (this.localStream) {
-                this.localStream.getTracks().forEach((track: any) => {
-                    try {
-                        pc.addTrack(track, this.localStream);
-                    } catch (e) {
-                        console.error(`❌ Failed to add track to ${peerId}:`, e);
-                    }
+                this.localStream.getAudioTracks().forEach((track: any) => {
+                    track.enabled = true;
+                    pc.addTrack(track, this.localStream);
+                    console.log(`🎙️ Added local audio track ${track.id} to PeerConnection`);
                 });
             }
 
-            // Handle ICE candidates
-            pc.onicecandidate = (event: any) => {
-                if (event.candidate && this.roomId) {
-                    console.log(`❄️ Sending ICE Candidate to ${peerId}`);
-                    socketService.sendSignal(this.roomId, {
-                        type: 'candidate',
-                        candidate: event.candidate,
-                    });
+            // Handle remote tracks from the SFU (other participants)
+            pc.ontrack = (event: any) => {
+                const stream = event.streams[0];
+                const trackMid = event.transceiver?.mid || `remote_${Date.now()}`;
+                console.log(`🔊 Received remote track from SFU. MID: ${trackMid}, Stream: ${stream?.id}`);
+
+                if (stream) {
+                    this.remoteStreams.set(trackMid, stream);
                 }
             };
 
-            // Handle remote tracks
-            pc.ontrack = (event: any) => {
-                const stream = event.streams[0];
-                console.log(`🔊 Received remote track from ${peerId}. Stream ID: ${stream?.id}`);
-                // In a more complex app, we might attach this stream to a state-managed <RTCView> 
-                // for visualizing who is speaking, but for audio-only native usually plays it.
+            pc.onconnectionstatechange = () => {
+                console.log(`🔌 SFU Connection State: ${pc.connectionState}`);
             };
 
-            if (isInitiator) {
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
-                socketService.sendSignal(this.roomId!, offer);
-            }
+            pc.oniceconnectionstatechange = () => {
+                console.log(`❄️ SFU ICE Connection State: ${pc.iceConnectionState}`);
+            };
 
-            return pc;
+            // ─── Step 3: Create offer SDP → backend → Cloudflare ────────────
+            const offer = await pc.createOffer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: false,
+            });
+            await pc.setLocalDescription(offer);
+
+            console.log('📤 Sending offer SDP to backend for SFU negotiation...');
+
+            const joinResp = await client.post(`/audio/sessions/${sessionId}/join`, {
+                offerSdp: offer.sdp,
+                role,
+            });
+
+            // ─── Step 4: Set remote answer SDP from Cloudflare ──────────────
+            const { answerSdp, answerType, trackId, mid } = joinResp.data;
+            this.trackId = trackId;
+            this.mid = mid;
+
+            await pc.setRemoteDescription(
+                new RTCSessionDescription({
+                    sdp: answerSdp,
+                    type: answerType || 'answer',
+                })
+            );
+
+            console.log('✅ SFU PeerConnection established. Track ID:', trackId, 'MID:', mid);
+            return true;
         } catch (e) {
-            console.error(`❌ Error creating PeerConnection for ${peerId}:`, e);
-            this.pendingConnections.delete(peerId);
-            throw e;
-        }
-    }
-
-    private async handleOffer(peerId: string, offer: any, socketService: any) {
-        try {
-            const pc = await this.createPeerConnection(peerId, socketService, false);
-            await pc.setRemoteDescription(new RTCSessionDescription(offer));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            socketService.sendSignal(this.roomId!, answer);
-        } catch (e) {
-            console.error(`❌ Error handling offer from ${peerId}:`, e);
-            this.pendingConnections.delete(peerId);
-        }
-    }
-
-    private async handleAnswer(peerId: string, answer: any) {
-        try {
-            const pc = this.peerConnections.get(peerId);
-            if (pc) {
-                await pc.setRemoteDescription(new RTCSessionDescription(answer));
+            console.error('❌ Failed to join SFU audio room:', e);
+            // Cleanup on failure
+            if (this.peerConnection) {
+                this.peerConnection.close();
+                this.peerConnection = null;
             }
-        } catch (e) {
-            console.error(`❌ Error handling answer from ${peerId}:`, e);
+            this.sessionId = null;
+            this.trackId = null;
+            this.mid = null;
+            return false;
         }
     }
 
-    private async handleCandidate(peerId: string, signal: any) {
-        const pc = this.peerConnections.get(peerId);
-        if (pc && signal.candidate) {
-            try {
-                await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
-            } catch (e) {
-                console.error('❌ Failed to add ICE candidate:', e);
-            }
-        }
-    }
-
+    /**
+     * Toggle local microphone mute/unmute.
+     * With SFU, muting is simply enabling/disabling the local audio track.
+     * The SFU will stop forwarding the audio to other participants automatically.
+     */
     async toggleMute(): Promise<boolean> {
         if (this.localStream) {
             const tracks = this.localStream.getAudioTracks();
             if (tracks.length > 0) {
+                const newState = !tracks[0].enabled;
                 tracks.forEach((track: any) => {
-                    track.enabled = !track.enabled;
-                    console.log(`🎙️ Microphone ${track.enabled ? 'unmuted' : 'muted'}`);
+                    track.enabled = newState;
+                    console.log(`🎙️ Microphone ${newState ? 'unmuted' : 'muted'}`);
                 });
-                return tracks[0].enabled;
+
+                // Notify backend of mute state change (for participant list UI)
+                if (this.sessionId) {
+                    try {
+                        await client.post(`/audio/sessions/${this.sessionId}/mute`, {
+                            muted: !newState,
+                        });
+                    } catch (e) {
+                        console.warn('⚠️ Failed to notify backend of mute state:', e);
+                    }
+                }
+
+                return newState;
             }
         }
         return false;
     }
 
-    leaveRoom() {
-        console.log('👋 Leaving Audio Room');
-        this.peerConnections.forEach((pc) => pc.close());
-        this.peerConnections.clear();
+    /**
+     * Leave the audio room.
+     * Closes the PeerConnection and notifies the backend to clean up.
+     */
+    async leaveRoom() {
+        console.log('👋 Leaving SFU Audio Room');
+
+        // Close PeerConnection
+        if (this.peerConnection) {
+            this.peerConnection.close();
+            this.peerConnection = null;
+        }
+
+        // Clear remote streams
+        this.remoteStreams.clear();
+
+        // Notify backend
+        if (this.sessionId) {
+            try {
+                await client.post(`/audio/sessions/${this.sessionId}/leave`);
+            } catch (e) {
+                console.warn('⚠️ Failed to notify backend of leave:', e);
+            }
+        }
+
+        // Stop InCallManager
         if (InCallManager) {
             InCallManager.stop();
         }
+
         this.roomId = null;
+        this.sessionId = null;
+        this.trackId = null;
+        this.mid = null;
     }
 
-    // New helper to handle listener tracking if needed
+    /**
+     * Renegotiate the PeerConnection (e.g. for ICE restart).
+     * Creates a new offer and sends it through the backend to Cloudflare.
+     */
+    async renegotiate(): Promise<boolean> {
+        if (!this.peerConnection || !this.sessionId) {
+            console.warn('⚠️ Cannot renegotiate - no active connection');
+            return false;
+        }
+
+        try {
+            const offer = await this.peerConnection.createOffer({
+                iceRestart: true,
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: false,
+            });
+            await this.peerConnection.setLocalDescription(offer);
+
+            const resp = await client.post(`/audio/sessions/${this.sessionId}/renegotiate`, {
+                offerSdp: offer.sdp,
+            });
+
+            await this.peerConnection.setRemoteDescription(
+                new RTCSessionDescription({
+                    sdp: resp.data.answerSdp,
+                    type: resp.data.answerType || 'answer',
+                })
+            );
+
+            console.log('🔄 Renegotiation complete');
+            return true;
+        } catch (e) {
+            console.error('❌ Renegotiation failed:', e);
+            return false;
+        }
+    }
+
+    /**
+     * Get the current connection state.
+     */
+    getConnectionState(): string | null {
+        return this.peerConnection?.connectionState ?? null;
+    }
+
+    /**
+     * Get the number of remote streams (other participants we're receiving).
+     */
+    getRemoteStreamCount(): number {
+        return this.remoteStreams.size;
+    }
+
+    /**
+     * Check if currently connected to an SFU session.
+     */
+    isConnected(): boolean {
+        return this.peerConnection?.connectionState === 'connected';
+    }
 }
 
 export const AudioService = new AudioServiceImpl();
