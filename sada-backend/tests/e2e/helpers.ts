@@ -57,6 +57,7 @@ export async function createTestUser(
   user.is_creator = overrides.is_creator ?? false;
   user.verified = overrides.verified ?? false;
   user.banned = overrides.banned ?? false;
+  user.flagged = overrides.flagged ?? false;
   user.language = overrides.language || 'en';
   user.twitter_handle = overrides.twitter_handle || null;
   user.instagram_handle = overrides.instagram_handle || null;
