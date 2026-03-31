@@ -20,6 +20,7 @@ import recordingRoutes from './routes/recording.routes';
 import reactionRoutes from './routes/reaction.routes';
 import audioRoutes from './routes/audio.routes';
 import reportRoutes from './routes/report.routes';
+import conversationRoutes from './routes/conversation.routes';
 
 function getCorsOptions(): cors.CorsOptions {
   const origins = process.env.CORS_ORIGINS;
@@ -39,7 +40,7 @@ const authLimiter = rateLimit({
 
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 100,
+  max: process.env.NODE_ENV === 'test' ? 10000 : 100,
   message: { error: 'Too many requests, please try again later' },
 });
 
@@ -90,6 +91,7 @@ export function createApp() {
   app.use('/reactions', reactionRoutes);
   app.use('/audio', audioRoutes);
   app.use('/reports', reportRoutes);
+  app.use('/conversations', conversationRoutes);
 
   // Error handler
   app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
