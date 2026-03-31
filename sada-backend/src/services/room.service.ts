@@ -58,19 +58,17 @@ export class RoomService {
         return { ...savedRoom, audio: audioSession };
     }
 
-    static async getLiveRooms(categorySlug?: string, q?: string) {
+    static async getLiveRooms(categorySlug?: string, status?: string, limit: number = 50, offset: number = 0) {
         const query = roomRepository.createQueryBuilder("room")
             .leftJoinAndSelect("room.host", "host")
             .leftJoinAndSelect("room.category", "category")
-            .where("room.status = :status", { status: 'live' })
-            .orderBy("room.started_at", "DESC");
+            .where("room.status = :status", { status: status || 'live' })
+            .orderBy("room.started_at", "DESC")
+            .skip(offset)
+            .take(limit);
 
         if (categorySlug) {
             query.andWhere("category.slug = :slug", { slug: categorySlug });
-        }
-
-        if (q) {
-            query.andWhere("(room.title ILIKE :q OR room.description ILIKE :q)", { q: `%${q}%` });
         }
 
         return await query.getMany();
@@ -176,5 +174,159 @@ export class RoomService {
         room.ended_at = new Date();
 
         return await roomRepository.save(room);
+    }
+
+    // ── Scheduled Rooms ──────────────────────────────────────────────
+
+    static async scheduleRoom(host: User, title: string, description: string, categoryId: string, scheduledAt: Date) {
+        const category = await categoryRepository.findOneBy({ id: categoryId });
+        if (!category) throw new Error("Category not found");
+        if (scheduledAt.getTime() <= Date.now()) throw new Error("scheduledAt must be a future date");
+
+        const room = new Room();
+        room.host = host;
+        room.title = title;
+        room.description = description;
+        room.categoryId = categoryId;
+        room.scheduledAt = scheduledAt;
+        room.status = 'scheduled';
+        room.listener_count = 0;
+
+        const savedRoom = await roomRepository.save(room);
+
+        // Notify host's followers about the scheduled room
+        const followRepository = AppDataSource.getRepository(Follow);
+        followRepository.find({
+            where: { following: { id: host.id } },
+            relations: ["follower"],
+        }).then((followers) => {
+            Promise.all(followers.map((follow) =>
+                NotificationService.create(
+                    follow.follower.id,
+                    NotificationType.ROOM_SCHEDULED,
+                    `${host.username || "Someone"} scheduled a room: ${title}`,
+                    `Scheduled for ${scheduledAt.toISOString()}`,
+                    { roomId: savedRoom.id, hostId: host.id, scheduledAt: scheduledAt.toISOString() }
+                ).catch((e) => logger.warn({ err: e }, "Failed to notify follower"))
+            ));
+        }).catch((e) => logger.warn({ err: e }, "Failed to fetch followers for notification"));
+
+        return savedRoom;
+    }
+
+    static async getScheduledRooms(limit: number = 20, offset: number = 0, categorySlug?: string) {
+        let category: Category | null = null;
+        if (categorySlug) {
+            category = await categoryRepository.findOneBy({ slug: categorySlug });
+        }
+
+        const where: any = {
+            status: 'scheduled',
+        };
+        if (category) {
+            where.categoryId = category.id;
+        }
+
+        const [rooms, total] = await roomRepository.findAndCount({
+            where,
+            relations: ["host", "category"],
+            order: { scheduledAt: "ASC" },
+            skip: offset,
+            take: limit,
+        });
+
+        return { rooms, total, limit, offset };
+    }
+
+    static async startScheduledRoom(hostId: string, roomId: string) {
+        const room = await roomRepository.findOne({
+            where: { id: roomId },
+            relations: ["host"]
+        });
+
+        if (!room) throw new Error("Room not found");
+        if (room.host.id !== hostId) throw new Error("Only the host can start this room");
+        if (room.status !== 'scheduled') throw new Error("Room is not in scheduled status");
+
+        room.status = 'live';
+
+        const savedRoom = await roomRepository.save(room);
+
+        // Provision Audio Session
+        const audioSession = await AudioService.createSession(savedRoom.id, hostId);
+
+        // Add host as participant
+        const participant = new RoomParticipant();
+        participant.room = savedRoom;
+        participant.user = room.host;
+        participant.role = 'host';
+        await participantRepository.save(participant);
+
+        // Notify host's followers that the room is now live
+        const followRepository = AppDataSource.getRepository(Follow);
+        followRepository.find({
+            where: { following: { id: hostId } },
+            relations: ["follower"],
+        }).then((followers) => {
+            Promise.all(followers.map((follow) =>
+                NotificationService.create(
+                    follow.follower.id,
+                    NotificationType.ROOM_STARTED,
+                    `${room.host.username || "Someone"} started a room: ${room.title}`,
+                    undefined,
+                    { roomId: savedRoom.id, hostId }
+                ).catch((e) => logger.warn({ err: e }, "Failed to notify follower"))
+            ));
+        }).catch((e) => logger.warn({ err: e }, "Failed to fetch followers for notification"));
+
+        return { ...savedRoom, audio: audioSession };
+    }
+
+    // ── Trending / Discovery ─────────────────────────────────────────
+
+    static async getTrendingRooms(limit: number = 20, offset: number = 0) {
+        // Fetch live rooms with participants for trending calculation
+        const rooms = await roomRepository.createQueryBuilder("room")
+            .leftJoinAndSelect("room.host", "host")
+            .leftJoinAndSelect("room.category", "category")
+            .leftJoinAndSelect("room.participants", "participant")
+            .where("room.status = :status", { status: 'live' })
+            .getMany();
+
+        // Compute trending score in JS for cross-DB compatibility:
+        // score = listener_count * recency_boost + participant_count
+        // recency_boost = 1000 / (hours_since_start + 1)
+        const scored = rooms.map((room) => {
+            const hoursSinceStart = (Date.now() - new Date(room.started_at).getTime()) / (1000 * 3600);
+            const recencyBoost = 1000 / (hoursSinceStart + 1);
+            const participantCount = room.participants?.length ?? 0;
+            const score = room.listener_count * recencyBoost + participantCount;
+            return { room, score };
+        });
+
+        scored.sort((a, b) => b.score - a.score);
+
+        return scored.slice(offset, offset + limit).map((s) => {
+            // Remove participants array from response to keep it clean
+            const { participants, ...rest } = s.room as any;
+            return rest;
+        });
+    }
+
+    static async getRoomsByCategory(slug: string, limit: number = 20, offset: number = 0) {
+        const category = await categoryRepository.findOneBy({ slug });
+        if (!category) {
+            return { rooms: [], total: 0, limit, offset };
+        }
+
+        const [rooms, total] = await roomRepository.findAndCount({
+            where: { status: 'live', categoryId: category.id },
+            relations: ["host", "category"],
+            order: { listener_count: "DESC", started_at: "DESC" },
+            skip: offset,
+            take: limit,
+        });
+
+        return { rooms, total, limit, offset };
     }
 }

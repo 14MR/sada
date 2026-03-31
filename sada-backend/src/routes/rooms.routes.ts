@@ -2,18 +2,26 @@ import { Router } from "express";
 import { RoomController } from "../controllers/rooms.controller";
 import { SpeakerRequestController } from "../controllers/speaker-request.controller";
 import { validate } from "../middleware/validation";
-import { createRoomSchema, joinRoomSchema, leaveRoomSchema, manageSpeakerSchema, endRoomSchema, searchRoomSchema } from "../validators/room.validator";
+import { createRoomSchema, joinRoomSchema, leaveRoomSchema, manageSpeakerSchema, endRoomSchema, searchRoomSchema, scheduleRoomSchema, listScheduledSchema, startRoomSchema, trendingSchema, categoryRoomsSchema, listRoomsSchema } from "../validators/room.validator";
 
 const router = Router();
 
+// Static routes MUST come before /:id to avoid param matching
+router.post("/schedule", validate(scheduleRoomSchema), RoomController.schedule);
+router.get("/scheduled", validate(listScheduledSchema, "query"), RoomController.listScheduled);
+router.get("/trending", validate(trendingSchema, "query"), RoomController.trending);
+router.get("/categories/:slug", validate(categoryRoomsSchema, "query"), RoomController.listByCategory);
+
+// General routes
 router.post("/", validate(createRoomSchema), RoomController.create);
-router.get("/", RoomController.list);
+router.get("/", validate(listRoomsSchema, "query"), RoomController.list);
 router.get("/search", validate(searchRoomSchema, "query"), RoomController.search);
 router.get("/:id", RoomController.get);
 router.post("/:id/join", validate(joinRoomSchema), RoomController.join);
 router.post("/:id/leave", validate(leaveRoomSchema), RoomController.leave);
 router.post("/:id/speakers", validate(manageSpeakerSchema), RoomController.manageSpeaker);
 router.post("/:id/end", validate(endRoomSchema), RoomController.end);
+router.post("/:id/start", validate(startRoomSchema), RoomController.start);
 
 // Speaker request RESTful endpoints
 router.post("/:id/speaker-requests", SpeakerRequestController.raiseHand);

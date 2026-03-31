@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import { RoomService } from "../services/room.service";
-import { AuthService } from "../services/auth.service"; // Assume we might need to verify user or get from request
 import logger from "../config/logger";
 
 export class RoomController {
@@ -28,7 +27,9 @@ export class RoomController {
         try {
             const category = req.query.category as string;
             const status = req.query.status as string || 'live';
-            const rooms = await RoomService.getLiveRooms(category, status);
+            const limit = parseInt(req.query.limit as string) || 50;
+            const offset = parseInt(req.query.offset as string) || 0;
+            const rooms = await RoomService.getLiveRooms(category, status, limit, offset);
             return res.json(rooms);
         } catch (error) {
             logger.error({ err: error }, "List Rooms Error");
@@ -118,6 +119,93 @@ export class RoomController {
             return res.json({ success: true });
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
+        }
+    }
+
+    // ── Scheduled Rooms ──────────────────────────────────────────────
+
+    static async schedule(req: Request, res: Response) {
+        try {
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+            const { title, description, categoryId, scheduledAt } = req.body;
+
+            const { UserService } = require("../services/user.service");
+            const host = await UserService.getProfile(userId);
+            if (!host) return res.status(404).json({ error: "Host not found" });
+
+            const room = await RoomService.scheduleRoom(host, title, description, categoryId, new Date(scheduledAt));
+            return res.status(201).json(room);
+        } catch (error: any) {
+            if (error.message.includes("future date") || error.message.includes("Category not found")) {
+                return res.status(400).json({ error: error.message });
+            }
+            logger.error({ err: error }, "Schedule Room Error");
+            return res.status(500).json({ error: "Failed to schedule room" });
+        }
+    }
+
+    static async listScheduled(req: Request, res: Response) {
+        try {
+            const limit = parseInt(req.query.limit as string) || 20;
+            const offset = parseInt(req.query.offset as string) || 0;
+            const category = req.query.category as string | undefined;
+
+            const result = await RoomService.getScheduledRooms(limit, offset, category);
+            return res.json(result);
+        } catch (error) {
+            logger.error({ err: error }, "List Scheduled Rooms Error");
+            return res.status(500).json({ error: "Failed to list scheduled rooms" });
+        }
+    }
+
+    static async start(req: Request, res: Response) {
+        try {
+            const id = req.params.id as string;
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+            const result = await RoomService.startScheduledRoom(userId, id);
+            return res.json(result);
+        } catch (error: any) {
+            if (error.message.includes("not in scheduled") || error.message.includes("Only the host")) {
+                return res.status(400).json({ error: error.message });
+            }
+            if (error.message === "Room not found") {
+                return res.status(404).json({ error: error.message });
+            }
+            logger.error({ err: error }, "Start Scheduled Room Error");
+            return res.status(500).json({ error: "Failed to start room" });
+        }
+    }
+
+    // ── Trending / Discovery ─────────────────────────────────────────
+
+    static async trending(req: Request, res: Response) {
+        try {
+            const limit = parseInt(req.query.limit as string) || 20;
+            const offset = parseInt(req.query.offset as string) || 0;
+
+            const rooms = await RoomService.getTrendingRooms(limit, offset);
+            return res.json(rooms);
+        } catch (error) {
+            logger.error({ err: error }, "Trending Rooms Error");
+            return res.status(500).json({ error: "Failed to get trending rooms" });
+        }
+    }
+
+    static async listByCategory(req: Request, res: Response) {
+        try {
+            const slug = req.params.slug as string;
+            const limit = parseInt(req.query.limit as string) || 20;
+            const offset = parseInt(req.query.offset as string) || 0;
+
+            const result = await RoomService.getRoomsByCategory(slug, limit, offset);
+            return res.json(result);
+        } catch (error) {
+            logger.error({ err: error }, "Category Rooms Error");
+            return res.status(500).json({ error: "Failed to get rooms by category" });
         }
     }
 }
