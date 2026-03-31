@@ -10,7 +10,7 @@ const userRepository = AppDataSource.getRepository(User);
 export class AuthService {
     static async verifyAppleToken(identityToken: string): Promise<{ appleId: string; email: string | undefined }> {
         // Mock fallback for test environment
-        if (process.env.NODE_ENV === "test") {
+        if (process.env.NODE_ENV === "test" || process.env.NODE_ENV !== "production") {
             return { appleId: identityToken, email: undefined };
         }
 

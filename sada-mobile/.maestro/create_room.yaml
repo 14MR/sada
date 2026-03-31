@@ -1,0 +1,14 @@
+appId: com.anonymous.sadamobile
+---
+- launchApp
+- tapOn: "Sign in with Apple (Dev)"
+- assertVisible: "Live Rooms"
+- tapOn: "+ Create Room"
+- assertVisible: "Start a Room"
+- tapOn: "What do you want to talk about?"
+- inputText: "E2E Test Room"
+- tapOn: "COMEDY"
+- tapOn: "Go Live Now 🔴"
+- assertVisible: "Success"
+- assertVisible: "Room created"
+- tapOn: "OK"

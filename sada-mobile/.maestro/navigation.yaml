@@ -1,0 +1,9 @@
+appId: com.anonymous.sadamobile
+---
+- launchApp
+- tapOn: "Sign in with Apple (Dev)"
+- assertVisible: "Live Rooms"
+- tapOn: "Profile"
+- assertVisible: "Followers"
+- tapOn: "Home"
+- assertVisible: "Live Rooms"

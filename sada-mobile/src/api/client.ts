@@ -3,10 +3,8 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-// Production backend URL
-const BASE_URL = 'https://sada.mustafin.dev/api';
-
-console.log('🌐 API Base URL:', BASE_URL);
+const BASE_URL =
+    process.env.EXPO_PUBLIC_API_URL || 'https://sada.mustafin.dev/api';
 
 console.log('🌐 API Base URL:', BASE_URL);
 console.log('📱 Is Device:', Constants.isDevice);

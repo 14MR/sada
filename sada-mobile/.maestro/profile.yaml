@@ -1,0 +1,11 @@
+appId: com.anonymous.sadamobile
+---
+- launchApp
+- tapOn: "Sign in with Apple (Dev)"
+- assertVisible: "Welcome"
+- tapOn: "Profile"
+- assertVisible: "Followers"
+- assertVisible: "Following"
+- assertVisible: "Gems"
+- tapOn: "Sign Out"
+- assertVisible: "Sign in with Apple"

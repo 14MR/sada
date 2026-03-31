@@ -1,0 +1,8 @@
+appId: com.anonymous.sadamobile
+---
+- launchApp
+- assertVisible: "SADA"
+- assertVisible: "Sign in with Apple"
+- tapOn: "Sign in with Apple (Dev)"
+- assertVisible: "Welcome"
+- assertVisible: "Live Rooms"
