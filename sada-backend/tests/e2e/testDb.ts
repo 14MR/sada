@@ -16,6 +16,8 @@ import { RoomRecording } from '../../src/models/RoomRecording';
 import { ChatReaction } from '../../src/models/ChatReaction';
 import { UserActivity } from '../../src/models/UserActivity';
 import { NotificationPreference } from '../../src/models/NotificationPreference';
+import { RoomInvite } from '../../src/models/RoomInvite';
+import { RoomClip } from '../../src/models/RoomClip';
 
 // Patch SqliteDriver to accept PostgreSQL-compatible types (uuid, enum, jsonb, timestamp, etc.)
 // SQLite stores these as text anyway, so they work at the data level — TypeORM just needs
@@ -59,7 +61,7 @@ export const AppDataSource = new DataSource({
     User, Room, RoomParticipant, Follow, GemTransaction, Category,
     SpeakerRequest, Report, UserBlock, AdminAction, Notification,
     Withdrawal, RoomRecording, ChatReaction, UserActivity,
-    NotificationPreference,
+    NotificationPreference, RoomInvite, RoomClip,
   ],
   logging: false,
 });
