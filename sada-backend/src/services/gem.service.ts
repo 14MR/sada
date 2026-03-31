@@ -5,6 +5,9 @@ import { User } from "../models/User";
 import { ChatService } from "./chat.service";
 import { NotificationService } from "./notification.service";
 import { NotificationType } from "../models/Notification";
+import { BlockService } from "./block.service";
+import { ActivityService } from "./activity.service";
+import { ActivityType } from "../models/UserActivity";
 import logger from "../config/logger";
 
 // In-memory receipt hash store for idempotency (prod should use Redis/DB)
@@ -131,6 +134,10 @@ export class GemService {
         if (amount <= 0) throw new Error("Amount must be positive");
         if (senderId === receiverId) throw new Error("Cannot gift yourself");
 
+        // Block enforcement: check if either user has blocked the other
+        const isBlocked = await BlockService.isBlocked(senderId, receiverId);
+        if (isBlocked) throw new Error("Cannot send gems to this user");
+
         const savedTx = await AppDataSource.manager.transaction(async transactionalEntityManager => {
             const sender = await transactionalEntityManager.findOne(User, { where: { id: senderId } });
             const receiver = await transactionalEntityManager.findOne(User, { where: { id: receiverId } });
@@ -177,6 +184,9 @@ export class GemService {
         } catch (e) {
             logger.warn({ err: e }, "Failed to create notification");
         }
+
+        // Record activity for receiver (fire-and-forget)
+        ActivityService.record(receiverId, ActivityType.GEM_RECEIVED, { senderId, amount, roomId }).catch(() => {});
 
         return savedTx;
     }

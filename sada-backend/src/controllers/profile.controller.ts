@@ -35,6 +35,20 @@ export class ProfileController {
         }
     }
 
+    static async searchUsers(req: Request, res: Response) {
+        try {
+            const q = req.query.q as string || "";
+            const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 50);
+            const offset = Math.max(Number(req.query.offset) || 0, 0);
+
+            const users = await ProfileService.searchUsers(q, limit, offset);
+            return res.json(users);
+        } catch (error) {
+            logger.error({ err: error }, "Search Users Error");
+            return res.status(500).json({ error: "Failed to search users" });
+        }
+    }
+
     static async suggestedUsers(req: Request, res: Response) {
         try {
             const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 50);
