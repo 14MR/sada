@@ -3,9 +3,11 @@ import { UserController } from "../controllers/users.controller";
 import { ProfileController } from "../controllers/profile.controller";
 import { BlockController } from "../controllers/block.controller";
 import { ActivityController } from "../controllers/activity.controller";
+import { NotificationPreferenceController } from "../controllers/notification-preference.controller";
 import { validate } from "../middleware/validation";
 import { updateProfileSchema } from "../validators/user.validator";
 import { blockSchema } from "../validators/moderation.validator";
+import { bulkUpdatePreferencesSchema } from "../validators/notification-preference.validator";
 
 const router = Router();
 
@@ -16,6 +18,10 @@ router.get("/activity", ActivityController.getActivity);
 router.get("/blocked", BlockController.listBlocked);
 router.post("/block", validate(blockSchema), BlockController.block);
 router.delete("/block/:userId", BlockController.unblock);
+
+// Notification preferences
+router.get("/notification-preferences", NotificationPreferenceController.get);
+router.put("/notification-preferences", validate(bulkUpdatePreferencesSchema), NotificationPreferenceController.bulkUpdate);
 
 // Profile update
 router.patch("/me/profile", validate(updateProfileSchema), ProfileController.updateProfile);

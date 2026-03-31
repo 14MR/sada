@@ -17,6 +17,8 @@ router.post("/", validate(createRoomSchema), RoomController.create);
 router.get("/", validate(listRoomsSchema, "query"), RoomController.list);
 router.get("/search", validate(searchRoomSchema, "query"), RoomController.search);
 router.get("/:id", RoomController.get);
+router.get("/:id/recordings", RoomController.getRoomRecordings);
+router.get("/:id/replay", RoomController.getRoomReplay);
 router.post("/:id/join", validate(joinRoomSchema), RoomController.join);
 router.post("/:id/leave", validate(leaveRoomSchema), RoomController.leave);
 router.post("/:id/speakers", validate(manageSpeakerSchema), RoomController.manageSpeaker);

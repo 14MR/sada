@@ -2,6 +2,8 @@ import { AppDataSource } from "../config/database";
 import { User } from "../models/User";
 import { NotificationService } from "./notification.service";
 import { NotificationType } from "../models/Notification";
+import { NotificationPreferenceService } from "./notification-preference.service";
+import { NotificationPreferenceType } from "../models/NotificationPreference";
 import logger from "../config/logger";
 
 interface ExpoPushMessage {
@@ -138,6 +140,19 @@ export class PushService {
         }
     }
 
+    /** Map NotificationType to NotificationPreferenceType */
+    private static typeToPreferenceType(type: NotificationType): NotificationPreferenceType | null {
+        const mapping: Partial<Record<NotificationType, NotificationPreferenceType>> = {
+            [NotificationType.ROOM_STARTED]: NotificationPreferenceType.ROOM_STARTED,
+            [NotificationType.ROOM_SCHEDULED]: NotificationPreferenceType.ROOM_SCHEDULED,
+            [NotificationType.FOLLOW]: NotificationPreferenceType.NEW_FOLLOWER,
+            [NotificationType.GIFT]: NotificationPreferenceType.GEM_RECEIVED,
+            [NotificationType.SPEAKER_APPROVED]: NotificationPreferenceType.SPEAKER_REQUEST,
+            [NotificationType.SPEAKER_REJECTED]: NotificationPreferenceType.SPEAKER_REQUEST,
+        };
+        return mapping[type] ?? null;
+    }
+
     /** Create in-app notification + push notification together */
     static async notifyWithPush(
         userId: string,
@@ -146,6 +161,13 @@ export class PushService {
         body?: string,
         data?: Record<string, any>
     ): Promise<void> {
+        // Check notification preference before sending
+        const prefType = this.typeToPreferenceType(type);
+        if (prefType) {
+            const enabled = await NotificationPreferenceService.isEnabled(userId, prefType);
+            if (!enabled) return;
+        }
+
         // Create in-app notification
         await NotificationService.create(userId, type, title, body, data);
 

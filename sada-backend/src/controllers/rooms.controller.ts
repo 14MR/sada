@@ -212,6 +212,39 @@ export class RoomController {
         }
     }
 
+    // ── Room Recordings & Replay ─────────────────────────────────────
+
+    static async getRoomRecordings(req: Request, res: Response) {
+        try {
+            const roomId = req.params.id as string;
+            const recordings = await RoomService.getRoomRecordings(roomId);
+            return res.json(recordings);
+        } catch (error: any) {
+            if (error.message === "Room not found") {
+                return res.status(404).json({ error: error.message });
+            }
+            logger.error({ err: error }, "Get Room Recordings Error");
+            return res.status(500).json({ error: "Failed to get room recordings" });
+        }
+    }
+
+    static async getRoomReplay(req: Request, res: Response) {
+        try {
+            const roomId = req.params.id as string;
+            const replay = await RoomService.getRoomReplay(roomId);
+            return res.json(replay);
+        } catch (error: any) {
+            if (error.message === "Room not found") {
+                return res.status(404).json({ error: error.message });
+            }
+            if (error.message.includes("ended")) {
+                return res.status(400).json({ error: error.message });
+            }
+            logger.error({ err: error }, "Get Room Replay Error");
+            return res.status(500).json({ error: "Failed to get room replay" });
+        }
+    }
+
     // ── Room Invites ────────────────────────────────────────────────
 
     static async createInvite(req: Request, res: Response) {

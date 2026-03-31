@@ -38,6 +38,9 @@ export class User {
     @Column({ default: false })
     banned!: boolean;
 
+    @Column({ default: false })
+    flagged!: boolean;
+
     @Column({ default: 'en' })
     language!: string;
 

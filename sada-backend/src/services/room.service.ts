@@ -3,6 +3,7 @@ import { Room } from "../models/Room";
 import { RoomParticipant } from "../models/RoomParticipant";
 import { User } from "../models/User";
 import { Category } from "../models/Category";
+import { RoomRecording, RecordingStatus } from "../models/RoomRecording";
 import { AudioService } from "./audio.service";
 import { NotificationService } from "./notification.service";
 import { NotificationType } from "../models/Notification";
@@ -15,6 +16,7 @@ import logger from "../config/logger";
 const roomRepository = AppDataSource.getRepository(Room);
 const participantRepository = AppDataSource.getRepository(RoomParticipant);
 const categoryRepository = AppDataSource.getRepository(Category);
+const recordingRepository = AppDataSource.getRepository(RoomRecording);
 
 export class RoomService {
     static async createRoom(host: User, title: string, categoryId?: string, description?: string, scheduledAt?: Date) {
@@ -341,5 +343,58 @@ export class RoomService {
         });
 
         return { rooms, total, limit, offset };
+    }
+
+    // ── Room Recordings & Replay ────────────────────────────────────
+
+    static async getRoomRecordings(roomId: string) {
+        const room = await roomRepository.findOneBy({ id: roomId });
+        if (!room) throw new Error("Room not found");
+
+        return await recordingRepository.find({
+            where: { room_id: roomId, status: RecordingStatus.PUBLISHED },
+            relations: ["host"],
+            order: { started_at: "DESC" },
+        });
+    }
+
+    static async getRoomReplay(roomId: string) {
+        const room = await roomRepository.findOne({
+            where: { id: roomId },
+            relations: ["host", "category"],
+        });
+        if (!room) throw new Error("Room not found");
+        if (room.status !== "ended") throw new Error("Replay is only available for ended rooms");
+
+        const [recordings, participants] = await Promise.all([
+            recordingRepository.find({
+                where: { room_id: roomId, status: RecordingStatus.PUBLISHED },
+                relations: ["host"],
+                order: { started_at: "ASC" },
+            }),
+            participantRepository.find({
+                where: { room: { id: roomId } },
+                relations: ["user"],
+            }),
+        ]);
+
+        return {
+            room: {
+                id: room.id,
+                title: room.title,
+                description: room.description,
+                host: room.host,
+                category: room.category,
+                listener_count: room.listener_count,
+                started_at: room.started_at,
+                ended_at: room.ended_at,
+            },
+            recordings,
+            participants: participants.map((p) => ({
+                user: p.user,
+                role: p.role,
+                joined_at: p.joined_at,
+            })),
+        };
     }
 }
