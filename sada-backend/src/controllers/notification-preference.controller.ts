@@ -30,7 +30,7 @@ export class NotificationPreferenceController {
             return res.json(updated);
         } catch (error: any) {
             logger.error({ err: error }, "Update Notification Preferences Error");
-            return res.status(400).json({ error: error.message });
+            return res.status(500).json({ error: "Failed to update notification preferences" });
         }
     }
 }
