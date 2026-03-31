@@ -1,6 +1,7 @@
 import { AppDataSource } from "../config/database";
 import { Report, ReportReason, ReportStatus } from "../models/Report";
 import { User } from "../models/User";
+import { ModerationService } from "./moderation.service";
 
 const reportRepository = AppDataSource.getRepository(Report);
 const userRepository = AppDataSource.getRepository(User);
@@ -17,16 +18,14 @@ export class ReportService {
             throw new Error("Cannot report yourself");
         }
 
-        const report = reportRepository.create({
-            reporter_id: reporterId,
-            reported_user_id: data.reportedUserId || "",
-            reason: data.reason,
-            description: data.description || null,
-            room_id: data.roomId || null,
-            status: ReportStatus.PENDING,
-        });
-
-        const saved = await reportRepository.save(report);
+        // Delegate to ModerationService for consistent report creation
+        const saved = await ModerationService.createReport(
+            reporterId,
+            data.reportedUserId || "",
+            data.reason,
+            data.description,
+            data.roomId
+        );
 
         // Auto-flag users with 3+ pending reports
         if (data.reportedUserId) {
