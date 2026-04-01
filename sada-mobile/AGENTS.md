@@ -118,7 +118,7 @@ End-to-end UI tests drive the **Android** build with package **`com.anonymous.sa
    ```
 3. **`.env` in `sada-mobile/`** — from the **emulator**, the host machine is **`10.0.2.2`** (not `localhost`):
    ```
-   EXPO_PUBLIC_API_URL=http://10.0.2.2:3001/api
+   EXPO_PUBLIC_API_URL=http://10.0.2.2:3001
    EXPO_PUBLIC_SOCKET_URL=http://10.0.2.2:3001
    ```
 4. **Backend** — Postgres/Redis via Docker in `sada-backend`, API on port **3001** (see below).
@@ -185,8 +185,12 @@ npm run test:e2e:preflight
 - `maestro` and `adb` on `PATH` (if `adb` lives under `~/Library/Android/sdk/platform-tools`, that directory is prepended for that run)
 - At least one Android target in **`device`** state in `adb devices`
 - **`com.anonymous.sadamobile`** is installed on that target (use **`ANDROID_SERIAL`** if several devices are connected)
+- Metro dev server responds on **`http://127.0.0.1:8081/status`** (required for Expo dev client flows)
 
 To call Maestro directly without preflight: `maestro test .maestro/`
+
+If you intentionally run against a standalone APK (not dev client), you can bypass Metro check:
+`SKIP_METRO_CHECK=1 npm run test:e2e:login`
 
 ### EAS APK instead of dev client
 
@@ -195,7 +199,7 @@ adb install -r path/to/app.apk
 cd sada-mobile && npm run test:e2e
 ```
 
-The binary must match package **`com.anonymous.sadamobile`**. For API URLs during tests, use a build whose **`EXPO_PUBLIC_*`** values point at your machine (emulator: **`10.0.2.2:3001`**) or at a reachable server.
+The binary must match package **`com.anonymous.sadamobile`**. For API URLs during tests, use a build whose **`EXPO_PUBLIC_*`** values point at your machine (emulator API: **`10.0.2.2:3001`**) or at a reachable server.
 
 ### Troubleshooting (E2E)
 
@@ -206,7 +210,7 @@ The binary must match package **`com.anonymous.sadamobile`**. For API URLs durin
 | **`maestro` not found** | Install Maestro; add `~/.maestro/bin` to `PATH`. |
 | **`adb` not found** | Install Platform-Tools; add `~/Library/Android/sdk/platform-tools` to `PATH`. |
 | **Multiple devices** | `export ANDROID_SERIAL=<serial>` from `adb devices`. |
-| **Preflight OK but assertions fail** (`"SADA"`, `"Welcome"`, `"Live Rooms"` not visible) | Ensure backend is on **3001**, `.env` uses **10.0.2.2**, dev client loaded; reload the app and check **`adb logcat`** (e.g. filter `ReactNativeJS`). |
+| **Preflight OK but assertions fail** (`"SADA صدى"`, `"Sign in with Apple (Dev)"`, `"Live Rooms"` not visible) | Ensure backend is on **3001**, `.env` uses **10.0.2.2**, and the dev client has reloaded after config changes; then reload app and check **`adb logcat`** (filter `ReactNativeJS`). |
 
 Flows live in `.maestro/` (`login`, `create_room`, `profile`, `navigation`, `notifications`).
 

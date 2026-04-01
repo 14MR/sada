@@ -27,9 +27,8 @@ export const RoomService = {
         // Let's check backend logic: RoomController.create pulls userId from body.
         const response = await client.post('/rooms', {
             title,
-            category,
+            categoryId: category,
             description,
-            userId
         });
         return response.data;
     },

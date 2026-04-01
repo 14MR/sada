@@ -1,7 +1,6 @@
 appId: com.anonymous.sadamobile
 ---
-- launchApp
-- tapOn: "Sign in with Apple (Dev)"
+- runFlow: login.yaml
 - assertVisible: "Live Rooms"
 - tapOn: "Profile"
 - assertVisible: "Followers"

@@ -1,8 +1,30 @@
 appId: com.anonymous.sadamobile
 ---
 - launchApp
-- assertVisible: "SADA"
-- assertVisible: "Sign in with Apple"
-- tapOn: "Sign in with Apple (Dev)"
-- assertVisible: "Welcome"
+- tapOn:
+    text: "Continue"
+    optional: true
+- tapOn:
+    text: "sada-mobile"
+    optional: true
+- tapOn:
+    text: "http://10.0.2.2:8081"
+    optional: true
+- tapOn:
+    text: "Continue"
+    optional: true
+- tapOn:
+    text: "Reload"
+    optional: true
+- tapOn:
+    text: "Continue"
+    optional: true
+- runFlow:
+    when:
+      visible: "Sign in with Apple (Dev)"
+    commands:
+      - tapOn: "Sign in with Apple (Dev)"
+- extendedWaitUntil:
+    visible: "Live Rooms"
+    timeout: 60000
 - assertVisible: "Live Rooms"

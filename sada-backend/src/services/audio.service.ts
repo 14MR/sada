@@ -15,13 +15,24 @@ export class AudioService {
     static async createSession(roomId: string, hostId: string) {
         logger.debug({ roomId, hostId }, "AudioService.createSession");
 
+        const { vars } = await import("../config/env");
+        if (!vars.cloudflare.appSecret) {
+            logger.warn({ roomId }, "Cloudflare appSecret not set — returning stub audio session");
+            return {
+                provider: "stub",
+                sessionId: `stub-${roomId}`,
+                appId: undefined,
+                iceServers: [],
+            };
+        }
+
         const session = await CallsService.createSession(roomId, hostId);
         const iceServers = await CallsService.getIceServers();
 
         return {
             provider: "cloudflare-calls",
             sessionId: session.sessionId,
-            appId: undefined, // clients don't need this; backend proxies all API calls
+            appId: undefined,
             iceServers,
         };
     }

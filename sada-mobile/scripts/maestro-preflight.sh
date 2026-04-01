@@ -102,11 +102,38 @@ Or: adb -s $serial install path/to/app.apk"
   info "App package ${APP_ID} is installed."
 }
 
+ensure_metro_dev_server() {
+  if [[ "${SKIP_METRO_CHECK:-0}" == "1" ]]; then
+    warn "Skipping Metro dev server check (SKIP_METRO_CHECK=1)."
+    return 0
+  fi
+
+  local status=""
+  status="$(curl -fsS --max-time 2 http://127.0.0.1:8081/status 2>/dev/null || true)"
+  if [[ "$status" != *"packager-status:running"* ]]; then
+    die "Metro is not reachable on http://127.0.0.1:8081.
+
+Dev-client based Maestro flows require Metro to load JS bundles.
+
+Start Metro in sada-mobile:
+  npx expo start --dev-client
+
+Then re-run:
+  npm run test:e2e:login
+
+If you are testing a standalone APK (not dev client), rerun with:
+  SKIP_METRO_CHECK=1 npm run test:e2e:login"
+  fi
+
+  info "Metro dev server is running on 127.0.0.1:8081."
+}
+
 main() {
   info "Running Maestro Android preflight..."
   ensure_maestro
   ensure_adb
   ensure_device_and_app
+  ensure_metro_dev_server
   info "Preflight OK — starting Maestro."
 }
 

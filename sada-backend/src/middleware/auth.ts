@@ -3,10 +3,10 @@ import jwt from "jsonwebtoken";
 
 export function getJwtSecret(): string {
     const secret = process.env.JWT_SECRET;
-    if (!secret && process.env.NODE_ENV !== "test") {
+    if (!secret && process.env.NODE_ENV === "production") {
         throw new Error("JWT_SECRET environment variable is required");
     }
-    return secret || "test_only_secret";
+    return secret || "dev_or_test_only_secret";
 }
 
 export function authenticate(req: Request, res: Response, next: NextFunction) {

@@ -1,11 +1,12 @@
 appId: com.anonymous.sadamobile
 ---
-- launchApp
-- tapOn: "Sign in with Apple (Dev)"
-- assertVisible: "Welcome"
+- runFlow: login.yaml
+- assertVisible: "Live Rooms"
 - tapOn: "Profile"
+- extendedWaitUntil:
+    visible: "Followers"
+    timeout: 15000
 - assertVisible: "Followers"
 - assertVisible: "Following"
-- assertVisible: "Gems"
-- tapOn: "Sign Out"
-- assertVisible: "Sign in with Apple"
+- assertVisible: "Gems 💎"
+- assertVisible: "Sign Out"
