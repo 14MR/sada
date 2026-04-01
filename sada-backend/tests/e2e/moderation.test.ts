@@ -38,7 +38,7 @@ describe('Moderation E2E', () => {
       const reported = await createTestUser({ username: 'mod_reported' });
 
       const response = await request(getApp())
-        .post('/moderation/report')
+        .post('/api/moderation/report')
         .set('Authorization', `Bearer ${reporter.token}`)
         .send({ reportedUserId: reported.user.id, reason: 'harassment', description: 'Test report' });
 
@@ -51,7 +51,7 @@ describe('Moderation E2E', () => {
       const { token } = await createTestUser();
 
       const response = await request(getApp())
-        .post('/moderation/report')
+        .post('/api/moderation/report')
         .set('Authorization', `Bearer ${token}`)
         .send({ reason: 'harassment' });
 
@@ -63,7 +63,7 @@ describe('Moderation E2E', () => {
       const reported = await createTestUser();
 
       const response = await request(getApp())
-        .post('/moderation/report')
+        .post('/api/moderation/report')
         .set('Authorization', `Bearer ${reporter.token}`)
         .send({ reportedUserId: reported.user.id });
 
@@ -75,7 +75,7 @@ describe('Moderation E2E', () => {
       const reported = await createTestUser();
 
       const response = await request(getApp())
-        .post('/moderation/report')
+        .post('/api/moderation/report')
         .set('Authorization', `Bearer ${reporter.token}`)
         .send({ reportedUserId: reported.user.id, reason: 'invalid_reason' });
 
@@ -86,7 +86,7 @@ describe('Moderation E2E', () => {
       const { user, token } = await createTestUser();
 
       const response = await request(getApp())
-        .post('/moderation/report')
+        .post('/api/moderation/report')
         .set('Authorization', `Bearer ${token}`)
         .send({ reportedUserId: user.id, reason: 'harassment' });
 
@@ -96,7 +96,7 @@ describe('Moderation E2E', () => {
 
     it('should require authentication', async () => {
       const response = await request(getApp())
-        .post('/moderation/report')
+        .post('/api/moderation/report')
         .send({ reportedUserId: 'some-id', reason: 'harassment' });
 
       expect(response.status).toBe(401);
@@ -109,7 +109,7 @@ describe('Moderation E2E', () => {
       const target = await createTestUser({ username: 'mod_blocked' });
 
       const response = await request(getApp())
-        .post('/moderation/block')
+        .post('/api/moderation/block')
         .set('Authorization', `Bearer ${blocker.token}`)
         .send({ blockedId: target.user.id });
 
@@ -121,7 +121,7 @@ describe('Moderation E2E', () => {
       const { token } = await createTestUser();
 
       const response = await request(getApp())
-        .post('/moderation/block')
+        .post('/api/moderation/block')
         .set('Authorization', `Bearer ${token}`)
         .send({});
 
@@ -135,12 +135,12 @@ describe('Moderation E2E', () => {
       const target = await createTestUser({ username: 'ub_mod2' });
 
       await request(getApp())
-        .post('/moderation/block')
+        .post('/api/moderation/block')
         .set('Authorization', `Bearer ${blocker.token}`)
         .send({ blockedId: target.user.id });
 
       const response = await request(getApp())
-        .post('/moderation/unblock')
+        .post('/api/moderation/unblock')
         .set('Authorization', `Bearer ${blocker.token}`)
         .send({ blockedId: target.user.id });
 
@@ -153,7 +153,7 @@ describe('Moderation E2E', () => {
       const other = await createTestUser();
 
       const response = await request(getApp())
-        .post('/moderation/unblock')
+        .post('/api/moderation/unblock')
         .set('Authorization', `Bearer ${user.token}`)
         .send({ blockedId: other.user.id });
 
@@ -168,17 +168,17 @@ describe('Moderation E2E', () => {
       const blocked2 = await createTestUser({ username: 'mod_b2' });
 
       await request(getApp())
-        .post('/moderation/block')
+        .post('/api/moderation/block')
         .set('Authorization', `Bearer ${user.token}`)
         .send({ blockedId: blocked1.user.id });
 
       await request(getApp())
-        .post('/moderation/block')
+        .post('/api/moderation/block')
         .set('Authorization', `Bearer ${user.token}`)
         .send({ blockedId: blocked2.user.id });
 
       const response = await request(getApp())
-        .get('/moderation/blocked')
+        .get('/api/moderation/blocked')
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(response.status).toBe(200);

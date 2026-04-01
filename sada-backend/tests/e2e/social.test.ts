@@ -38,7 +38,7 @@ describe('Social E2E', () => {
       const target = await createTestUser({ username: 'target1' });
 
       const response = await request(getApp())
-        .post(`/follow/${target.user.id}/follow`)
+        .post(`/api/follow/${target.user.id}/follow`)
         .set('Authorization', `Bearer ${follower.token}`)
         .send({ userId: follower.user.id });
 
@@ -50,7 +50,7 @@ describe('Social E2E', () => {
       const user = await createTestUser();
 
       const response = await request(getApp())
-        .post(`/follow/${user.user.id}/follow`)
+        .post(`/api/follow/${user.user.id}/follow`)
         .set('Authorization', `Bearer ${user.token}`)
         .send({ userId: user.user.id });
 
@@ -62,7 +62,7 @@ describe('Social E2E', () => {
       const follower = await createTestUser();
 
       const response = await request(getApp())
-        .post('/follow/non-existent-id/follow')
+        .post('/api/follow/non-existent-id/follow')
         .set('Authorization', `Bearer ${follower.token}`)
         .send({ userId: follower.user.id });
 
@@ -74,12 +74,12 @@ describe('Social E2E', () => {
       const target = await createTestUser({ username: 'unfollow_target' });
 
       await request(getApp())
-        .post(`/follow/${target.user.id}/follow`)
+        .post(`/api/follow/${target.user.id}/follow`)
         .set('Authorization', `Bearer ${follower.token}`)
         .send({ userId: follower.user.id });
 
       const response = await request(getApp())
-        .delete(`/follow/${target.user.id}/follow`)
+        .delete(`/api/follow/${target.user.id}/follow`)
         .set('Authorization', `Bearer ${follower.token}`)
         .send({ userId: follower.user.id });
 
@@ -92,17 +92,17 @@ describe('Social E2E', () => {
       const target = await createTestUser({ username: 't1' });
 
       await request(getApp())
-        .post(`/follow/${target.user.id}/follow`)
+        .post(`/api/follow/${target.user.id}/follow`)
         .set('Authorization', `Bearer ${follower.token}`)
         .send({ userId: follower.user.id });
 
       await request(getApp())
-        .delete(`/follow/${target.user.id}/follow`)
+        .delete(`/api/follow/${target.user.id}/follow`)
         .set('Authorization', `Bearer ${follower.token}`)
         .send({ userId: follower.user.id });
 
       const followingRes = await request(getApp())
-        .get(`/follow/${follower.user.id}/following`)
+        .get(`/api/follow/${follower.user.id}/following`)
         .set('Authorization', `Bearer ${follower.token}`);
 
       expect(followingRes.status).toBe(200);
@@ -117,17 +117,17 @@ describe('Social E2E', () => {
       const fan2 = await createTestUser({ username: 'fan2' });
 
       await request(getApp())
-        .post(`/follow/${target.user.id}/follow`)
+        .post(`/api/follow/${target.user.id}/follow`)
         .set('Authorization', `Bearer ${fan1.token}`)
         .send({ userId: fan1.user.id });
 
       await request(getApp())
-        .post(`/follow/${target.user.id}/follow`)
+        .post(`/api/follow/${target.user.id}/follow`)
         .set('Authorization', `Bearer ${fan2.token}`)
         .send({ userId: fan2.user.id });
 
       const response = await request(getApp())
-        .get(`/follow/${target.user.id}/followers`)
+        .get(`/api/follow/${target.user.id}/followers`)
         .set('Authorization', `Bearer ${target.token}`);
 
       expect(response.status).toBe(200);
@@ -140,17 +140,17 @@ describe('Social E2E', () => {
       const target2 = await createTestUser({ username: 'social_t2' });
 
       await request(getApp())
-        .post(`/follow/${target1.user.id}/follow`)
+        .post(`/api/follow/${target1.user.id}/follow`)
         .set('Authorization', `Bearer ${user.token}`)
         .send({ userId: user.user.id });
 
       await request(getApp())
-        .post(`/follow/${target2.user.id}/follow`)
+        .post(`/api/follow/${target2.user.id}/follow`)
         .set('Authorization', `Bearer ${user.token}`)
         .send({ userId: user.user.id });
 
       const response = await request(getApp())
-        .get(`/follow/${user.user.id}/following`)
+        .get(`/api/follow/${user.user.id}/following`)
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(response.status).toBe(200);
@@ -164,7 +164,7 @@ describe('Social E2E', () => {
       const target = await createTestUser({ username: 'blocked_target' });
 
       const response = await request(getApp())
-        .post('/moderation/block')
+        .post('/api/moderation/block')
         .set('Authorization', `Bearer ${blocker.token}`)
         .send({ blockedId: target.user.id });
 
@@ -176,7 +176,7 @@ describe('Social E2E', () => {
       const user = await createTestUser();
 
       const response = await request(getApp())
-        .post('/moderation/block')
+        .post('/api/moderation/block')
         .set('Authorization', `Bearer ${user.token}`)
         .send({ blockedId: user.user.id });
 
@@ -189,12 +189,12 @@ describe('Social E2E', () => {
       const target = await createTestUser({ username: 'dbl_target' });
 
       await request(getApp())
-        .post('/moderation/block')
+        .post('/api/moderation/block')
         .set('Authorization', `Bearer ${blocker.token}`)
         .send({ blockedId: target.user.id });
 
       const response = await request(getApp())
-        .post('/moderation/block')
+        .post('/api/moderation/block')
         .set('Authorization', `Bearer ${blocker.token}`)
         .send({ blockedId: target.user.id });
 
@@ -207,12 +207,12 @@ describe('Social E2E', () => {
       const target = await createTestUser({ username: 'ub_target' });
 
       await request(getApp())
-        .post('/moderation/block')
+        .post('/api/moderation/block')
         .set('Authorization', `Bearer ${blocker.token}`)
         .send({ blockedId: target.user.id });
 
       const response = await request(getApp())
-        .post('/moderation/unblock')
+        .post('/api/moderation/unblock')
         .set('Authorization', `Bearer ${blocker.token}`)
         .send({ blockedId: target.user.id });
 
@@ -225,7 +225,7 @@ describe('Social E2E', () => {
       const other = await createTestUser();
 
       const response = await request(getApp())
-        .post('/moderation/unblock')
+        .post('/api/moderation/unblock')
         .set('Authorization', `Bearer ${user.token}`)
         .send({ blockedId: other.user.id });
 
@@ -238,17 +238,17 @@ describe('Social E2E', () => {
       const blocked2 = await createTestUser({ username: 'blocked2' });
 
       await request(getApp())
-        .post('/moderation/block')
+        .post('/api/moderation/block')
         .set('Authorization', `Bearer ${user.token}`)
         .send({ blockedId: blocked1.user.id });
 
       await request(getApp())
-        .post('/moderation/block')
+        .post('/api/moderation/block')
         .set('Authorization', `Bearer ${user.token}`)
         .send({ blockedId: blocked2.user.id });
 
       const response = await request(getApp())
-        .get('/moderation/blocked')
+        .get('/api/moderation/blocked')
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(response.status).toBe(200);
@@ -262,7 +262,7 @@ describe('Social E2E', () => {
       const reported = await createTestUser({ username: 'reported_user' });
 
       const response = await request(getApp())
-        .post('/moderation/report')
+        .post('/api/moderation/report')
         .set('Authorization', `Bearer ${reporter.token}`)
         .send({ reportedUserId: reported.user.id, reason: 'harassment', description: 'Being mean' });
 
@@ -275,7 +275,7 @@ describe('Social E2E', () => {
       const user = await createTestUser();
 
       const response = await request(getApp())
-        .post('/moderation/report')
+        .post('/api/moderation/report')
         .set('Authorization', `Bearer ${user.token}`)
         .send({ reportedUserId: user.user.id, reason: 'harassment' });
 
@@ -287,7 +287,7 @@ describe('Social E2E', () => {
       const user = await createTestUser();
 
       const response = await request(getApp())
-        .post('/moderation/report')
+        .post('/api/moderation/report')
         .set('Authorization', `Bearer ${user.token}`)
         .send({ description: 'Missing fields' });
 
@@ -299,7 +299,7 @@ describe('Social E2E', () => {
       const reported = await createTestUser();
 
       const response = await request(getApp())
-        .post('/moderation/report')
+        .post('/api/moderation/report')
         .set('Authorization', `Bearer ${reporter.token}`)
         .send({ reportedUserId: reported.user.id, reason: 'invalid_reason' });
 
@@ -309,7 +309,7 @@ describe('Social E2E', () => {
 
     it('should require authentication for reporting', async () => {
       const response = await request(getApp())
-        .post('/moderation/report')
+        .post('/api/moderation/report')
         .send({ reportedUserId: 'some-id', reason: 'harassment' });
 
       expect(response.status).toBe(401);
@@ -321,7 +321,7 @@ describe('Social E2E', () => {
       const user = await createTestUser({ username: 'notif_user' });
 
       const response = await request(getApp())
-        .get('/notifications')
+        .get('/api/notifications')
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(response.status).toBe(200);
@@ -329,7 +329,7 @@ describe('Social E2E', () => {
     });
 
     it('should require authentication', async () => {
-      const response = await request(getApp()).get('/notifications');
+      const response = await request(getApp()).get('/api/notifications');
       expect(response.status).toBe(401);
     });
   });

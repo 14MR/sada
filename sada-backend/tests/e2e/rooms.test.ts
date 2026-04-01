@@ -40,7 +40,7 @@ describe('Rooms E2E', () => {
       const { user, token } = await createTestUser();
 
       const response = await request(getApp())
-        .post('/rooms/')
+        .post('/api/rooms/')
         .set('Authorization', `Bearer ${token}`)
         .send({ userId: user.id, title: 'My Test Room', description: 'A room for testing' });
 
@@ -59,7 +59,7 @@ describe('Rooms E2E', () => {
       const category = await createTestCategory();
 
       const response = await request(getApp())
-        .post('/rooms/')
+        .post('/api/rooms/')
         .set('Authorization', `Bearer ${token}`)
         .send({ userId: user.id, title: 'Categorized Room', categoryId: category.id });
 
@@ -72,7 +72,7 @@ describe('Rooms E2E', () => {
 
       // Body userId is ignored — host is always the authenticated user
       const response = await request(getApp())
-        .post('/rooms/')
+        .post('/api/rooms/')
         .set('Authorization', `Bearer ${token}`)
         .send({ title: 'Auth Room' });
 
@@ -89,7 +89,7 @@ describe('Rooms E2E', () => {
       await createTestRoom(user.id, { title: 'Ended Room', status: 'ended' });
 
       const response = await request(getApp())
-        .get('/rooms/')
+        .get('/api/rooms/')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
@@ -103,7 +103,7 @@ describe('Rooms E2E', () => {
       await createTestRoom(user.id, { title: 'Live No Cat Room' });
 
       const response = await request(getApp())
-        .get(`/rooms/?category=${category.slug}`)
+        .get(`/api/rooms/?category=${category.slug}`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
@@ -115,7 +115,7 @@ describe('Rooms E2E', () => {
       const { token } = await createTestUser();
 
       const response = await request(getApp())
-        .get('/rooms/')
+        .get('/api/rooms/')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
@@ -128,7 +128,7 @@ describe('Rooms E2E', () => {
       const { token } = await createTestUser();
 
       const response = await request(getApp())
-        .get('/rooms/search')
+        .get('/api/rooms/search')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(400);
@@ -143,7 +143,7 @@ describe('Rooms E2E', () => {
       await createTestCategory({ name: 'Talk', slug: 'talk' });
 
       const res = await request(getApp())
-        .get('/categories')
+        .get('/api/categories')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
@@ -158,7 +158,7 @@ describe('Rooms E2E', () => {
       const room = await createTestRoom(user.id, { title: 'Specific Room' });
 
       const response = await request(getApp())
-        .get(`/rooms/${room.id}`)
+        .get(`/api/rooms/${room.id}`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
@@ -171,7 +171,7 @@ describe('Rooms E2E', () => {
       const { token } = await createTestUser();
 
       const response = await request(getApp())
-        .get('/rooms/non-existent-id')
+        .get('/api/rooms/non-existent-id')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(404);
@@ -185,7 +185,7 @@ describe('Rooms E2E', () => {
 
       // 1. Create room
       const createRes = await request(getApp())
-        .post('/rooms/')
+        .post('/api/rooms/')
         .set('Authorization', `Bearer ${host.token}`)
         .send({ userId: host.user.id, title: 'Lifecycle Room' });
 
@@ -194,7 +194,7 @@ describe('Rooms E2E', () => {
 
       // 2. Join room
       const joinRes = await request(getApp())
-        .post(`/rooms/${roomId}/join`)
+        .post(`/api/rooms/${roomId}/join`)
         .set('Authorization', `Bearer ${listener.token}`)
         .send({ userId: listener.user.id });
 
@@ -209,7 +209,7 @@ describe('Rooms E2E', () => {
 
       // 3. Leave room
       const leaveRes = await request(getApp())
-        .post(`/rooms/${roomId}/leave`)
+        .post(`/api/rooms/${roomId}/leave`)
         .set('Authorization', `Bearer ${listener.token}`)
         .send({ userId: listener.user.id });
 
@@ -222,7 +222,7 @@ describe('Rooms E2E', () => {
 
       // 4. End room
       const endRes = await request(getApp())
-        .post(`/rooms/${roomId}/end`)
+        .post(`/api/rooms/${roomId}/end`)
         .set('Authorization', `Bearer ${host.token}`)
         .send({ userId: host.user.id });
 
@@ -240,7 +240,7 @@ describe('Rooms E2E', () => {
       const room = await createTestRoom(host.user.id, { status: 'ended' });
 
       const joinRes = await request(getApp())
-        .post(`/rooms/${room.id}/join`)
+        .post(`/api/rooms/${room.id}/join`)
         .set('Authorization', `Bearer ${listener.token}`)
         .send({ userId: listener.user.id });
 
@@ -254,7 +254,7 @@ describe('Rooms E2E', () => {
       const room = await createTestRoom(host.user.id);
 
       const endRes = await request(getApp())
-        .post(`/rooms/${room.id}/end`)
+        .post(`/api/rooms/${room.id}/end`)
         .set('Authorization', `Bearer ${other.token}`)
         .send({ userId: other.user.id });
 
@@ -277,7 +277,7 @@ describe('Rooms E2E', () => {
       await participantRepo.save(participant);
 
       const response = await request(getApp())
-        .post(`/rooms/${room.id}/speakers`)
+        .post(`/api/rooms/${room.id}/speakers`)
         .set('Authorization', `Bearer ${host.token}`)
         .send({ userId: host.user.id, targetUserId: listener.user.id, role: 'speaker' });
 
@@ -291,7 +291,7 @@ describe('Rooms E2E', () => {
       const room = await createTestRoom(host.user.id);
 
       const response = await request(getApp())
-        .post(`/rooms/${room.id}/speakers`)
+        .post(`/api/rooms/${room.id}/speakers`)
         .set('Authorization', `Bearer ${listener.token}`)
         .send({ userId: listener.user.id, targetUserId: host.user.id, role: 'listener' });
 

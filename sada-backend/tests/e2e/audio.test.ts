@@ -83,14 +83,14 @@ async function createSessionSetup() {
     mockCfCreateSession();
     mockCfIceServers();
     const res = await request(app)
-        .post('/audio/sessions')
+        .post('/api/audio/sessions')
         .set('Authorization', `Bearer ${hostAuth()}`)
         .send({ roomId: ROOM_ID });
 
     // Host joins as participant
     mockCfCreateTrack();
     await request(app)
-        .post(`/audio/sessions/${CF_SESSION_ID}/join`)
+        .post(`/api/audio/sessions/${CF_SESSION_ID}/join`)
         .set('Authorization', `Bearer ${hostAuth()}`)
         .send({ offerSdp: 'host-offer-sdp', role: 'host' });
 
@@ -100,7 +100,7 @@ async function createSessionSetup() {
 async function joinSessionSetup() {
     mockCfCreateTrack();
     return request(app)
-        .post(`/audio/sessions/${CF_SESSION_ID}/join`)
+        .post(`/api/audio/sessions/${CF_SESSION_ID}/join`)
         .set('Authorization', `Bearer ${listenerAuth()}`)
         .send({ offerSdp: 'v=0\r\noffer-sdp', role: 'listener' });
 }
@@ -230,14 +230,14 @@ describe('CallsService', () => {
 
 describe('POST /audio/sessions', () => {
     it('should reject unauthenticated users', async () => {
-        const res = await request(app).post('/audio/sessions').send({ roomId: ROOM_ID });
+        const res = await request(app).post('/api/audio/sessions').send({ roomId: ROOM_ID });
         expect(res.status).toBe(401);
     });
 
     it('should reject non-host users (403)', async () => {
         (RoomService.getRoom as jest.Mock).mockResolvedValueOnce({ id: ROOM_ID, host: { id: HOST_USER_ID } });
         const res = await request(app)
-            .post('/audio/sessions')
+            .post('/api/audio/sessions')
             .set('Authorization', `Bearer ${listenerAuth()}`)
             .send({ roomId: ROOM_ID });
         expect(res.status).toBe(403);
@@ -246,7 +246,7 @@ describe('POST /audio/sessions', () => {
     it('should return 404 for nonexistent room', async () => {
         (RoomService.getRoom as jest.Mock).mockResolvedValueOnce(null);
         const res = await request(app)
-            .post('/audio/sessions')
+            .post('/api/audio/sessions')
             .set('Authorization', `Bearer ${hostAuth()}`)
             .send({ roomId: 'nope' });
         expect(res.status).toBe(404);
@@ -263,14 +263,14 @@ describe('POST /audio/sessions', () => {
 
 describe('POST /audio/sessions/:sessionId/join', () => {
     it('should reject unauthenticated', async () => {
-        const res = await request(app).post(`/audio/sessions/${CF_SESSION_ID}/join`).send({ offerSdp: 'sdp' });
+        const res = await request(app).post(`/api/audio/sessions/${CF_SESSION_ID}/join`).send({ offerSdp: 'sdp' });
         expect(res.status).toBe(401);
     });
 
     it('should 404 for nonexistent session', async () => {
         setupChatMock();
         const res = await request(app)
-            .post('/audio/sessions/nope/join')
+            .post('/api/audio/sessions/nope/join')
             .set('Authorization', `Bearer ${listenerAuth()}`)
             .send({ offerSdp: 'sdp', role: 'listener' });
         expect(res.status).toBe(404);
@@ -303,7 +303,7 @@ describe('POST /audio/sessions/:sessionId/leave', () => {
         await joinSessionSetup();
 
         const res = await request(app)
-            .post(`/audio/sessions/${CF_SESSION_ID}/leave`)
+            .post(`/api/audio/sessions/${CF_SESSION_ID}/leave`)
             .set('Authorization', `Bearer ${listenerAuth()}`)
             .send({});
         expect(res.status).toBe(200);
@@ -318,7 +318,7 @@ describe('POST /audio/sessions/:sessionId/leave', () => {
         mockEmit.mockClear();
 
         await request(app)
-            .post(`/audio/sessions/${CF_SESSION_ID}/leave`)
+            .post(`/api/audio/sessions/${CF_SESSION_ID}/leave`)
             .set('Authorization', `Bearer ${listenerAuth()}`)
             .send({});
 
@@ -333,7 +333,7 @@ describe('POST /audio/sessions/:sessionId/mute', () => {
         await joinSessionSetup();
 
         const res = await request(app)
-            .post(`/audio/sessions/${CF_SESSION_ID}/mute`)
+            .post(`/api/audio/sessions/${CF_SESSION_ID}/mute`)
             .set('Authorization', `Bearer ${listenerAuth()}`)
             .send({ muted: true });
         expect(res.status).toBe(200);
@@ -349,7 +349,7 @@ describe('POST /audio/sessions/:sessionId/mute', () => {
         mockEmit.mockClear();
 
         await request(app)
-            .post(`/audio/sessions/${CF_SESSION_ID}/mute`)
+            .post(`/api/audio/sessions/${CF_SESSION_ID}/mute`)
             .set('Authorization', `Bearer ${listenerAuth()}`)
             .send({ muted: true });
 
@@ -360,7 +360,7 @@ describe('POST /audio/sessions/:sessionId/mute', () => {
 describe('GET /audio/sessions/room/:roomId', () => {
     it('should return 404 if no session', async () => {
         const res = await request(app)
-            .get('/audio/sessions/room/nope')
+            .get('/api/audio/sessions/room/nope')
             .set('Authorization', `Bearer ${hostAuth()}`);
         expect(res.status).toBe(404);
     });
@@ -369,7 +369,7 @@ describe('GET /audio/sessions/room/:roomId', () => {
         setupChatMock();
         await createSessionSetup();
         const res = await request(app)
-            .get(`/audio/sessions/room/${ROOM_ID}`)
+            .get(`/api/audio/sessions/room/${ROOM_ID}`)
             .set('Authorization', `Bearer ${hostAuth()}`);
         expect(res.status).toBe(200);
         expect(res.body.sessionId).toBe(CF_SESSION_ID);
@@ -383,7 +383,7 @@ describe('GET /audio/sessions/:sessionId/participants', () => {
         await createSessionSetup();
         await joinSessionSetup();
         const res = await request(app)
-            .get(`/audio/sessions/${CF_SESSION_ID}/participants`)
+            .get(`/api/audio/sessions/${CF_SESSION_ID}/participants`)
             .set('Authorization', `Bearer ${hostAuth()}`);
         expect(res.status).toBe(200);
         expect(res.body.participants.length).toBe(2);

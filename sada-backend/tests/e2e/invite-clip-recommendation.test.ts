@@ -46,7 +46,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       const room = await createTestRoom(host.user.id, { title: 'Invite Room' });
 
       const res = await request(getApp())
-        .post(`/rooms/${room.id}/invites`)
+        .post(`/api/rooms/${room.id}/invites`)
         .set('Authorization', `Bearer ${host.token}`)
         .send({ type: 'direct', inviteeId: invitee.user.id });
 
@@ -62,7 +62,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       const expiresAt = new Date(Date.now() + 86400000).toISOString();
 
       const res = await request(getApp())
-        .post(`/rooms/${room.id}/invites`)
+        .post(`/api/rooms/${room.id}/invites`)
         .set('Authorization', `Bearer ${host.token}`)
         .send({ type: 'link', maxUses: 5, expiresAt });
 
@@ -77,7 +77,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       const room = await createTestRoom(host.user.id);
 
       const res = await request(getApp())
-        .post(`/rooms/${room.id}/invites`)
+        .post(`/api/rooms/${room.id}/invites`)
         .set('Authorization', `Bearer ${host.token}`)
         .send({ type: 'direct' });
 
@@ -89,7 +89,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       const room = await createTestRoom(host.user.id);
 
       const res = await request(getApp())
-        .post(`/rooms/${room.id}/invites`)
+        .post(`/api/rooms/${room.id}/invites`)
         .send({ type: 'link' });
 
       expect(res.status).toBe(401);
@@ -101,7 +101,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       const room = await createTestRoom(host.user.id);
 
       const res = await request(getApp())
-        .post(`/rooms/${room.id}/invites`)
+        .post(`/api/rooms/${room.id}/invites`)
         .set('Authorization', `Bearer ${other.token}`)
         .send({ type: 'link' });
 
@@ -128,7 +128,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       await inviteRepo.save(invite);
 
       const res = await request(getApp())
-        .post(`/rooms/invites/testcode123/accept`)
+        .post(`/api/rooms/invites/testcode123/accept`)
         .set('Authorization', `Bearer ${guest.token}`)
         .send({});
 
@@ -152,7 +152,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       await inviteRepo.save(invite);
 
       const res = await request(getApp())
-        .post(`/rooms/invites/expiredcode/accept`)
+        .post(`/api/rooms/invites/expiredcode/accept`)
         .set('Authorization', `Bearer ${guest.token}`)
         .send({});
 
@@ -176,7 +176,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       await inviteRepo.save(invite);
 
       const res = await request(getApp())
-        .post(`/rooms/invites/maxcode/accept`)
+        .post(`/api/rooms/invites/maxcode/accept`)
         .set('Authorization', `Bearer ${guest.token}`)
         .send({});
 
@@ -188,7 +188,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       const guest = await createTestUser({ username: 'badcode_guest' });
 
       const res = await request(getApp())
-        .post(`/rooms/invites/nonexistent/accept`)
+        .post(`/api/rooms/invites/nonexistent/accept`)
         .set('Authorization', `Bearer ${guest.token}`)
         .send({});
 
@@ -198,7 +198,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
 
     it('should require authentication', async () => {
       const res = await request(getApp())
-        .post(`/rooms/invites/somecode/accept`)
+        .post(`/api/rooms/invites/somecode/accept`)
         .send({});
 
       expect(res.status).toBe(401);
@@ -220,7 +220,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       await inviteRepo.save(invite);
 
       const res = await request(getApp())
-        .get(`/rooms/${room.id}/invites`)
+        .get(`/api/rooms/${room.id}/invites`)
         .set('Authorization', `Bearer ${host.token}`);
 
       expect(res.status).toBe(200);
@@ -234,7 +234,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       const room = await createTestRoom(host.user.id);
 
       const res = await request(getApp())
-        .get(`/rooms/${room.id}/invites`)
+        .get(`/api/rooms/${room.id}/invites`)
         .set('Authorization', `Bearer ${other.token}`);
 
       expect(res.status).toBe(403);
@@ -245,7 +245,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       const room = await createTestRoom(host.user.id);
 
       const res = await request(getApp())
-        .get(`/rooms/${room.id}/invites`);
+        .get(`/api/rooms/${room.id}/invites`);
 
       expect(res.status).toBe(401);
     });
@@ -259,7 +259,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       const room = await createTestRoom(user.user.id);
 
       const res = await request(getApp())
-        .post(`/rooms/${room.id}/clips`)
+        .post(`/api/rooms/${room.id}/clips`)
         .set('Authorization', `Bearer ${user.token}`)
         .send({ startTime: 10, endTime: 30, title: 'Best moment' });
 
@@ -275,7 +275,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       const room = await createTestRoom(user.user.id);
 
       const res = await request(getApp())
-        .post(`/rooms/${room.id}/clips`)
+        .post(`/api/rooms/${room.id}/clips`)
         .set('Authorization', `Bearer ${user.token}`)
         .send({ startTime: 30, endTime: 10, title: 'Bad clip' });
 
@@ -287,7 +287,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       const room = await createTestRoom(user.user.id);
 
       const res = await request(getApp())
-        .post(`/rooms/${room.id}/clips`)
+        .post(`/api/rooms/${room.id}/clips`)
         .set('Authorization', `Bearer ${user.token}`)
         .send({ startTime: 0, endTime: 10, title: '' });
 
@@ -298,7 +298,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       const user = await createTestUser({ username: 'clip_noroom' });
 
       const res = await request(getApp())
-        .post(`/rooms/nonexistent-id/clips`)
+        .post(`/api/rooms/nonexistent-id/clips`)
         .set('Authorization', `Bearer ${user.token}`)
         .send({ startTime: 0, endTime: 10, title: 'No room clip' });
 
@@ -311,7 +311,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       const room = await createTestRoom(host.user.id);
 
       const res = await request(getApp())
-        .post(`/rooms/${room.id}/clips`)
+        .post(`/api/rooms/${room.id}/clips`)
         .send({ startTime: 0, endTime: 10, title: 'No auth' });
 
       expect(res.status).toBe(401);
@@ -328,7 +328,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       await clipRepo.save({ roomId: room.id, creatorId: user.user.id, startTime: 20, endTime: 40, title: 'Clip 2' });
 
       const res = await request(getApp())
-        .get(`/rooms/${room.id}/clips`)
+        .get(`/api/rooms/${room.id}/clips`)
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(res.status).toBe(200);
@@ -341,7 +341,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       const room = await createTestRoom(host.user.id);
 
       const res = await request(getApp())
-        .get(`/rooms/${room.id}/clips`)
+        .get(`/api/rooms/${room.id}/clips`)
         .set('Authorization', `Bearer ${host.token}`);
 
       expect(res.status).toBe(200);
@@ -359,7 +359,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       const clip = await clipRepo.save({ roomId: room.id, creatorId: user.user.id, startTime: 5, endTime: 15, title: 'Specific Clip' });
 
       const res = await request(getApp())
-        .get(`/rooms/clips/${clip.id}`)
+        .get(`/api/rooms/clips/${clip.id}`)
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(res.status).toBe(200);
@@ -370,7 +370,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       const user = await createTestUser();
 
       const res = await request(getApp())
-        .get(`/rooms/clips/nonexistent-id`)
+        .get(`/api/rooms/clips/nonexistent-id`)
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(res.status).toBe(404);
@@ -388,7 +388,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       await createTestRoom(user.user.id, { title: 'Rec Room 2', categoryId: category.id });
 
       const res = await request(getApp())
-        .get('/rooms/recommended')
+        .get('/api/rooms/recommended')
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(res.status).toBe(200);
@@ -400,7 +400,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
       const user = await createTestUser({ username: 'rec_empty_user' });
 
       const res = await request(getApp())
-        .get('/rooms/recommended')
+        .get('/api/rooms/recommended')
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(res.status).toBe(200);
@@ -409,7 +409,7 @@ describe('Room Invites, Clips & Recommendations E2E', () => {
 
     it('should require authentication', async () => {
       const res = await request(getApp())
-        .get('/rooms/recommended');
+        .get('/api/rooms/recommended');
 
       expect(res.status).toBe(401);
     });

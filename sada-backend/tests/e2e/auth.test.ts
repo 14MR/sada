@@ -47,7 +47,7 @@ describe('Auth E2E', () => {
   describe('POST /auth/signin', () => {
     it('should create a new user on first sign-in', async () => {
       const response = await request(getApp())
-        .post('/auth/signin')
+        .post('/api/auth/signin')
         .send({ identityToken: 'test-apple-id-001', fullName: 'John Doe' });
 
       expect(response.status).toBe(200);
@@ -62,14 +62,14 @@ describe('Auth E2E', () => {
 
     it('should login existing user on subsequent sign-in', async () => {
       const first = await request(getApp())
-        .post('/auth/signin')
+        .post('/api/auth/signin')
         .send({ identityToken: 'test-apple-id-002', fullName: 'First Name' });
 
       expect(first.status).toBe(200);
       const userId = first.body.user.id;
 
       const second = await request(getApp())
-        .post('/auth/signin')
+        .post('/api/auth/signin')
         .send({ identityToken: 'test-apple-id-002', fullName: 'Updated Name' });
 
       expect(second.status).toBe(200);
@@ -83,7 +83,7 @@ describe('Auth E2E', () => {
 
     it('should return 400 if identityToken is missing', async () => {
       const response = await request(getApp())
-        .post('/auth/signin')
+        .post('/api/auth/signin')
         .send({ fullName: 'No Token' });
 
       expect(response.status).toBe(400);
@@ -94,7 +94,7 @@ describe('Auth E2E', () => {
       await createTestUser({ banned: true, apple_id: 'banned-apple-id' });
 
       const response = await request(getApp())
-        .post('/auth/signin')
+        .post('/api/auth/signin')
         .send({ identityToken: 'banned-apple-id' });
 
       expect(response.status).toBe(403);
@@ -104,13 +104,13 @@ describe('Auth E2E', () => {
 
   describe('Protected routes authentication', () => {
     it('should return 401 when accessing protected route without token', async () => {
-      const response = await request(getApp()).get('/creator/dashboard');
+      const response = await request(getApp()).get('/api/creator/dashboard');
       expect(response.status).toBe(401);
     });
 
     it('should return 401 with invalid token', async () => {
       const response = await request(getApp())
-        .get('/creator/dashboard')
+        .get('/api/creator/dashboard')
         .set('Authorization', 'Bearer invalid_token_here');
 
       expect(response.status).toBe(401);
@@ -120,7 +120,7 @@ describe('Auth E2E', () => {
       const { user, token } = await createTestUser();
 
       const response = await request(getApp())
-        .get('/creator/dashboard')
+        .get('/api/creator/dashboard')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);

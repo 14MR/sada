@@ -38,7 +38,7 @@ describe('Report System E2E', () => {
       const reported = await createTestUser({ username: 'reported1' });
 
       const response = await request(getApp())
-        .post('/reports')
+        .post('/api/reports')
         .set('Authorization', `Bearer ${reporter.token}`)
         .send({ reportedUserId: reported.user.id, reason: 'harassment', description: 'Test report' });
 
@@ -54,7 +54,7 @@ describe('Report System E2E', () => {
       const room = await createTestRoom(host.user.id);
 
       const response = await request(getApp())
-        .post('/reports')
+        .post('/api/reports')
         .set('Authorization', `Bearer ${reporter.token}`)
         .send({ reportedUserId: host.user.id, roomId: room.id, reason: 'spam' });
 
@@ -66,7 +66,7 @@ describe('Report System E2E', () => {
       const { token } = await createTestUser();
 
       const response = await request(getApp())
-        .post('/reports')
+        .post('/api/reports')
         .set('Authorization', `Bearer ${token}`)
         .send({ reason: 'harassment' });
 
@@ -78,7 +78,7 @@ describe('Report System E2E', () => {
       const reported = await createTestUser();
 
       const response = await request(getApp())
-        .post('/reports')
+        .post('/api/reports')
         .set('Authorization', `Bearer ${reporter.token}`)
         .send({ reportedUserId: reported.user.id, reason: 'invalid' });
 
@@ -89,7 +89,7 @@ describe('Report System E2E', () => {
       const { user, token } = await createTestUser();
 
       const response = await request(getApp())
-        .post('/reports')
+        .post('/api/reports')
         .set('Authorization', `Bearer ${token}`)
         .send({ reportedUserId: user.id, reason: 'harassment' });
 
@@ -99,7 +99,7 @@ describe('Report System E2E', () => {
 
     it('should require authentication', async () => {
       const response = await request(getApp())
-        .post('/reports')
+        .post('/api/reports')
         .send({ reportedUserId: 'some-id', reason: 'harassment' });
 
       expect(response.status).toBe(401);
@@ -114,7 +114,7 @@ describe('Report System E2E', () => {
       for (let i = 0; i < 3; i++) {
         const reporter = await createTestUser({ username: `flag_reporter_${i}` });
         await request(getApp())
-          .post('/reports')
+          .post('/api/reports')
           .set('Authorization', `Bearer ${reporter.token}`)
           .send({ reportedUserId: reported.user.id, reason: 'spam' });
       }
@@ -132,7 +132,7 @@ describe('Report System E2E', () => {
       for (let i = 0; i < 2; i++) {
         const reporter = await createTestUser({ username: `unflag_reporter_${i}` });
         await request(getApp())
-          .post('/reports')
+          .post('/api/reports')
           .set('Authorization', `Bearer ${reporter.token}`)
           .send({ reportedUserId: reported.user.id, reason: 'spam' });
       }
@@ -149,12 +149,12 @@ describe('Report System E2E', () => {
       const reported = await createTestUser({ username: 'admin_reported' });
 
       await request(getApp())
-        .post('/reports')
+        .post('/api/reports')
         .set('Authorization', `Bearer ${reporter.token}`)
         .send({ reportedUserId: reported.user.id, reason: 'harassment' });
 
       const response = await request(getApp())
-        .get('/reports')
+        .get('/api/reports')
         .set('Authorization', `Bearer ${adminUser.token}`)
         .set('x-admin-key', process.env.ADMIN_KEY || 'test_admin_key');
 
@@ -169,12 +169,12 @@ describe('Report System E2E', () => {
       const reported = await createTestUser({ username: 'filter_reported' });
 
       await request(getApp())
-        .post('/reports')
+        .post('/api/reports')
         .set('Authorization', `Bearer ${reporter.token}`)
         .send({ reportedUserId: reported.user.id, reason: 'harassment' });
 
       const response = await request(getApp())
-        .get('/reports?status=pending')
+        .get('/api/reports?status=pending')
         .set('Authorization', `Bearer ${adminUser.token}`)
         .set('x-admin-key', process.env.ADMIN_KEY || 'test_admin_key');
 
@@ -186,7 +186,7 @@ describe('Report System E2E', () => {
       const { token } = await createTestUser({ username: 'no_admin_key' });
 
       const response = await request(getApp())
-        .get('/reports')
+        .get('/api/reports')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(403);
@@ -194,7 +194,7 @@ describe('Report System E2E', () => {
 
     it('should reject without authentication', async () => {
       const response = await request(getApp())
-        .get('/reports')
+        .get('/api/reports')
         .set('x-admin-key', process.env.ADMIN_KEY || 'test_admin_key');
 
       expect(response.status).toBe(401);
@@ -208,14 +208,14 @@ describe('Report System E2E', () => {
       const reported = await createTestUser({ username: 'rev_reported' });
 
       const createRes = await request(getApp())
-        .post('/reports')
+        .post('/api/reports')
         .set('Authorization', `Bearer ${reporter.token}`)
         .send({ reportedUserId: reported.user.id, reason: 'harassment' });
 
       const reportId = createRes.body.id;
 
       const response = await request(getApp())
-        .patch(`/reports/${reportId}`)
+        .patch(`/api/reports/${reportId}`)
         .set('Authorization', `Bearer ${adminUser.token}`)
         .set('x-admin-key', process.env.ADMIN_KEY || 'test_admin_key')
         .send({ status: 'reviewed' });
@@ -231,12 +231,12 @@ describe('Report System E2E', () => {
       const reported = await createTestUser({ username: 'dis_reported' });
 
       const createRes = await request(getApp())
-        .post('/reports')
+        .post('/api/reports')
         .set('Authorization', `Bearer ${reporter.token}`)
         .send({ reportedUserId: reported.user.id, reason: 'harassment' });
 
       const response = await request(getApp())
-        .patch(`/reports/${createRes.body.id}`)
+        .patch(`/api/reports/${createRes.body.id}`)
         .set('Authorization', `Bearer ${adminUser.token}`)
         .set('x-admin-key', process.env.ADMIN_KEY || 'test_admin_key')
         .send({ status: 'dismissed' });
@@ -251,12 +251,12 @@ describe('Report System E2E', () => {
       const reported = await createTestUser({ username: 'act_reported' });
 
       const createRes = await request(getApp())
-        .post('/reports')
+        .post('/api/reports')
         .set('Authorization', `Bearer ${reporter.token}`)
         .send({ reportedUserId: reported.user.id, reason: 'harassment' });
 
       const response = await request(getApp())
-        .patch(`/reports/${createRes.body.id}`)
+        .patch(`/api/reports/${createRes.body.id}`)
         .set('Authorization', `Bearer ${adminUser.token}`)
         .set('x-admin-key', process.env.ADMIN_KEY || 'test_admin_key')
         .send({ status: 'actioned' });
@@ -271,12 +271,12 @@ describe('Report System E2E', () => {
       const reported = await createTestUser({ username: 'inv_reported' });
 
       const createRes = await request(getApp())
-        .post('/reports')
+        .post('/api/reports')
         .set('Authorization', `Bearer ${reporter.token}`)
         .send({ reportedUserId: reported.user.id, reason: 'harassment' });
 
       const response = await request(getApp())
-        .patch(`/reports/${createRes.body.id}`)
+        .patch(`/api/reports/${createRes.body.id}`)
         .set('Authorization', `Bearer ${adminUser.token}`)
         .set('x-admin-key', process.env.ADMIN_KEY || 'test_admin_key')
         .send({ status: 'invalid' });
@@ -288,7 +288,7 @@ describe('Report System E2E', () => {
       const adminUser = await createTestUser({ username: 'admin_404_auth' });
 
       const response = await request(getApp())
-        .patch('/reports/nonexistent')
+        .patch('/api/reports/nonexistent')
         .set('Authorization', `Bearer ${adminUser.token}`)
         .set('x-admin-key', process.env.ADMIN_KEY || 'test_admin_key')
         .send({ status: 'reviewed' });
@@ -300,7 +300,7 @@ describe('Report System E2E', () => {
       const { token } = await createTestUser({ username: 'non_admin' });
 
       const response = await request(getApp())
-        .patch('/reports/some-id')
+        .patch('/api/reports/some-id')
         .set('Authorization', `Bearer ${token}`)
         .send({ status: 'reviewed' });
 

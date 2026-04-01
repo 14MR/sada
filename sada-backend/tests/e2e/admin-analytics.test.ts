@@ -44,7 +44,7 @@ describe('Admin Analytics E2E', () => {
       await createTestRoom(host.user.id, { title: 'Live Room', status: 'live' });
 
       const response = await request(getApp())
-        .get('/admin/stats')
+        .get('/api/admin/stats')
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY);
 
@@ -62,7 +62,7 @@ describe('Admin Analytics E2E', () => {
       const { token } = await createTestUser();
 
       const response = await request(getApp())
-        .get('/admin/stats')
+        .get('/api/admin/stats')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(403);
@@ -76,7 +76,7 @@ describe('Admin Analytics E2E', () => {
       await createTestUser({ username: 'list_u2' });
 
       const response = await request(getApp())
-        .get('/admin/users?limit=2&offset=0')
+        .get('/api/admin/users?limit=2&offset=0')
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY);
 
@@ -94,7 +94,7 @@ describe('Admin Analytics E2E', () => {
       await createTestUser({ username: 'search_beta' });
 
       const response = await request(getApp())
-        .get('/admin/users?search=search_alpha')
+        .get('/api/admin/users?search=search_alpha')
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY);
 
@@ -109,7 +109,7 @@ describe('Admin Analytics E2E', () => {
       await createTestUser({ username: 'filter_active', banned: false });
 
       const response = await request(getApp())
-        .get('/admin/users?banned=true')
+        .get('/api/admin/users?banned=true')
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY);
 
@@ -124,7 +124,7 @@ describe('Admin Analytics E2E', () => {
       await createTestUser({ username: 'flag_clean', flagged: false });
 
       const response = await request(getApp())
-        .get('/admin/users?flagged=true')
+        .get('/api/admin/users?flagged=true')
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY);
 
@@ -139,7 +139,7 @@ describe('Admin Analytics E2E', () => {
       await createTestUser({ username: 'creator_no', is_creator: false });
 
       const response = await request(getApp())
-        .get('/admin/users?is_creator=true')
+        .get('/api/admin/users?is_creator=true')
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY);
 
@@ -155,7 +155,7 @@ describe('Admin Analytics E2E', () => {
       await createTestUser({ username: 'sort_bravo' });
 
       const response = await request(getApp())
-        .get('/admin/users?sort=username&order=ASC&limit=100')
+        .get('/api/admin/users?sort=username&order=ASC&limit=100')
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY);
 
@@ -173,7 +173,7 @@ describe('Admin Analytics E2E', () => {
       const { user } = await createTestUser({ username: 'to_verify', verified: false });
 
       const response = await request(getApp())
-        .patch(`/admin/users/${user.id}`)
+        .patch(`/api/admin/users/${user.id}`)
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY)
         .send({ verified: true });
@@ -187,7 +187,7 @@ describe('Admin Analytics E2E', () => {
       const { user } = await createTestUser({ username: 'to_creator', is_creator: false });
 
       const response = await request(getApp())
-        .patch(`/admin/users/${user.id}`)
+        .patch(`/api/admin/users/${user.id}`)
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY)
         .send({ is_creator: true });
@@ -201,7 +201,7 @@ describe('Admin Analytics E2E', () => {
       const { user } = await createTestUser({ username: 'to_ban_patch' });
 
       const response = await request(getApp())
-        .patch(`/admin/users/${user.id}`)
+        .patch(`/api/admin/users/${user.id}`)
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY)
         .send({ banned: true });
@@ -215,7 +215,7 @@ describe('Admin Analytics E2E', () => {
       const { user } = await createTestUser({ username: 'to_multi_patch' });
 
       const response = await request(getApp())
-        .patch(`/admin/users/${user.id}`)
+        .patch(`/api/admin/users/${user.id}`)
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY)
         .send({ verified: true, is_creator: true });
@@ -230,7 +230,7 @@ describe('Admin Analytics E2E', () => {
       const { user } = await createTestUser({ username: 'empty_patch_target' });
 
       const response = await request(getApp())
-        .patch(`/admin/users/${user.id}`)
+        .patch(`/api/admin/users/${user.id}`)
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY)
         .send({});
@@ -242,7 +242,7 @@ describe('Admin Analytics E2E', () => {
       const { token } = await createTestUser({ username: 'patch_404_auth' });
 
       const response = await request(getApp())
-        .patch('/admin/users/non-existent-id')
+        .patch('/api/admin/users/non-existent-id')
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY)
         .send({ verified: true });
@@ -255,7 +255,7 @@ describe('Admin Analytics E2E', () => {
       const { user } = await createTestUser({ username: 'patch_no_admin_target' });
 
       const response = await request(getApp())
-        .patch(`/admin/users/${user.id}`)
+        .patch(`/api/admin/users/${user.id}`)
         .set('Authorization', `Bearer ${token}`)
         .send({ verified: true });
 
@@ -268,7 +268,7 @@ describe('Admin Analytics E2E', () => {
       const { token } = await createTestUser({ username: 'rep_auth' });
 
       const response = await request(getApp())
-        .get('/admin/reports')
+        .get('/api/admin/reports')
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY);
 

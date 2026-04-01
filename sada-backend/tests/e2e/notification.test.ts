@@ -37,7 +37,7 @@ describe('Notification E2E', () => {
       const { user, token } = await createTestUser({ username: 'notif_user' });
 
       const response = await request(getApp())
-        .get('/notifications')
+        .get('/api/notifications')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
@@ -45,7 +45,7 @@ describe('Notification E2E', () => {
     });
 
     it('should require authentication', async () => {
-      const response = await request(getApp()).get('/notifications');
+      const response = await request(getApp()).get('/api/notifications');
       expect(response.status).toBe(401);
     });
   });
@@ -55,7 +55,7 @@ describe('Notification E2E', () => {
       const { token } = await createTestUser();
 
       const response = await request(getApp())
-        .patch('/notifications/non-existent-id/read')
+        .patch('/api/notifications/non-existent-id/read')
         .set('Authorization', `Bearer ${token}`)
         .send({});
 
@@ -68,7 +68,7 @@ describe('Notification E2E', () => {
       const { token } = await createTestUser();
 
       const response = await request(getApp())
-        .post('/notifications/read-all')
+        .post('/api/notifications/read-all')
         .set('Authorization', `Bearer ${token}`)
         .send({});
 
@@ -82,7 +82,7 @@ describe('Notification E2E', () => {
       const { token } = await createTestUser({ username: 'unread_user' });
 
       const response = await request(getApp())
-        .get('/notifications/unread-count')
+        .get('/api/notifications/unread-count')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
@@ -91,7 +91,7 @@ describe('Notification E2E', () => {
 
     it('should require authentication', async () => {
       const response = await request(getApp())
-        .get('/notifications/unread-count');
+        .get('/api/notifications/unread-count');
 
       expect(response.status).toBe(401);
     });

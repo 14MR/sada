@@ -46,7 +46,7 @@ describe('Scheduled Rooms & Discovery', () => {
       const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
       const res = await request(getApp())
-        .post('/rooms/schedule')
+        .post('/api/rooms/schedule')
         .set('Authorization', `Bearer ${token}`)
         .send({
           title: 'Scheduled Talk',
@@ -68,7 +68,7 @@ describe('Scheduled Rooms & Discovery', () => {
       const { token } = await createTestUser();
 
       const res = await request(getApp())
-        .post('/rooms/schedule')
+        .post('/api/rooms/schedule')
         .set('Authorization', `Bearer ${token}`)
         .send({ title: 'No description or category' });
 
@@ -81,7 +81,7 @@ describe('Scheduled Rooms & Discovery', () => {
       const pastDate = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
       const res = await request(getApp())
-        .post('/rooms/schedule')
+        .post('/api/rooms/schedule')
         .set('Authorization', `Bearer ${token}`)
         .send({
           title: 'Past Room',
@@ -98,7 +98,7 @@ describe('Scheduled Rooms & Discovery', () => {
       const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
       const res = await request(getApp())
-        .post('/rooms/schedule')
+        .post('/api/rooms/schedule')
         .set('Authorization', `Bearer ${token}`)
         .send({
           title: 'Bad Category',
@@ -116,7 +116,7 @@ describe('Scheduled Rooms & Discovery', () => {
       const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
       const res = await request(getApp())
-        .post('/rooms/schedule')
+        .post('/api/rooms/schedule')
         .send({
           title: 'No Auth',
           description: 'Should fail',
@@ -140,7 +140,7 @@ describe('Scheduled Rooms & Discovery', () => {
 
       const { token } = await createTestUser();
       const res = await request(getApp())
-        .get('/rooms/scheduled')
+        .get('/api/rooms/scheduled')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
@@ -160,7 +160,7 @@ describe('Scheduled Rooms & Discovery', () => {
 
       const { token } = await createTestUser();
       const res = await request(getApp())
-        .get(`/rooms/scheduled?category=${cat1.slug}`)
+        .get(`/api/rooms/scheduled?category=${cat1.slug}`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
@@ -179,7 +179,7 @@ describe('Scheduled Rooms & Discovery', () => {
 
       const { token } = await createTestUser();
       const page1 = await request(getApp())
-        .get('/rooms/scheduled?limit=2&offset=0')
+        .get('/api/rooms/scheduled?limit=2&offset=0')
         .set('Authorization', `Bearer ${token}`);
 
       expect(page1.status).toBe(200);
@@ -187,7 +187,7 @@ describe('Scheduled Rooms & Discovery', () => {
       expect(page1.body.total).toBe(5);
 
       const page2 = await request(getApp())
-        .get('/rooms/scheduled?limit=2&offset=2')
+        .get('/api/rooms/scheduled?limit=2&offset=2')
         .set('Authorization', `Bearer ${token}`);
 
       expect(page2.status).toBe(200);
@@ -198,7 +198,7 @@ describe('Scheduled Rooms & Discovery', () => {
       const { token } = await createTestUser();
 
       const res = await request(getApp())
-        .get('/rooms/scheduled')
+        .get('/api/rooms/scheduled')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
@@ -221,7 +221,7 @@ describe('Scheduled Rooms & Discovery', () => {
       });
 
       const res = await request(getApp())
-        .post(`/rooms/${room.id}/start`)
+        .post(`/api/rooms/${room.id}/start`)
         .set('Authorization', `Bearer ${token}`)
         .send({});
 
@@ -242,7 +242,7 @@ describe('Scheduled Rooms & Discovery', () => {
       const room = await createTestRoom(host.user.id, { status: 'scheduled', scheduledAt: futureDate });
 
       const res = await request(getApp())
-        .post(`/rooms/${room.id}/start`)
+        .post(`/api/rooms/${room.id}/start`)
         .set('Authorization', `Bearer ${other.token}`)
         .send({});
 
@@ -255,7 +255,7 @@ describe('Scheduled Rooms & Discovery', () => {
       const room = await createTestRoom(user.id, { status: 'live' });
 
       const res = await request(getApp())
-        .post(`/rooms/${room.id}/start`)
+        .post(`/api/rooms/${room.id}/start`)
         .set('Authorization', `Bearer ${token}`)
         .send({});
 
@@ -267,7 +267,7 @@ describe('Scheduled Rooms & Discovery', () => {
       const { token } = await createTestUser();
 
       const res = await request(getApp())
-        .post('/rooms/non-existent-id/start')
+        .post('/api/rooms/non-existent-id/start')
         .set('Authorization', `Bearer ${token}`)
         .send({});
 
@@ -280,7 +280,7 @@ describe('Scheduled Rooms & Discovery', () => {
       const room = await createTestRoom(host.user.id, { status: 'scheduled', scheduledAt: futureDate });
 
       const res = await request(getApp())
-        .post(`/rooms/${room.id}/start`);
+        .post(`/api/rooms/${room.id}/start`);
 
       expect(res.status).toBe(401);
     });
@@ -302,7 +302,7 @@ describe('Scheduled Rooms & Discovery', () => {
 
       const { token } = await createTestUser();
       const res = await request(getApp())
-        .get('/rooms/trending')
+        .get('/api/rooms/trending')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
@@ -320,7 +320,7 @@ describe('Scheduled Rooms & Discovery', () => {
 
       const { token } = await createTestUser();
       const res = await request(getApp())
-        .get('/rooms/trending?limit=2&offset=0')
+        .get('/api/rooms/trending?limit=2&offset=0')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
@@ -331,7 +331,7 @@ describe('Scheduled Rooms & Discovery', () => {
       const { token } = await createTestUser();
 
       const res = await request(getApp())
-        .get('/rooms/trending')
+        .get('/api/rooms/trending')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
@@ -351,7 +351,7 @@ describe('Scheduled Rooms & Discovery', () => {
 
       const { token } = await createTestUser();
       const res = await request(getApp())
-        .get(`/rooms/categories/${cat1.slug}`)
+        .get(`/api/rooms/categories/${cat1.slug}`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
@@ -369,7 +369,7 @@ describe('Scheduled Rooms & Discovery', () => {
 
       const { token } = await createTestUser();
       const res = await request(getApp())
-        .get(`/rooms/categories/${cat.slug}?limit=2&offset=0`)
+        .get(`/api/rooms/categories/${cat.slug}?limit=2&offset=0`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
@@ -382,7 +382,7 @@ describe('Scheduled Rooms & Discovery', () => {
       const { token } = await createTestUser();
 
       const res = await request(getApp())
-        .get(`/rooms/categories/${cat.slug}`)
+        .get(`/api/rooms/categories/${cat.slug}`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
@@ -402,7 +402,7 @@ describe('Scheduled Rooms & Discovery', () => {
       }
 
       const res = await request(getApp())
-        .get('/rooms/?limit=2&offset=0')
+        .get('/api/rooms/?limit=2&offset=0')
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
@@ -434,7 +434,7 @@ describe('Scheduled Rooms & Discovery', () => {
 
       // Start the room
       const res = await request(getApp())
-        .post(`/rooms/${room.id}/start`)
+        .post(`/api/rooms/${room.id}/start`)
         .set('Authorization', `Bearer ${host.token}`)
         .send({});
 

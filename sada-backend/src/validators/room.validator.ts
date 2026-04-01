@@ -6,6 +6,7 @@ export const createRoomSchema = z.object({
     categoryId: z.string().optional(),
     description: z.string().max(1000).optional(),
     scheduledAt: z.string().optional(),
+    tags: z.array(z.string().regex(/^[a-zA-Z0-9]+$/, "Tags must be alphanumeric")).max(5, "Maximum 5 tags allowed").optional().default([]),
 });
 
 export const joinRoomSchema = z.object({});
@@ -89,6 +90,11 @@ export const createClipSchema = z.object({
 });
 
 export const listClipsSchema = z.object({
+    limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+    offset: z.coerce.number().int().min(0).optional().default(0),
+});
+
+export const searchByTagSchema = z.object({
     limit: z.coerce.number().int().min(1).max(100).optional().default(20),
     offset: z.coerce.number().int().min(0).optional().default(0),
 });

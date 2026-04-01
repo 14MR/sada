@@ -82,14 +82,14 @@ beforeEach(() => {
   };
 
   // GET /gems/balance
-  app.get('/gems/balance', authMiddleware, async (req: Request, res: Response) => {
+  app.get('/api/gems/balance', authMiddleware, async (req: Request, res: Response) => {
     const user = users.get((req as any).userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({ balance: user.gem_balance });
   });
 
   // POST /gems/purchase
-  app.post('/gems/purchase', authMiddleware, async (req: Request, res: Response) => {
+  app.post('/api/gems/purchase', authMiddleware, async (req: Request, res: Response) => {
     const { amount } = req.body;
     if (!amount || amount <= 0) {
       return res.status(400).json({ error: 'Invalid amount' });
@@ -114,7 +114,7 @@ beforeEach(() => {
   // POST /gems/gift with mutex for race condition prevention
   const giftMutex = new Map<string, Promise<any>>();
 
-  app.post('/gems/gift', authMiddleware, async (req: Request, res: Response) => {
+  app.post('/api/gems/gift', authMiddleware, async (req: Request, res: Response) => {
     const { receiverId, amount } = req.body;
     if (!amount || amount <= 0) {
       return res.status(400).json({ error: 'Invalid amount' });
@@ -172,7 +172,7 @@ describe('Gem Controller', () => {
   describe('POST /gems/purchase', () => {
     it('should add gems to user balance', async () => {
       const response = await request(app)
-        .post('/gems/purchase')
+        .post('/api/gems/purchase')
         .set('Authorization', `Bearer ${userToken}`)
         .send({ amount: 100 });
 
@@ -185,7 +185,7 @@ describe('Gem Controller', () => {
 
     it('should reject invalid amount', async () => {
       const response = await request(app)
-        .post('/gems/purchase')
+        .post('/api/gems/purchase')
         .set('Authorization', `Bearer ${userToken}`)
         .send({ amount: -50 });
 
@@ -193,7 +193,7 @@ describe('Gem Controller', () => {
     });
 
     it('should require authentication', async () => {
-      const response = await request(app).post('/gems/purchase').send({ amount: 100 });
+      const response = await request(app).post('/api/gems/purchase').send({ amount: 100 });
       expect(response.status).toBe(401);
     });
   });
@@ -201,7 +201,7 @@ describe('Gem Controller', () => {
   describe('POST /gems/gift', () => {
     it('should transfer gems from sender to receiver', async () => {
       const response = await request(app)
-        .post('/gems/gift')
+        .post('/api/gems/gift')
         .set('Authorization', `Bearer ${userToken}`)
         .send({ receiverId: user2Id, amount: 25 });
 
@@ -215,7 +215,7 @@ describe('Gem Controller', () => {
 
     it('should fail with insufficient balance', async () => {
       const response = await request(app)
-        .post('/gems/gift')
+        .post('/api/gems/gift')
         .set('Authorization', `Bearer ${user2Token}`)
         .send({ receiverId: userId, amount: 100 });
 
@@ -225,7 +225,7 @@ describe('Gem Controller', () => {
 
     it('should prevent gifting to self', async () => {
       const response = await request(app)
-        .post('/gems/gift')
+        .post('/api/gems/gift')
         .set('Authorization', `Bearer ${userToken}`)
         .send({ receiverId: userId, amount: 10 });
 
@@ -233,7 +233,7 @@ describe('Gem Controller', () => {
     });
 
     it('should require authentication', async () => {
-      const response = await request(app).post('/gems/gift').send({ receiverId: user2Id, amount: 10 });
+      const response = await request(app).post('/api/gems/gift').send({ receiverId: user2Id, amount: 10 });
       expect(response.status).toBe(401);
     });
   });
@@ -241,7 +241,7 @@ describe('Gem Controller', () => {
   describe('GET /gems/balance', () => {
     it('should return user balance', async () => {
       const response = await request(app)
-        .get('/gems/balance')
+        .get('/api/gems/balance')
         .set('Authorization', `Bearer ${userToken}`);
 
       expect(response.status).toBe(200);
@@ -249,7 +249,7 @@ describe('Gem Controller', () => {
     });
 
     it('should require authentication', async () => {
-      const response = await request(app).get('/gems/balance');
+      const response = await request(app).get('/api/gems/balance');
       expect(response.status).toBe(401);
     });
   });
@@ -258,11 +258,11 @@ describe('Gem Controller', () => {
     it('should handle concurrent gift requests atomically', async () => {
       const requests = [
         request(app)
-          .post('/gems/gift')
+          .post('/api/gems/gift')
           .set('Authorization', `Bearer ${userToken}`)
           .send({ receiverId: user2Id, amount: 75 }),
         request(app)
-          .post('/gems/gift')
+          .post('/api/gems/gift')
           .set('Authorization', `Bearer ${userToken}`)
           .send({ receiverId: user2Id, amount: 75 }),
       ];

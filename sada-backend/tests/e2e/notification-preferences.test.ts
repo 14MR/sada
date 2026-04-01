@@ -37,7 +37,7 @@ describe('Notification Preferences E2E', () => {
       const { token } = await createTestUser();
 
       const response = await request(getApp())
-        .get('/users/notification-preferences')
+        .get('/api/users/notification-preferences')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
@@ -48,7 +48,7 @@ describe('Notification Preferences E2E', () => {
 
     it('should require authentication', async () => {
       const response = await request(getApp())
-        .get('/users/notification-preferences');
+        .get('/api/users/notification-preferences');
 
       expect(response.status).toBe(401);
     });
@@ -59,7 +59,7 @@ describe('Notification Preferences E2E', () => {
       const { token } = await createTestUser();
 
       const response = await request(getApp())
-        .put('/users/notification-preferences')
+        .put('/api/users/notification-preferences')
         .set('Authorization', `Bearer ${token}`)
         .send({
           preferences: [
@@ -77,7 +77,7 @@ describe('Notification Preferences E2E', () => {
       const { token } = await createTestUser();
 
       const response = await request(getApp())
-        .put('/users/notification-preferences')
+        .put('/api/users/notification-preferences')
         .set('Authorization', `Bearer ${token}`)
         .send({ preferences: [] });
 
@@ -88,7 +88,7 @@ describe('Notification Preferences E2E', () => {
       const { token } = await createTestUser();
 
       const response = await request(getApp())
-        .put('/users/notification-preferences')
+        .put('/api/users/notification-preferences')
         .set('Authorization', `Bearer ${token}`)
         .send({
           preferences: [{ type: 'invalid_type', enabled: true }],
@@ -99,7 +99,7 @@ describe('Notification Preferences E2E', () => {
 
     it('should require authentication', async () => {
       const response = await request(getApp())
-        .put('/users/notification-preferences')
+        .put('/api/users/notification-preferences')
         .send({ preferences: [{ type: 'room_started', enabled: false }] });
 
       expect(response.status).toBe(401);
@@ -110,7 +110,7 @@ describe('Notification Preferences E2E', () => {
 
       // Update
       await request(getApp())
-        .put('/users/notification-preferences')
+        .put('/api/users/notification-preferences')
         .set('Authorization', `Bearer ${token}`)
         .send({
           preferences: [{ type: 'gem_received', enabled: false }],
@@ -118,7 +118,7 @@ describe('Notification Preferences E2E', () => {
 
       // Verify
       const response = await request(getApp())
-        .get('/users/notification-preferences')
+        .get('/api/users/notification-preferences')
         .set('Authorization', `Bearer ${token}`);
 
       const gemPref = response.body.find((p: any) => p.type === 'gem_received');

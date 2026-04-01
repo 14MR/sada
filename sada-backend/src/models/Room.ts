@@ -52,6 +52,12 @@ export class Room {
     @Column({ default: true })
     chat_enabled!: boolean;
 
+    @Column("simple-json", { default: "[]" })
+    tags!: string[];
+
+    @Column("simple-json", { nullable: true })
+    summary!: Record<string, any> | null;
+
     @OneToMany(() => RoomParticipant, participant => participant.room)
     participants!: RoomParticipant[];
 }

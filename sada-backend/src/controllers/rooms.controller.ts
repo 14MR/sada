@@ -11,14 +11,14 @@ export class RoomController {
             const userId = (req as any).user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
-            const { title, categoryId, description, scheduledAt } = req.body;
+            const { title, categoryId, description, scheduledAt, tags } = req.body;
 
             const { UserService } = require("../services/user.service");
             const host = await UserService.getProfile(userId);
 
             if (!host) return res.status(404).json({ error: "Host not found" });
 
-            const room = await RoomService.createRoom(host, title, categoryId, description, scheduledAt ? new Date(scheduledAt) : undefined);
+            const room = await RoomService.createRoom(host, title, categoryId, description, scheduledAt ? new Date(scheduledAt) : undefined, tags);
             return res.status(201).json(room);
         } catch (error) {
             logger.error({ err: error }, "Create Room Error");
@@ -368,6 +368,82 @@ export class RoomController {
         } catch (error) {
             logger.error({ err: error }, "Get Clip Error");
             return res.status(500).json({ error: "Failed to get clip" });
+        }
+    }
+
+    // ── Search by Tag ────────────────────────────────────────────────
+
+    static async searchByTag(req: Request, res: Response) {
+        try {
+            const tag = req.params.tag as string;
+            const limit = parseInt(req.query.limit as string) || 20;
+            const offset = parseInt(req.query.offset as string) || 0;
+
+            const rooms = await RoomService.searchByTag(tag, limit, offset);
+            return res.json(rooms);
+        } catch (error) {
+            logger.error({ err: error }, "Search By Tag Error");
+            return res.status(500).json({ error: "Failed to search by tag" });
+        }
+    }
+
+    // ── Room Summary ────────────────────────────────────────────────
+
+    static async getSummary(req: Request, res: Response) {
+        try {
+            const roomId = req.params.id as string;
+            const summary = await RoomService.getRoomSummary(roomId);
+            return res.json(summary);
+        } catch (error: any) {
+            if (error.message === "Room not found") {
+                return res.status(404).json({ error: error.message });
+            }
+            if (error.message.includes("ended")) {
+                return res.status(400).json({ error: error.message });
+            }
+            logger.error({ err: error }, "Get Room Summary Error");
+            return res.status(500).json({ error: "Failed to get room summary" });
+        }
+    }
+
+    // ── Bookmarks ────────────────────────────────────────────────────
+
+    static async bookmark(req: Request, res: Response) {
+        try {
+            const roomId = req.params.id as string;
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+            const { BookmarkService } = require("../services/bookmark.service");
+            const bookmark = await BookmarkService.bookmark(userId, roomId);
+            return res.status(201).json(bookmark);
+        } catch (error: any) {
+            if (error.message.includes("not found")) {
+                return res.status(404).json({ error: error.message });
+            }
+            if (error.message.includes("already")) {
+                return res.status(409).json({ error: error.message });
+            }
+            logger.error({ err: error }, "Bookmark Error");
+            return res.status(500).json({ error: "Failed to bookmark room" });
+        }
+    }
+
+    static async removeBookmark(req: Request, res: Response) {
+        try {
+            const roomId = req.params.id as string;
+            const userId = (req as any).user?.id;
+            if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+            const { BookmarkService } = require("../services/bookmark.service");
+            await BookmarkService.removeBookmark(userId, roomId);
+            return res.json({ success: true });
+        } catch (error: any) {
+            if (error.message.includes("not found")) {
+                return res.status(404).json({ error: error.message });
+            }
+            logger.error({ err: error }, "Remove Bookmark Error");
+            return res.status(500).json({ error: "Failed to remove bookmark" });
         }
     }
 }

@@ -19,6 +19,7 @@ import { UserPresence } from "../models/UserPresence";
 import { Conversation } from "../models/Conversation";
 import { ConversationParticipant } from "../models/ConversationParticipant";
 import { Message } from "../models/Message";
+import { RoomBookmark } from "../models/RoomBookmark";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -31,7 +32,7 @@ export const AppDataSource = new DataSource({
     database: vars.db.database,
     synchronize: !isProd,
     logging: false,
-    entities: [User, Room, RoomParticipant, Follow, GemTransaction, Category, SpeakerRequest, Report, UserBlock, AdminAction, Notification, Withdrawal, RoomRecording, ChatReaction, UserActivity, UserPresence, Conversation, ConversationParticipant, Message],
+    entities: [User, Room, RoomParticipant, Follow, GemTransaction, Category, SpeakerRequest, Report, UserBlock, AdminAction, Notification, Withdrawal, RoomRecording, ChatReaction, UserActivity, UserPresence, Conversation, ConversationParticipant, Message, RoomBookmark],
     subscribers: [],
     migrations: [isProd ? "dist/migrations/*.js" : "src/migrations/*.ts"],
 });

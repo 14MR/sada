@@ -36,7 +36,7 @@ describe('Category E2E', () => {
     it('should return empty list when no categories', async () => {
       const { token } = await createTestUser();
       const response = await request(getApp())
-        .get('/categories')
+        .get('/api/categories')
         .set('Authorization', `Bearer ${token}`);
       expect(response.status).toBe(200);
       expect(response.body).toEqual([]);
@@ -48,7 +48,7 @@ describe('Category E2E', () => {
       await createTestCategory({ name: 'Tech', slug: 'tech' });
 
       const response = await request(getApp())
-        .get('/categories')
+        .get('/api/categories')
         .set('Authorization', `Bearer ${token}`);
       expect(response.status).toBe(200);
       expect(response.body).toHaveLength(2);
@@ -62,7 +62,7 @@ describe('Category E2E', () => {
       await createTestRoom(user.id, { categoryId: category.id, title: 'Jazz Room' });
 
       const response = await request(getApp())
-        .get('/categories/music/rooms')
+        .get('/api/categories/music/rooms')
         .set('Authorization', `Bearer ${token}`);
       expect(response.status).toBe(200);
       expect(response.body).toHaveLength(1);
@@ -72,7 +72,7 @@ describe('Category E2E', () => {
     it('should return 404 for unknown slug', async () => {
       const { token } = await createTestUser();
       const response = await request(getApp())
-        .get('/categories/nonexistent/rooms')
+        .get('/api/categories/nonexistent/rooms')
         .set('Authorization', `Bearer ${token}`);
       expect(response.status).toBe(404);
     });

@@ -42,7 +42,7 @@ describe('Admin E2E', () => {
       await createTestUser({ username: 'stat_user2' });
 
       const response = await request(getApp())
-        .get('/admin/stats')
+        .get('/api/admin/stats')
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY);
 
@@ -54,7 +54,7 @@ describe('Admin E2E', () => {
       const { token } = await createTestUser();
 
       const response = await request(getApp())
-        .get('/admin/stats')
+        .get('/api/admin/stats')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(403);
@@ -68,7 +68,7 @@ describe('Admin E2E', () => {
       await createTestUser({ username: 'admin_u2' });
 
       const response = await request(getApp())
-        .get('/admin/users')
+        .get('/api/admin/users')
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY);
 
@@ -83,7 +83,7 @@ describe('Admin E2E', () => {
       const { user } = await createTestUser({ username: 'to_ban' });
 
       const response = await request(getApp())
-        .post(`/admin/users/${user.id}/ban`)
+        .post(`/api/admin/users/${user.id}/ban`)
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY);
 
@@ -95,7 +95,7 @@ describe('Admin E2E', () => {
       const { token } = await createTestUser({ username: 'ban_404_auth' });
 
       const response = await request(getApp())
-        .post('/admin/users/non-existent-id/ban')
+        .post('/api/admin/users/non-existent-id/ban')
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY);
 
@@ -109,7 +109,7 @@ describe('Admin E2E', () => {
       const { user } = await createTestUser({ username: 'to_unban', banned: true });
 
       const response = await request(getApp())
-        .post(`/admin/users/${user.id}/unban`)
+        .post(`/api/admin/users/${user.id}/unban`)
         .set('Authorization', `Bearer ${token}`)
         .set('x-admin-key', ADMIN_KEY);
 

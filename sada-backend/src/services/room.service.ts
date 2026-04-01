@@ -4,6 +4,7 @@ import { RoomParticipant } from "../models/RoomParticipant";
 import { User } from "../models/User";
 import { Category } from "../models/Category";
 import { RoomRecording, RecordingStatus } from "../models/RoomRecording";
+import { GemTransaction } from "../models/GemTransaction";
 import { AudioService } from "./audio.service";
 import { NotificationService } from "./notification.service";
 import { NotificationType } from "../models/Notification";
@@ -17,9 +18,10 @@ const roomRepository = AppDataSource.getRepository(Room);
 const participantRepository = AppDataSource.getRepository(RoomParticipant);
 const categoryRepository = AppDataSource.getRepository(Category);
 const recordingRepository = AppDataSource.getRepository(RoomRecording);
+const gemRepository = AppDataSource.getRepository(GemTransaction);
 
 export class RoomService {
-    static async createRoom(host: User, title: string, categoryId?: string, description?: string, scheduledAt?: Date) {
+    static async createRoom(host: User, title: string, categoryId?: string, description?: string, scheduledAt?: Date, tags?: string[]) {
         const room = new Room();
         room.host = host;
         room.title = title;
@@ -27,6 +29,8 @@ export class RoomService {
         room.description = description || "";
         room.scheduledAt = scheduledAt || null;
         room.status = 'live';
+        room.tags = (tags || []).map(t => t.toLowerCase());
+        room.summary = null;
 
         const savedRoom = await roomRepository.save(room);
 
@@ -89,6 +93,21 @@ export class RoomService {
             .where("(room.title ILIKE :q OR room.description ILIKE :q)", { q: `%${q}%` })
             .orderBy("room.started_at", "DESC")
             .getMany();
+    }
+
+
+    static async searchByTag(tag: string, limit: number = 20, offset: number = 0) {
+        const normalizedTag = tag.toLowerCase();
+        const rooms = await roomRepository.createQueryBuilder("room")
+            .leftJoinAndSelect("room.host", "host")
+            .leftJoinAndSelect("room.category", "category")
+            .where(`room.tags LIKE :pattern`, { pattern: `%"${normalizedTag}"%` })
+            .orderBy("room.started_at", "DESC")
+            .skip(offset)
+            .take(limit)
+            .getMany();
+
+        return rooms.filter(r => Array.isArray(r.tags) && r.tags.includes(normalizedTag));
     }
 
     static async getRoom(roomId: string) {
@@ -188,7 +207,43 @@ export class RoomService {
         room.status = 'ended';
         room.ended_at = new Date();
 
+        // Generate summary
+        const [participants, gemResult] = await Promise.all([
+            participantRepository.find({ where: { room: { id: roomId } } }),
+            gemRepository.createQueryBuilder("gt")
+                .where("gt.reference_id = :roomId", { roomId })
+                .andWhere("gt.type = 'gift'")
+                .select("COALESCE(SUM(gt.amount), 0)", "total")
+                .getRawOne(),
+        ]);
+
+        const durationMs = room.ended_at.getTime() - new Date(room.started_at).getTime();
+        room.summary = {
+            duration_seconds: Math.round(durationMs / 1000),
+            peak_listeners: room.listener_count,
+            total_participants: participants.length,
+            gems_received: Number(gemResult?.total || 0),
+        };
+
         return await roomRepository.save(room);
+    }
+
+    static async getRoomSummary(roomId: string) {
+        const room = await roomRepository.findOne({
+            where: { id: roomId },
+            relations: ["host", "category"],
+        });
+        if (!room) throw new Error("Room not found");
+        if (room.status !== "ended") throw new Error("Summary is only available for ended rooms");
+
+        return {
+            id: room.id,
+            title: room.title,
+            host: room.host,
+            started_at: room.started_at,
+            ended_at: room.ended_at,
+            summary: room.summary,
+        };
     }
 
     // ── Scheduled Rooms ──────────────────────────────────────────────
@@ -264,6 +319,7 @@ export class RoomService {
         if (room.status !== 'scheduled') throw new Error("Room is not in scheduled status");
 
         room.status = 'live';
+        room.started_at = new Date();
 
         const savedRoom = await roomRepository.save(room);
 

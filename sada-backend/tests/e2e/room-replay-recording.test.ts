@@ -59,7 +59,7 @@ describe('Room Recordings & Replay E2E', () => {
       await createTestRecording(room.id, host.user.id, { status: RecordingStatus.STOPPED });
 
       const response = await request(getApp())
-        .get(`/rooms/${room.id}/recordings`)
+        .get(`/api/rooms/${room.id}/recordings`)
         .set('Authorization', `Bearer ${host.token}`);
 
       expect(response.status).toBe(200);
@@ -71,7 +71,7 @@ describe('Room Recordings & Replay E2E', () => {
       const { token } = await createTestUser();
 
       const response = await request(getApp())
-        .get('/rooms/nonexistent/recordings')
+        .get('/api/rooms/nonexistent/recordings')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(404);
@@ -85,7 +85,7 @@ describe('Room Recordings & Replay E2E', () => {
       await createTestRecording(room.id, host.user.id, { status: RecordingStatus.PUBLISHED });
 
       const response = await request(getApp())
-        .get(`/rooms/${room.id}/replay`)
+        .get(`/api/rooms/${room.id}/replay`)
         .set('Authorization', `Bearer ${host.token}`);
 
       expect(response.status).toBe(200);
@@ -100,7 +100,7 @@ describe('Room Recordings & Replay E2E', () => {
       const room = await createTestRoom(host.user.id, { status: 'live' });
 
       const response = await request(getApp())
-        .get(`/rooms/${room.id}/replay`)
+        .get(`/api/rooms/${room.id}/replay`)
         .set('Authorization', `Bearer ${host.token}`);
 
       expect(response.status).toBe(400);
@@ -111,7 +111,7 @@ describe('Room Recordings & Replay E2E', () => {
       const { token } = await createTestUser();
 
       const response = await request(getApp())
-        .get('/rooms/nonexistent/replay')
+        .get('/api/rooms/nonexistent/replay')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(404);
@@ -125,7 +125,7 @@ describe('Room Recordings & Replay E2E', () => {
       const recording = await createTestRecording(room.id, host.user.id, { status: RecordingStatus.STOPPED });
 
       const response = await request(getApp())
-        .post(`/recordings/${recording.id}/publish`)
+        .post(`/api/recordings/${recording.id}/publish`)
         .set('Authorization', `Bearer ${host.token}`);
 
       expect(response.status).toBe(200);
@@ -139,7 +139,7 @@ describe('Room Recordings & Replay E2E', () => {
       const recording = await createTestRecording(room.id, host.user.id, { status: RecordingStatus.STOPPED });
 
       const response = await request(getApp())
-        .post(`/recordings/${recording.id}/publish`)
+        .post(`/api/recordings/${recording.id}/publish`)
         .set('Authorization', `Bearer ${other.token}`);
 
       expect(response.status).toBe(400);
@@ -153,7 +153,7 @@ describe('Room Recordings & Replay E2E', () => {
       const recording = await createTestRecording(room.id, host.user.id);
 
       const response = await request(getApp())
-        .delete(`/recordings/${recording.id}`)
+        .delete(`/api/recordings/${recording.id}`)
         .set('Authorization', `Bearer ${host.token}`);
 
       expect(response.status).toBe(200);
@@ -167,7 +167,7 @@ describe('Room Recordings & Replay E2E', () => {
       const recording = await createTestRecording(room.id, host.user.id);
 
       const response = await request(getApp())
-        .delete(`/recordings/${recording.id}`)
+        .delete(`/api/recordings/${recording.id}`)
         .set('Authorization', `Bearer ${other.token}`);
 
       expect(response.status).toBe(400);

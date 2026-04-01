@@ -55,7 +55,7 @@ export function createApp() {
   app.use(requestLogger);
 
   // Rate limiting BEFORE auth so unauthenticated brute-force attempts are also throttled
-  app.use('/auth', authLimiter);
+  app.use('/api/auth', authLimiter);
   app.use(apiLimiter);
 
   // Health check (before authenticate, so it's always accessible)
@@ -75,23 +75,26 @@ export function createApp() {
   // Auth middleware applied globally (skips signin and health)
   app.use(authenticate);
 
-  // Routes
-  app.use('/auth', authRoutes);
-  app.use('/users', usersRoutes);
-  app.use('/rooms', roomsRoutes);
-  app.use('/gems', gemRoutes);
-  app.use('/follow', followRoutes);
-  app.use('/categories', categoryRoutes);
-  app.use('/creator', creatorRoutes);
-  app.use('/moderation', moderationRoutes);
-  app.use('/admin', adminRoutes);
-  app.use('/notifications', notificationRoutes);
-  app.use('/withdrawals', withdrawalRoutes);
-  app.use('/recordings', recordingRoutes);
-  app.use('/reactions', reactionRoutes);
-  app.use('/audio', audioRoutes);
-  app.use('/reports', reportRoutes);
-  app.use('/conversations', conversationRoutes);
+  // Routes (mounted under /api for mobile compatibility)
+  const apiRouter = express.Router();
+  apiRouter.use('/auth', authRoutes);
+  apiRouter.use('/users', usersRoutes);
+  apiRouter.use('/rooms', roomsRoutes);
+  apiRouter.use('/gems', gemRoutes);
+  apiRouter.use('/follow', followRoutes);
+  apiRouter.use('/categories', categoryRoutes);
+  apiRouter.use('/creator', creatorRoutes);
+  apiRouter.use('/moderation', moderationRoutes);
+  apiRouter.use('/admin', adminRoutes);
+  apiRouter.use('/notifications', notificationRoutes);
+  apiRouter.use('/withdrawals', withdrawalRoutes);
+  apiRouter.use('/recordings', recordingRoutes);
+  apiRouter.use('/reactions', reactionRoutes);
+  apiRouter.use('/audio', audioRoutes);
+  apiRouter.use('/reports', reportRoutes);
+  apiRouter.use('/conversations', conversationRoutes);
+
+  app.use('/api', apiRouter);
 
   // Error handler
   app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

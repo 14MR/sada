@@ -40,7 +40,7 @@ describe('Direct Messaging E2E', () => {
       const user2 = await createTestUser({ username: 'dm_user2' });
 
       const response = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
@@ -54,12 +54,12 @@ describe('Direct Messaging E2E', () => {
       const user2 = await createTestUser({ username: 'dup_user2' });
 
       const res1 = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       const res2 = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
@@ -72,7 +72,7 @@ describe('Direct Messaging E2E', () => {
       const user = await createTestUser({ username: 'self_dm' });
 
       const response = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user.token}`)
         .send({ type: 'direct', userId: user.user.id });
 
@@ -84,7 +84,7 @@ describe('Direct Messaging E2E', () => {
       const user = await createTestUser({ username: 'ghost_dm' });
 
       const response = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user.token}`)
         .send({ type: 'direct', userId: 'non-existent-id' });
 
@@ -98,12 +98,12 @@ describe('Direct Messaging E2E', () => {
 
       // Block user2
       await request(getApp())
-        .post('/moderation/block')
+        .post('/api/moderation/block')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ blockedId: user2.user.id });
 
       const response = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
@@ -113,7 +113,7 @@ describe('Direct Messaging E2E', () => {
 
     it('should require authentication', async () => {
       const response = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .send({ type: 'direct', userId: 'some-id' });
 
       expect(response.status).toBe(401);
@@ -123,7 +123,7 @@ describe('Direct Messaging E2E', () => {
       const user = await createTestUser();
 
       const response = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user.token}`)
         .send({ type: 'direct' });
 
@@ -140,7 +140,7 @@ describe('Direct Messaging E2E', () => {
       const member2 = await createTestUser({ username: 'grp_m2' });
 
       const response = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${admin.token}`)
         .send({ type: 'group', userIds: [member1.user.id, member2.user.id], name: 'Test Group' });
 
@@ -155,7 +155,7 @@ describe('Direct Messaging E2E', () => {
       const member = await createTestUser({ username: 'grp_member' });
 
       const response = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${admin.token}`)
         .send({ type: 'group', userIds: [member.user.id] });
 
@@ -166,7 +166,7 @@ describe('Direct Messaging E2E', () => {
       const admin = await createTestUser({ username: 'grp_noids' });
 
       const response = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${admin.token}`)
         .send({ type: 'group', name: 'No IDs Group' });
 
@@ -178,12 +178,12 @@ describe('Direct Messaging E2E', () => {
       const blocked = await createTestUser({ username: 'grp_blocked' });
 
       await request(getApp())
-        .post('/moderation/block')
+        .post('/api/moderation/block')
         .set('Authorization', `Bearer ${admin.token}`)
         .send({ blockedId: blocked.user.id });
 
       const response = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${admin.token}`)
         .send({ type: 'group', userIds: [blocked.user.id], name: 'Blocked Group' });
 
@@ -202,17 +202,17 @@ describe('Direct Messaging E2E', () => {
 
       // Create two conversations
       await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user3.user.id });
 
       const response = await request(getApp())
-        .get('/conversations')
+        .get('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`);
 
       expect(response.status).toBe(200);
@@ -223,7 +223,7 @@ describe('Direct Messaging E2E', () => {
       const user = await createTestUser({ username: 'no_convos' });
 
       const response = await request(getApp())
-        .get('/conversations')
+        .get('/api/conversations')
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(response.status).toBe(200);
@@ -231,7 +231,7 @@ describe('Direct Messaging E2E', () => {
     });
 
     it('should require authentication', async () => {
-      const response = await request(getApp()).get('/conversations');
+      const response = await request(getApp()).get('/api/conversations');
       expect(response.status).toBe(401);
     });
 
@@ -242,17 +242,17 @@ describe('Direct Messaging E2E', () => {
       for (let i = 0; i < 3; i++) {
         const other = await createTestUser({ username: `pag_other_${i}` });
         await request(getApp())
-          .post('/conversations')
+          .post('/api/conversations')
           .set('Authorization', `Bearer ${user1.token}`)
           .send({ type: 'direct', userId: other.user.id });
       }
 
       const page1 = await request(getApp())
-        .get('/conversations?limit=2&offset=0')
+        .get('/api/conversations?limit=2&offset=0')
         .set('Authorization', `Bearer ${user1.token}`);
 
       const page2 = await request(getApp())
-        .get('/conversations?limit=2&offset=2')
+        .get('/api/conversations?limit=2&offset=2')
         .set('Authorization', `Bearer ${user1.token}`);
 
       expect(page1.body).toHaveLength(2);
@@ -268,18 +268,18 @@ describe('Direct Messaging E2E', () => {
       const user2 = await createTestUser({ username: 'get_u2' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       // Send a message
       await request(getApp())
-        .post(`/conversations/${createRes.body.id}/messages`)
+        .post(`/api/conversations/${createRes.body.id}/messages`)
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ content: 'Hello!' });
 
       const response = await request(getApp())
-        .get(`/conversations/${createRes.body.id}`)
+        .get(`/api/conversations/${createRes.body.id}`)
         .set('Authorization', `Bearer ${user1.token}`);
 
       expect(response.status).toBe(200);
@@ -294,12 +294,12 @@ describe('Direct Messaging E2E', () => {
       const stranger = await createTestUser({ username: 'view_stranger' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       const response = await request(getApp())
-        .get(`/conversations/${createRes.body.id}`)
+        .get(`/api/conversations/${createRes.body.id}`)
         .set('Authorization', `Bearer ${stranger.token}`);
 
       expect(response.status).toBe(403);
@@ -314,12 +314,12 @@ describe('Direct Messaging E2E', () => {
       const user2 = await createTestUser({ username: 'msg_u2' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       const response = await request(getApp())
-        .post(`/conversations/${createRes.body.id}/messages`)
+        .post(`/api/conversations/${createRes.body.id}/messages`)
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ content: 'Hello World!' });
 
@@ -334,12 +334,12 @@ describe('Direct Messaging E2E', () => {
       const user2 = await createTestUser({ username: 'img_u2' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       const response = await request(getApp())
-        .post(`/conversations/${createRes.body.id}/messages`)
+        .post(`/api/conversations/${createRes.body.id}/messages`)
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ content: 'https://example.com/image.jpg', type: 'image' });
 
@@ -352,12 +352,12 @@ describe('Direct Messaging E2E', () => {
       const user2 = await createTestUser({ username: 'gift_u2' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       const response = await request(getApp())
-        .post(`/conversations/${createRes.body.id}/messages`)
+        .post(`/api/conversations/${createRes.body.id}/messages`)
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ content: 'Sent you a gift!', type: 'gift', metadata: { gemAmount: 10 } });
 
@@ -371,12 +371,12 @@ describe('Direct Messaging E2E', () => {
       const user2 = await createTestUser({ username: 'empty_u2' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       const response = await request(getApp())
-        .post(`/conversations/${createRes.body.id}/messages`)
+        .post(`/api/conversations/${createRes.body.id}/messages`)
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ content: '' });
 
@@ -388,12 +388,12 @@ describe('Direct Messaging E2E', () => {
       const user2 = await createTestUser({ username: 'long_u2' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       const response = await request(getApp())
-        .post(`/conversations/${createRes.body.id}/messages`)
+        .post(`/api/conversations/${createRes.body.id}/messages`)
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ content: 'x'.repeat(1001) });
 
@@ -406,12 +406,12 @@ describe('Direct Messaging E2E', () => {
       const stranger = await createTestUser({ username: 'nmsg_stranger' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       const response = await request(getApp())
-        .post(`/conversations/${createRes.body.id}/messages`)
+        .post(`/api/conversations/${createRes.body.id}/messages`)
         .set('Authorization', `Bearer ${stranger.token}`)
         .send({ content: 'Intruder!' });
 
@@ -427,20 +427,20 @@ describe('Direct Messaging E2E', () => {
       const user2 = await createTestUser({ username: 'hist_u2' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       // Send several messages
       for (let i = 0; i < 5; i++) {
         await request(getApp())
-          .post(`/conversations/${createRes.body.id}/messages`)
+          .post(`/api/conversations/${createRes.body.id}/messages`)
           .set('Authorization', `Bearer ${user1.token}`)
           .send({ content: `Message ${i}` });
       }
 
       const response = await request(getApp())
-        .get(`/conversations/${createRes.body.id}/messages`)
+        .get(`/api/conversations/${createRes.body.id}/messages`)
         .set('Authorization', `Bearer ${user1.token}`);
 
       expect(response.status).toBe(200);
@@ -452,20 +452,20 @@ describe('Direct Messaging E2E', () => {
       const user2 = await createTestUser({ username: 'cur_u2' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       for (let i = 0; i < 5; i++) {
         await request(getApp())
-          .post(`/conversations/${createRes.body.id}/messages`)
+          .post(`/api/conversations/${createRes.body.id}/messages`)
           .set('Authorization', `Bearer ${user1.token}`)
           .send({ content: `Message ${i}` });
       }
 
       // Get limited messages
       const page1 = await request(getApp())
-        .get(`/conversations/${createRes.body.id}/messages?limit=3`)
+        .get(`/api/conversations/${createRes.body.id}/messages?limit=3`)
         .set('Authorization', `Bearer ${user1.token}`);
 
       expect(page1.status).toBe(200);
@@ -473,7 +473,7 @@ describe('Direct Messaging E2E', () => {
 
       // All messages
       const all = await request(getApp())
-        .get(`/conversations/${createRes.body.id}/messages?limit=50`)
+        .get(`/api/conversations/${createRes.body.id}/messages?limit=50`)
         .set('Authorization', `Bearer ${user1.token}`);
 
       expect(all.status).toBe(200);
@@ -485,19 +485,19 @@ describe('Direct Messaging E2E', () => {
       const user2 = await createTestUser({ username: 'aft_u2' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       for (let i = 0; i < 3; i++) {
         await request(getApp())
-          .post(`/conversations/${createRes.body.id}/messages`)
+          .post(`/api/conversations/${createRes.body.id}/messages`)
           .set('Authorization', `Bearer ${user1.token}`)
           .send({ content: `Message ${i}` });
       }
 
       const response = await request(getApp())
-        .get(`/conversations/${createRes.body.id}/messages`)
+        .get(`/api/conversations/${createRes.body.id}/messages`)
         .set('Authorization', `Bearer ${user1.token}`);
 
       expect(response.status).toBe(200);
@@ -513,12 +513,12 @@ describe('Direct Messaging E2E', () => {
       const stranger = await createTestUser({ username: 'view_stranger2' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       const response = await request(getApp())
-        .get(`/conversations/${createRes.body.id}/messages`)
+        .get(`/api/conversations/${createRes.body.id}/messages`)
         .set('Authorization', `Bearer ${stranger.token}`);
 
       expect(response.status).toBe(403);
@@ -533,17 +533,17 @@ describe('Direct Messaging E2E', () => {
       const user2 = await createTestUser({ username: 'edit_u2' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       const msgRes = await request(getApp())
-        .post(`/conversations/${createRes.body.id}/messages`)
+        .post(`/api/conversations/${createRes.body.id}/messages`)
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ content: 'Original message' });
 
       const response = await request(getApp())
-        .patch(`/conversations/${createRes.body.id}/messages/${msgRes.body.id}`)
+        .patch(`/api/conversations/${createRes.body.id}/messages/${msgRes.body.id}`)
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ content: 'Edited message' });
 
@@ -557,17 +557,17 @@ describe('Direct Messaging E2E', () => {
       const user2 = await createTestUser({ username: 'edit_u4' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       const msgRes = await request(getApp())
-        .post(`/conversations/${createRes.body.id}/messages`)
+        .post(`/api/conversations/${createRes.body.id}/messages`)
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ content: 'My message' });
 
       const response = await request(getApp())
-        .patch(`/conversations/${createRes.body.id}/messages/${msgRes.body.id}`)
+        .patch(`/api/conversations/${createRes.body.id}/messages/${msgRes.body.id}`)
         .set('Authorization', `Bearer ${user2.token}`)
         .send({ content: 'Hacked!' });
 
@@ -584,17 +584,17 @@ describe('Direct Messaging E2E', () => {
       const user2 = await createTestUser({ username: 'del_u2' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       const msgRes = await request(getApp())
-        .post(`/conversations/${createRes.body.id}/messages`)
+        .post(`/api/conversations/${createRes.body.id}/messages`)
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ content: 'Delete me' });
 
       const response = await request(getApp())
-        .delete(`/conversations/${createRes.body.id}/messages/${msgRes.body.id}`)
+        .delete(`/api/conversations/${createRes.body.id}/messages/${msgRes.body.id}`)
         .set('Authorization', `Bearer ${user1.token}`);
 
       expect(response.status).toBe(200);
@@ -602,7 +602,7 @@ describe('Direct Messaging E2E', () => {
 
       // Verify message no longer appears in history
       const historyRes = await request(getApp())
-        .get(`/conversations/${createRes.body.id}/messages`)
+        .get(`/api/conversations/${createRes.body.id}/messages`)
         .set('Authorization', `Bearer ${user1.token}`);
 
       expect(historyRes.body).toHaveLength(0);
@@ -613,17 +613,17 @@ describe('Direct Messaging E2E', () => {
       const user2 = await createTestUser({ username: 'del_u4' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       const msgRes = await request(getApp())
-        .post(`/conversations/${createRes.body.id}/messages`)
+        .post(`/api/conversations/${createRes.body.id}/messages`)
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ content: 'Cannot delete this' });
 
       const response = await request(getApp())
-        .delete(`/conversations/${createRes.body.id}/messages/${msgRes.body.id}`)
+        .delete(`/api/conversations/${createRes.body.id}/messages/${msgRes.body.id}`)
         .set('Authorization', `Bearer ${user2.token}`);
 
       expect(response.status).toBe(400);
@@ -639,18 +639,18 @@ describe('Direct Messaging E2E', () => {
       const user2 = await createTestUser({ username: 'read_u2' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       // Send a message from user2
       await request(getApp())
-        .post(`/conversations/${createRes.body.id}/messages`)
+        .post(`/api/conversations/${createRes.body.id}/messages`)
         .set('Authorization', `Bearer ${user2.token}`)
         .send({ content: 'Hello!' });
 
       const response = await request(getApp())
-        .post(`/conversations/${createRes.body.id}/read`)
+        .post(`/api/conversations/${createRes.body.id}/read`)
         .set('Authorization', `Bearer ${user1.token}`);
 
       expect(response.status).toBe(200);
@@ -663,12 +663,12 @@ describe('Direct Messaging E2E', () => {
       const stranger = await createTestUser({ username: 'read_stranger' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       const response = await request(getApp())
-        .post(`/conversations/${createRes.body.id}/read`)
+        .post(`/api/conversations/${createRes.body.id}/read`)
         .set('Authorization', `Bearer ${stranger.token}`);
 
       expect(response.status).toBe(403);
@@ -683,12 +683,12 @@ describe('Direct Messaging E2E', () => {
       const member = await createTestUser({ username: 'upd_member' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${admin.token}`)
         .send({ type: 'group', userIds: [member.user.id], name: 'Original Name' });
 
       const response = await request(getApp())
-        .patch(`/conversations/${createRes.body.id}`)
+        .patch(`/api/conversations/${createRes.body.id}`)
         .set('Authorization', `Bearer ${admin.token}`)
         .send({ name: 'Updated Name' });
 
@@ -701,12 +701,12 @@ describe('Direct Messaging E2E', () => {
       const member = await createTestUser({ username: 'upd_member2' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${admin.token}`)
         .send({ type: 'group', userIds: [member.user.id], name: 'Group' });
 
       const response = await request(getApp())
-        .patch(`/conversations/${createRes.body.id}`)
+        .patch(`/api/conversations/${createRes.body.id}`)
         .set('Authorization', `Bearer ${member.token}`)
         .send({ name: 'Hacked Name' });
 
@@ -719,12 +719,12 @@ describe('Direct Messaging E2E', () => {
       const user2 = await createTestUser({ username: 'upd_dm2' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       const response = await request(getApp())
-        .patch(`/conversations/${createRes.body.id}`)
+        .patch(`/api/conversations/${createRes.body.id}`)
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ name: 'Nope' });
 
@@ -741,12 +741,12 @@ describe('Direct Messaging E2E', () => {
       const newMember = await createTestUser({ username: 'add_new' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${admin.token}`)
         .send({ type: 'group', userIds: [member.user.id], name: 'Addable Group' });
 
       const response = await request(getApp())
-        .post(`/conversations/${createRes.body.id}/participants`)
+        .post(`/api/conversations/${createRes.body.id}/participants`)
         .set('Authorization', `Bearer ${admin.token}`)
         .send({ userId: newMember.user.id });
 
@@ -760,12 +760,12 @@ describe('Direct Messaging E2E', () => {
       const newMember = await createTestUser({ username: 'add_new2' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${admin.token}`)
         .send({ type: 'group', userIds: [member.user.id], name: 'No Add Group' });
 
       const response = await request(getApp())
-        .post(`/conversations/${createRes.body.id}/participants`)
+        .post(`/api/conversations/${createRes.body.id}/participants`)
         .set('Authorization', `Bearer ${member.token}`)
         .send({ userId: newMember.user.id });
 
@@ -779,12 +779,12 @@ describe('Direct Messaging E2E', () => {
       const newMember = await createTestUser({ username: 'add_dm3' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       const response = await request(getApp())
-        .post(`/conversations/${createRes.body.id}/participants`)
+        .post(`/api/conversations/${createRes.body.id}/participants`)
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ userId: newMember.user.id });
 
@@ -797,12 +797,12 @@ describe('Direct Messaging E2E', () => {
       const member = await createTestUser({ username: 'dup_member' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${admin.token}`)
         .send({ type: 'group', userIds: [member.user.id], name: 'Dup Group' });
 
       const response = await request(getApp())
-        .post(`/conversations/${createRes.body.id}/participants`)
+        .post(`/api/conversations/${createRes.body.id}/participants`)
         .set('Authorization', `Bearer ${admin.token}`)
         .send({ userId: member.user.id });
 
@@ -819,12 +819,12 @@ describe('Direct Messaging E2E', () => {
       const member = await createTestUser({ username: 'rem_member' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${admin.token}`)
         .send({ type: 'group', userIds: [member.user.id], name: 'Removable Group' });
 
       const response = await request(getApp())
-        .delete(`/conversations/${createRes.body.id}/participants/${member.user.id}`)
+        .delete(`/api/conversations/${createRes.body.id}/participants/${member.user.id}`)
         .set('Authorization', `Bearer ${admin.token}`);
 
       expect(response.status).toBe(200);
@@ -836,12 +836,12 @@ describe('Direct Messaging E2E', () => {
       const member = await createTestUser({ username: 'leave_member' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${admin.token}`)
         .send({ type: 'group', userIds: [member.user.id], name: 'Leave Group' });
 
       const response = await request(getApp())
-        .delete(`/conversations/${createRes.body.id}/participants/${member.user.id}`)
+        .delete(`/api/conversations/${createRes.body.id}/participants/${member.user.id}`)
         .set('Authorization', `Bearer ${member.token}`);
 
       expect(response.status).toBe(200);
@@ -853,12 +853,12 @@ describe('Direct Messaging E2E', () => {
       const member2 = await createTestUser({ username: 'nrem_m2' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${admin.token}`)
         .send({ type: 'group', userIds: [member1.user.id, member2.user.id], name: 'No Remove Group' });
 
       const response = await request(getApp())
-        .delete(`/conversations/${createRes.body.id}/participants/${member2.user.id}`)
+        .delete(`/api/conversations/${createRes.body.id}/participants/${member2.user.id}`)
         .set('Authorization', `Bearer ${member1.token}`);
 
       expect(response.status).toBe(400);
@@ -870,12 +870,12 @@ describe('Direct Messaging E2E', () => {
       const user2 = await createTestUser({ username: 'rem_dm2' });
 
       const createRes = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 
       const response = await request(getApp())
-        .delete(`/conversations/${createRes.body.id}/participants/${user2.user.id}`)
+        .delete(`/api/conversations/${createRes.body.id}/participants/${user2.user.id}`)
         .set('Authorization', `Bearer ${user1.token}`);
 
       expect(response.status).toBe(400);
@@ -892,13 +892,13 @@ describe('Direct Messaging E2E', () => {
 
       // user2 blocks user1
       await request(getApp())
-        .post('/moderation/block')
+        .post('/api/moderation/block')
         .set('Authorization', `Bearer ${user2.token}`)
         .send({ blockedId: user1.user.id });
 
       // user1 tries to DM user2
       const response = await request(getApp())
-        .post('/conversations')
+        .post('/api/conversations')
         .set('Authorization', `Bearer ${user1.token}`)
         .send({ type: 'direct', userId: user2.user.id });
 

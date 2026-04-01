@@ -37,7 +37,7 @@ describe('User Presence E2E', () => {
       const { token } = await createTestUser({ username: 'pres_on' });
 
       const response = await request(getApp())
-        .post('/users/presence')
+        .post('/api/users/presence')
         .set('Authorization', `Bearer ${token}`)
         .send({ status: 'online' });
 
@@ -51,7 +51,7 @@ describe('User Presence E2E', () => {
       const room = await createTestRoom(user.id);
 
       const response = await request(getApp())
-        .post('/users/presence')
+        .post('/api/users/presence')
         .set('Authorization', `Bearer ${token}`)
         .send({ status: 'online', currentRoomId: room.id });
 
@@ -64,7 +64,7 @@ describe('User Presence E2E', () => {
       const { token } = await createTestUser({ username: 'pres_away' });
 
       const response = await request(getApp())
-        .post('/users/presence')
+        .post('/api/users/presence')
         .set('Authorization', `Bearer ${token}`)
         .send({ status: 'away' });
 
@@ -77,13 +77,13 @@ describe('User Presence E2E', () => {
 
       // First go online
       await request(getApp())
-        .post('/users/presence')
+        .post('/api/users/presence')
         .set('Authorization', `Bearer ${token}`)
         .send({ status: 'online' });
 
       // Then go offline
       const response = await request(getApp())
-        .post('/users/presence')
+        .post('/api/users/presence')
         .set('Authorization', `Bearer ${token}`)
         .send({ status: 'offline' });
 
@@ -95,7 +95,7 @@ describe('User Presence E2E', () => {
       const { token } = await createTestUser({ username: 'pres_inv' });
 
       const response = await request(getApp())
-        .post('/users/presence')
+        .post('/api/users/presence')
         .set('Authorization', `Bearer ${token}`)
         .send({ status: 'invalid' });
 
@@ -104,7 +104,7 @@ describe('User Presence E2E', () => {
 
     it('should require authentication', async () => {
       const response = await request(getApp())
-        .post('/users/presence')
+        .post('/api/users/presence')
         .send({ status: 'online' });
 
       expect(response.status).toBe(401);
@@ -115,13 +115,13 @@ describe('User Presence E2E', () => {
 
       // Create
       await request(getApp())
-        .post('/users/presence')
+        .post('/api/users/presence')
         .set('Authorization', `Bearer ${token}`)
         .send({ status: 'online' });
 
       // Update
       const response = await request(getApp())
-        .post('/users/presence')
+        .post('/api/users/presence')
         .set('Authorization', `Bearer ${token}`)
         .send({ status: 'away' });
 
@@ -136,7 +136,7 @@ describe('User Presence E2E', () => {
       const { user } = await createTestUser({ username: 'pres_never' });
 
       const response = await request(getApp())
-        .get(`/users/${user.id}/presence`)
+        .get(`/api/users/${user.id}/presence`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
@@ -150,12 +150,12 @@ describe('User Presence E2E', () => {
 
       // Set target online
       await request(getApp())
-        .post('/users/presence')
+        .post('/api/users/presence')
         .set('Authorization', `Bearer ${targetToken}`)
         .send({ status: 'online' });
 
       const response = await request(getApp())
-        .get(`/users/${user.id}/presence`)
+        .get(`/api/users/${user.id}/presence`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
@@ -168,12 +168,12 @@ describe('User Presence E2E', () => {
       const room = await createTestRoom(user.id);
 
       await request(getApp())
-        .post('/users/presence')
+        .post('/api/users/presence')
         .set('Authorization', `Bearer ${targetToken}`)
         .send({ status: 'online', currentRoomId: room.id });
 
       const response = await request(getApp())
-        .get(`/users/${user.id}/presence`)
+        .get(`/api/users/${user.id}/presence`)
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
@@ -182,7 +182,7 @@ describe('User Presence E2E', () => {
 
     it('should require authentication', async () => {
       const response = await request(getApp())
-        .get('/users/some-id/presence');
+        .get('/api/users/some-id/presence');
 
       expect(response.status).toBe(401);
     });

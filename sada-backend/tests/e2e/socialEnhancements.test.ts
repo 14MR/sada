@@ -42,7 +42,7 @@ describe('Social Enhancements E2E', () => {
       const target = await createTestUser({ username: 'ub_target' });
 
       const response = await request(getApp())
-        .post('/users/block')
+        .post('/api/users/block')
         .set('Authorization', `Bearer ${blocker.token}`)
         .send({ blockedId: target.user.id });
 
@@ -54,7 +54,7 @@ describe('Social Enhancements E2E', () => {
       const user = await createTestUser({ username: 'ub_self' });
 
       const response = await request(getApp())
-        .post('/users/block')
+        .post('/api/users/block')
         .set('Authorization', `Bearer ${user.token}`)
         .send({ blockedId: user.user.id });
 
@@ -67,12 +67,12 @@ describe('Social Enhancements E2E', () => {
       const target = await createTestUser({ username: 'ub_dbl2' });
 
       await request(getApp())
-        .post('/users/block')
+        .post('/api/users/block')
         .set('Authorization', `Bearer ${blocker.token}`)
         .send({ blockedId: target.user.id });
 
       const response = await request(getApp())
-        .post('/users/block')
+        .post('/api/users/block')
         .set('Authorization', `Bearer ${blocker.token}`)
         .send({ blockedId: target.user.id });
 
@@ -82,7 +82,7 @@ describe('Social Enhancements E2E', () => {
 
     it('should require authentication', async () => {
       const response = await request(getApp())
-        .post('/users/block')
+        .post('/api/users/block')
         .send({ blockedId: 'some-id' });
 
       expect(response.status).toBe(401);
@@ -92,7 +92,7 @@ describe('Social Enhancements E2E', () => {
       const user = await createTestUser({ username: 'ub_noid' });
 
       const response = await request(getApp())
-        .post('/users/block')
+        .post('/api/users/block')
         .set('Authorization', `Bearer ${user.token}`)
         .send({});
 
@@ -106,12 +106,12 @@ describe('Social Enhancements E2E', () => {
       const target = await createTestUser({ username: 'ubu_target' });
 
       await request(getApp())
-        .post('/users/block')
+        .post('/api/users/block')
         .set('Authorization', `Bearer ${blocker.token}`)
         .send({ blockedId: target.user.id });
 
       const response = await request(getApp())
-        .delete(`/users/block/${target.user.id}`)
+        .delete(`/api/users/block/${target.user.id}`)
         .set('Authorization', `Bearer ${blocker.token}`);
 
       expect(response.status).toBe(200);
@@ -123,7 +123,7 @@ describe('Social Enhancements E2E', () => {
       const other = await createTestUser({ username: 'ubu_other' });
 
       const response = await request(getApp())
-        .delete(`/users/block/${other.user.id}`)
+        .delete(`/api/users/block/${other.user.id}`)
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(response.status).toBe(404);
@@ -131,7 +131,7 @@ describe('Social Enhancements E2E', () => {
 
     it('should require authentication', async () => {
       const response = await request(getApp())
-        .delete('/users/block/some-id');
+        .delete('/api/users/block/some-id');
 
       expect(response.status).toBe(401);
     });
@@ -144,17 +144,17 @@ describe('Social Enhancements E2E', () => {
       const blocked2 = await createTestUser({ username: 'ub_list_b2' });
 
       await request(getApp())
-        .post('/users/block')
+        .post('/api/users/block')
         .set('Authorization', `Bearer ${user.token}`)
         .send({ blockedId: blocked1.user.id });
 
       await request(getApp())
-        .post('/users/block')
+        .post('/api/users/block')
         .set('Authorization', `Bearer ${user.token}`)
         .send({ blockedId: blocked2.user.id });
 
       const response = await request(getApp())
-        .get('/users/blocked')
+        .get('/api/users/blocked')
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(response.status).toBe(200);
@@ -165,7 +165,7 @@ describe('Social Enhancements E2E', () => {
       const user = await createTestUser({ username: 'ub_empty' });
 
       const response = await request(getApp())
-        .get('/users/blocked')
+        .get('/api/users/blocked')
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(response.status).toBe(200);
@@ -179,14 +179,14 @@ describe('Social Enhancements E2E', () => {
       const blocked = await createTestUser({ username: 'be_blocked' });
 
       await request(getApp())
-        .post('/users/block')
+        .post('/api/users/block')
         .set('Authorization', `Bearer ${host.token}`)
         .send({ blockedId: blocked.user.id });
 
       const room = await createTestRoom(host.user.id, { title: 'Blocked Room' });
 
       const response = await request(getApp())
-        .post(`/rooms/${room.id}/join`)
+        .post(`/api/rooms/${room.id}/join`)
         .set('Authorization', `Bearer ${blocked.token}`)
         .send({});
 
@@ -199,12 +199,12 @@ describe('Social Enhancements E2E', () => {
       const blocked = await createTestUser({ username: 'be_gem_blocked' });
 
       await request(getApp())
-        .post('/users/block')
+        .post('/api/users/block')
         .set('Authorization', `Bearer ${sender.token}`)
         .send({ blockedId: blocked.user.id });
 
       const response = await request(getApp())
-        .post('/gems/gift')
+        .post('/api/gems/gift')
         .set('Authorization', `Bearer ${sender.token}`)
         .send({ receiverId: blocked.user.id, amount: 10 });
 
@@ -217,12 +217,12 @@ describe('Social Enhancements E2E', () => {
       const blocked = await createTestUser({ username: 'be_follow_blocked' });
 
       await request(getApp())
-        .post('/users/block')
+        .post('/api/users/block')
         .set('Authorization', `Bearer ${user.token}`)
         .send({ blockedId: blocked.user.id });
 
       const response = await request(getApp())
-        .post(`/follow/${blocked.user.id}/follow`)
+        .post(`/api/follow/${blocked.user.id}/follow`)
         .set('Authorization', `Bearer ${user.token}`)
         .send({});
 
@@ -235,16 +235,16 @@ describe('Social Enhancements E2E', () => {
       const target = await createTestUser({ username: 'be_unblock_target' });
 
       await request(getApp())
-        .post('/users/block')
+        .post('/api/users/block')
         .set('Authorization', `Bearer ${user.token}`)
         .send({ blockedId: target.user.id });
 
       await request(getApp())
-        .delete(`/users/block/${target.user.id}`)
+        .delete(`/api/users/block/${target.user.id}`)
         .set('Authorization', `Bearer ${user.token}`);
 
       const response = await request(getApp())
-        .post(`/follow/${target.user.id}/follow`)
+        .post(`/api/follow/${target.user.id}/follow`)
         .set('Authorization', `Bearer ${user.token}`)
         .send({});
 
@@ -263,7 +263,7 @@ describe('Social Enhancements E2E', () => {
       await createTestUser({ username: 'charlie_day', display_name: 'Charlie' });
 
       const response = await request(getApp())
-        .get('/users/search?q=alice')
+        .get('/api/users/search?q=alice')
         .set('Authorization', `Bearer ${(await createTestUser({ username: 'searcher1' })).token}`);
 
       expect(response.status).toBe(200);
@@ -275,7 +275,7 @@ describe('Social Enhancements E2E', () => {
       await createTestUser({ username: 'search_dn1', display_name: 'Zara Unique' });
 
       const response = await request(getApp())
-        .get('/users/search?q=Zara')
+        .get('/api/users/search?q=Zara')
         .set('Authorization', `Bearer ${(await createTestUser({ username: 'searcher2' })).token}`);
 
       expect(response.status).toBe(200);
@@ -287,7 +287,7 @@ describe('Social Enhancements E2E', () => {
       await createTestUser({ username: 'no_match_user' });
 
       const response = await request(getApp())
-        .get('/users/search?q=zzz_nonexistent_xyz')
+        .get('/api/users/search?q=zzz_nonexistent_xyz')
         .set('Authorization', `Bearer ${(await createTestUser({ username: 'searcher3' })).token}`);
 
       expect(response.status).toBe(200);
@@ -298,7 +298,7 @@ describe('Social Enhancements E2E', () => {
       await createTestUser({ username: 'empty_q_user' });
 
       const response = await request(getApp())
-        .get('/users/search?q=')
+        .get('/api/users/search?q=')
         .set('Authorization', `Bearer ${(await createTestUser({ username: 'searcher4' })).token}`);
 
       expect(response.status).toBe(200);
@@ -313,11 +313,11 @@ describe('Social Enhancements E2E', () => {
       const token = (await createTestUser({ username: 'pag_searcher' })).token;
 
       const page1 = await request(getApp())
-        .get('/users/search?q=PagTest&limit=2&offset=0')
+        .get('/api/users/search?q=PagTest&limit=2&offset=0')
         .set('Authorization', `Bearer ${token}`);
 
       const page2 = await request(getApp())
-        .get('/users/search?q=PagTest&limit=2&offset=2')
+        .get('/api/users/search?q=PagTest&limit=2&offset=2')
         .set('Authorization', `Bearer ${token}`);
 
       expect(page1.status).toBe(200);
@@ -332,7 +332,7 @@ describe('Social Enhancements E2E', () => {
       const user = await createTestUser({ username: 'pub_profile_user', display_name: 'Public User' });
 
       const response = await request(getApp())
-        .get(`/users/${user.user.id}`)
+        .get(`/api/users/${user.user.id}`)
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(response.status).toBe(200);
@@ -343,7 +343,7 @@ describe('Social Enhancements E2E', () => {
       const user = await createTestUser({ username: 'profile_404' });
 
       const response = await request(getApp())
-        .get('/users/non-existent-id')
+        .get('/api/users/non-existent-id')
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(response.status).toBe(404);
@@ -359,7 +359,7 @@ describe('Social Enhancements E2E', () => {
       const user = await createTestUser({ username: 'act_new' });
 
       const response = await request(getApp())
-        .get('/users/activity')
+        .get('/api/users/activity')
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(response.status).toBe(200);
@@ -368,7 +368,7 @@ describe('Social Enhancements E2E', () => {
 
     it('should require authentication', async () => {
       const response = await request(getApp())
-        .get('/users/activity');
+        .get('/api/users/activity');
 
       expect(response.status).toBe(401);
     });
@@ -377,7 +377,7 @@ describe('Social Enhancements E2E', () => {
       const user = await createTestUser({ username: 'act_room_host' });
 
       await request(getApp())
-        .post('/rooms/')
+        .post('/api/rooms/')
         .set('Authorization', `Bearer ${user.token}`)
         .send({ title: 'Activity Test Room' });
 
@@ -385,7 +385,7 @@ describe('Social Enhancements E2E', () => {
       await new Promise((r) => setTimeout(r, 100));
 
       const response = await request(getApp())
-        .get('/users/activity')
+        .get('/api/users/activity')
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(response.status).toBe(200);
@@ -398,14 +398,14 @@ describe('Social Enhancements E2E', () => {
       const follower = await createTestUser({ username: 'act_follower' });
 
       await request(getApp())
-        .post(`/follow/${target.user.id}/follow`)
+        .post(`/api/follow/${target.user.id}/follow`)
         .set('Authorization', `Bearer ${follower.token}`)
         .send({});
 
       await new Promise((r) => setTimeout(r, 100));
 
       const response = await request(getApp())
-        .get('/users/activity')
+        .get('/api/users/activity')
         .set('Authorization', `Bearer ${target.token}`);
 
       expect(response.status).toBe(200);
@@ -418,14 +418,14 @@ describe('Social Enhancements E2E', () => {
       const receiver = await createTestUser({ username: 'act_gem_receiver' });
 
       await request(getApp())
-        .post('/gems/gift')
+        .post('/api/gems/gift')
         .set('Authorization', `Bearer ${sender.token}`)
         .send({ receiverId: receiver.user.id, amount: 10 });
 
       await new Promise((r) => setTimeout(r, 100));
 
       const response = await request(getApp())
-        .get('/users/activity')
+        .get('/api/users/activity')
         .set('Authorization', `Bearer ${receiver.token}`);
 
       expect(response.status).toBe(200);
@@ -440,14 +440,14 @@ describe('Social Enhancements E2E', () => {
       const room = await createTestRoom(host.user.id, { title: 'Join Activity Room' });
 
       await request(getApp())
-        .post(`/rooms/${room.id}/join`)
+        .post(`/api/rooms/${room.id}/join`)
         .set('Authorization', `Bearer ${joiner.token}`)
         .send({});
 
       await new Promise((r) => setTimeout(r, 100));
 
       const response = await request(getApp())
-        .get('/users/activity')
+        .get('/api/users/activity')
         .set('Authorization', `Bearer ${joiner.token}`);
 
       expect(response.status).toBe(200);
@@ -459,7 +459,7 @@ describe('Social Enhancements E2E', () => {
       const user = await createTestUser({ username: 'act_pag' });
 
       const response = await request(getApp())
-        .get('/users/activity?limit=5&offset=0')
+        .get('/api/users/activity?limit=5&offset=0')
         .set('Authorization', `Bearer ${user.token}`);
 
       expect(response.status).toBe(200);

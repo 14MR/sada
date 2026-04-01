@@ -42,7 +42,7 @@ describe('Creator E2E', () => {
       await createTestRoom(creator.user.id, { title: 'Room 2', status: 'ended', listener_count: 50 });
 
       const response = await request(getApp())
-        .get('/creator/dashboard')
+        .get('/api/creator/dashboard')
         .set('Authorization', `Bearer ${creator.token}`);
 
       expect(response.status).toBe(200);
@@ -57,7 +57,7 @@ describe('Creator E2E', () => {
       const creator = await createTestUser({ username: 'new_creator' });
 
       const response = await request(getApp())
-        .get('/creator/dashboard')
+        .get('/api/creator/dashboard')
         .set('Authorization', `Bearer ${creator.token}`);
 
       expect(response.status).toBe(200);
@@ -66,7 +66,7 @@ describe('Creator E2E', () => {
     });
 
     it('should require authentication', async () => {
-      const response = await request(getApp()).get('/creator/dashboard');
+      const response = await request(getApp()).get('/api/creator/dashboard');
       expect(response.status).toBe(401);
     });
   });
@@ -81,7 +81,7 @@ describe('Creator E2E', () => {
       await gemRepo.save({ sender: supporter.user, receiver: creator.user, amount: 50, type: TransactionType.GIFT });
 
       const response = await request(getApp())
-        .get('/creator/earnings')
+        .get('/api/creator/earnings')
         .set('Authorization', `Bearer ${creator.token}`);
 
       expect(response.status).toBe(200);
@@ -95,7 +95,7 @@ describe('Creator E2E', () => {
       const creator = await createTestUser({ username: 'date_filtered' });
 
       const response = await request(getApp())
-        .get('/creator/earnings?from=2024-01-01&to=2024-12-31')
+        .get('/api/creator/earnings?from=2024-01-01&to=2024-12-31')
         .set('Authorization', `Bearer ${creator.token}`);
 
       expect(response.status).toBe(200);
@@ -110,7 +110,7 @@ describe('Creator E2E', () => {
       await createTestRoom(creator.user.id, { title: 'Hosted Room 2' });
 
       const response = await request(getApp())
-        .get('/creator/rooms')
+        .get('/api/creator/rooms')
         .set('Authorization', `Bearer ${creator.token}`);
 
       expect(response.status).toBe(200);
@@ -125,7 +125,7 @@ describe('Creator E2E', () => {
       await createTestRoom(creator.user.id, { title: 'P3' });
 
       const page1 = await request(getApp())
-        .get('/creator/rooms?limit=2&offset=0')
+        .get('/api/creator/rooms?limit=2&offset=0')
         .set('Authorization', `Bearer ${creator.token}`);
 
       expect(page1.status).toBe(200);
@@ -133,7 +133,7 @@ describe('Creator E2E', () => {
       expect(page1.body.hasMore).toBe(true);
 
       const page2 = await request(getApp())
-        .get('/creator/rooms?limit=2&offset=2')
+        .get('/api/creator/rooms?limit=2&offset=2')
         .set('Authorization', `Bearer ${creator.token}`);
 
       expect(page2.status).toBe(200);
@@ -154,7 +154,7 @@ describe('Creator E2E', () => {
       await gemRepo.save({ sender: supporter2.user, receiver: creator.user, amount: 50, type: TransactionType.GIFT });
 
       const response = await request(getApp())
-        .get('/creator/top-supporters')
+        .get('/api/creator/top-supporters')
         .set('Authorization', `Bearer ${creator.token}`);
 
       expect(response.status).toBe(200);
@@ -167,7 +167,7 @@ describe('Creator E2E', () => {
       const creator = await createTestUser({ username: 'lonely_creator' });
 
       const response = await request(getApp())
-        .get('/creator/top-supporters')
+        .get('/api/creator/top-supporters')
         .set('Authorization', `Bearer ${creator.token}`);
 
       expect(response.status).toBe(200);
@@ -180,7 +180,7 @@ describe('Creator E2E', () => {
       const creator = await createTestUser({ username: 'withdrawer', gem_balance: 5000 });
 
       const response = await request(getApp())
-        .post('/withdrawals/')
+        .post('/api/withdrawals/')
         .set('Authorization', `Bearer ${creator.token}`)
         .send({ amount: 2000, payout_method: 'stripe', payout_details: { accountId: 'acct_test123' } });
 
@@ -194,7 +194,7 @@ describe('Creator E2E', () => {
       const creator = await createTestUser({ username: 'low_bal_withdraw', gem_balance: 500 });
 
       const response = await request(getApp())
-        .post('/withdrawals/')
+        .post('/api/withdrawals/')
         .set('Authorization', `Bearer ${creator.token}`)
         .send({ amount: 500 });
 
@@ -206,7 +206,7 @@ describe('Creator E2E', () => {
       const creator = await createTestUser({ username: 'poor_withdraw', gem_balance: 1000 });
 
       const response = await request(getApp())
-        .post('/withdrawals/')
+        .post('/api/withdrawals/')
         .set('Authorization', `Bearer ${creator.token}`)
         .send({ amount: 5000 });
 
@@ -218,17 +218,17 @@ describe('Creator E2E', () => {
       const creator = await createTestUser({ username: 'list_wd', gem_balance: 10000 });
 
       await request(getApp())
-        .post('/withdrawals/')
+        .post('/api/withdrawals/')
         .set('Authorization', `Bearer ${creator.token}`)
         .send({ amount: 1000 });
 
       await request(getApp())
-        .post('/withdrawals/')
+        .post('/api/withdrawals/')
         .set('Authorization', `Bearer ${creator.token}`)
         .send({ amount: 2000 });
 
       const response = await request(getApp())
-        .get('/withdrawals/')
+        .get('/api/withdrawals/')
         .set('Authorization', `Bearer ${creator.token}`);
 
       expect(response.status).toBe(200);
@@ -237,7 +237,7 @@ describe('Creator E2E', () => {
 
     it('should require authentication for withdrawal', async () => {
       const response = await request(getApp())
-        .post('/withdrawals/')
+        .post('/api/withdrawals/')
         .send({ amount: 1000 });
 
       expect(response.status).toBe(401);
