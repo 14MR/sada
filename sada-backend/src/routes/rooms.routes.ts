@@ -19,7 +19,11 @@ router.post("/invites/:code/accept", validate(acceptInviteSchema), RoomControlle
 router.post("/", validate(createRoomSchema), RoomController.create);
 router.get("/", validate(listRoomsSchema, "query"), RoomController.list);
 router.get("/search", validate(searchRoomSchema, "query"), RoomController.search);
+router.get("/tag/:tag", RoomController.searchByTag);
 router.get("/:id", RoomController.get);
+router.get("/:id/summary", RoomController.getSummary);
+router.post("/:id/bookmark", RoomController.bookmark);
+router.delete("/:id/bookmark", RoomController.removeBookmark);
 router.get("/:id/recordings", RoomController.getRoomRecordings);
 router.get("/:id/replay", RoomController.getRoomReplay);
 router.post("/:id/invites", validate(createInviteSchema), RoomController.createInvite);
