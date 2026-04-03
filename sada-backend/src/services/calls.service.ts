@@ -322,6 +322,20 @@ export class CallsService {
         }
     }
 
+    /** Register an in-memory stub session (used when Cloudflare is not configured) */
+    static registerStubSession(roomId: string, hostId: string, sessionId: string): SessionInfo {
+        const session: SessionInfo = {
+            sessionId,
+            roomId,
+            hostId,
+            participants: new Map(),
+            createdAt: new Date(),
+        };
+        sessions.set(sessionId, session);
+        roomSessionIndex.set(roomId, sessionId);
+        return session;
+    }
+
     /** Test-only: clear all in-memory state */
     static _reset() {
         sessions.clear();

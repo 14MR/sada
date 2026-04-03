@@ -2,12 +2,12 @@ import client from './client';
 
 export const FollowService = {
     followUser: async (userId: string) => {
-        const response = await client.post(`/follow/${userId}`);
+        const response = await client.post(`/follow/${userId}/follow`);
         return response.data;
     },
 
     unfollowUser: async (userId: string) => {
-        const response = await client.delete(`/follow/${userId}`);
+        const response = await client.delete(`/follow/${userId}/follow`);
         return response.data;
     },
 

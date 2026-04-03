@@ -55,7 +55,43 @@ export class AudioController {
             const sessionId = param(req, "sessionId");
             const { offerSdp, role } = req.body;
 
-            const { answer, session } = await CallsService.createTrack(
+            const session = CallsService.getSession(sessionId);
+            if (!session) {
+                return res.status(404).json({ error: "Session not found" });
+            }
+
+            // Check if this is a stub session (no real Cloudflare backend)
+            if (session.sessionId.startsWith("stub-")) {
+                // Register participant in-memory but skip SDP exchange
+                const { CallsService: CS } = await import("../services/calls.service");
+                session.participants.set(userId, {
+                    userId,
+                    trackId: `stub-track-${userId}`,
+                    mid: "0",
+                    role: role || "listener",
+                    joinedAt: new Date(),
+                    isMuted: false,
+                });
+
+                // Notify room of updated participant list
+                try {
+                    const chat = ChatService.getInstance();
+                    chat.emitToRoom(session.roomId, "participant_update", {
+                        speakers: Array.from(session.participants.values()).filter(p => p.role !== "listener"),
+                        listeners: Array.from(session.participants.values()).filter(p => p.role === "listener"),
+                    });
+                } catch { /* ChatService may not be initialized in tests */ }
+
+                return res.json({
+                    answerSdp: "",
+                    answerType: "answer",
+                    trackId: `stub-track-${userId}`,
+                    mid: "0",
+                    sessionId: session.sessionId,
+                });
+            }
+
+            const { answer, session: updatedSession } = await CallsService.createTrack(
                 sessionId,
                 userId,
                 offerSdp,
@@ -65,7 +101,7 @@ export class AudioController {
             // Notify room of updated participant list
             try {
                 const chat = ChatService.getInstance();
-                chat.emitToRoom(session.roomId, "participant_update", {
+                chat.emitToRoom(updatedSession.roomId, "participant_update", {
                     speakers: CallsService.getParticipants(sessionId).filter(p => p.role !== "listener"),
                     listeners: CallsService.getParticipants(sessionId).filter(p => p.role === "listener"),
                 });
@@ -76,7 +112,7 @@ export class AudioController {
                 answerType: answer.sessionDescription.type,
                 trackId: answer.trackId,
                 mid: answer.mid,
-                sessionId: session.sessionId,
+                sessionId: updatedSession.sessionId,
             });
         } catch (error: any) {
             logger.error({ err: error }, "Join audio session error");

@@ -16,6 +16,6 @@ export const NotificationService = {
     },
 
     markAsRead: async (id: string) => {
-        await client.put(`/notifications/${id}/read`);
+        await client.patch(`/notifications/${id}/read`);
     }
 };

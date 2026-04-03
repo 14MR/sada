@@ -18,9 +18,12 @@ export class AudioService {
         const { vars } = await import("../config/env");
         if (!vars.cloudflare.appSecret) {
             logger.warn({ roomId }, "Cloudflare appSecret not set — returning stub audio session");
+            // Register a stub session in CallsService so lookups work
+            const stubSessionId = `stub-${roomId}-${Date.now()}`;
+            CallsService.registerStubSession(roomId, hostId, stubSessionId);
             return {
                 provider: "stub",
-                sessionId: `stub-${roomId}`,
+                sessionId: stubSessionId,
                 appId: undefined,
                 iceServers: [],
             };

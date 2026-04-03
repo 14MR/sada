@@ -147,10 +147,17 @@ class AudioServiceImpl {
             }
 
             if (!sessionId) {
-                // Create new session
-                const createResp = await client.post('/audio/sessions', { roomId });
-                sessionId = createResp.data.sessionId;
-                console.log('📡 Created new SFU session:', sessionId);
+                if (role === 'host') {
+                    // Only the host can create a new SFU session
+                    const createResp = await client.post('/audio/sessions', { roomId });
+                    sessionId = createResp.data.sessionId;
+                    console.log('📡 Created new SFU session:', sessionId);
+                } else {
+                    // Non-host: session should already exist (host created it when going live).
+                    // If it doesn't, the room isn't live yet — join without audio.
+                    console.warn('⚠️ No SFU session found for room. Audio will not be available.');
+                    return false;
+                }
             }
 
             this.sessionId = sessionId;
