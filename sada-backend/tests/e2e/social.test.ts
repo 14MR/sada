@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { setupTestDB, clearDatabase, createTestUser, getApp } from './helpers';
+import { setupTestDB, clearDatabase, createTestUser, createTestRoom, getApp } from './helpers';
 
 jest.mock('../../src/config/database', () => require('./testDb'));
 
@@ -256,68 +256,10 @@ describe('Social E2E', () => {
     });
   });
 
-  describe('Report user', () => {
-    it('should report a user', async () => {
-      const reporter = await createTestUser({ username: 'reporter' });
-      const reported = await createTestUser({ username: 'reported_user' });
-
-      const response = await request(getApp())
-        .post('/api/moderation/report')
-        .set('Authorization', `Bearer ${reporter.token}`)
-        .send({ reportedUserId: reported.user.id, reason: 'harassment', description: 'Being mean' });
-
-      expect(response.status).toBe(201);
-      expect(response.body.id).toBeDefined();
-      expect(response.body.status).toBe('submitted');
-    });
-
-    it('should not allow reporting yourself', async () => {
-      const user = await createTestUser();
-
-      const response = await request(getApp())
-        .post('/api/moderation/report')
-        .set('Authorization', `Bearer ${user.token}`)
-        .send({ reportedUserId: user.user.id, reason: 'harassment' });
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain('yourself');
-    });
-
-    it('should require reportedUserId and reason', async () => {
-      const user = await createTestUser();
-
-      const response = await request(getApp())
-        .post('/api/moderation/report')
-        .set('Authorization', `Bearer ${user.token}`)
-        .send({ description: 'Missing fields' });
-
-      expect(response.status).toBe(400);
-    });
-
-    it('should reject invalid report reason', async () => {
-      const reporter = await createTestUser();
-      const reported = await createTestUser();
-
-      const response = await request(getApp())
-        .post('/api/moderation/report')
-        .set('Authorization', `Bearer ${reporter.token}`)
-        .send({ reportedUserId: reported.user.id, reason: 'invalid_reason' });
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain('Invalid reason');
-    });
-
-    it('should require authentication for reporting', async () => {
-      const response = await request(getApp())
-        .post('/api/moderation/report')
-        .send({ reportedUserId: 'some-id', reason: 'harassment' });
-
-      expect(response.status).toBe(401);
-    });
-  });
+  // ── Notifications ──────────────────────────────────────────────
 
   describe('GET /notifications', () => {
-    it('should return notifications list for authenticated user', async () => {
+    it('should return notifications for authenticated user', async () => {
       const user = await createTestUser({ username: 'notif_user' });
 
       const response = await request(getApp())
@@ -331,6 +273,149 @@ describe('Social E2E', () => {
     it('should require authentication', async () => {
       const response = await request(getApp()).get('/api/notifications');
       expect(response.status).toBe(401);
+    });
+  });
+
+  // ── User Search (from socialEnhancements) ──────────────────────
+
+  describe('GET /users/search', () => {
+    it('should search users by username', async () => {
+      await createTestUser({ username: 'alice_wonder', display_name: 'Alice' });
+      await createTestUser({ username: 'bob_builder', display_name: 'Bob' });
+
+      const searcher = await createTestUser({ username: 'searcher1' });
+
+      const response = await request(getApp())
+        .get('/api/users/search?q=alice')
+        .set('Authorization', `Bearer ${searcher.token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.some((u: any) => u.username === 'alice_wonder')).toBe(true);
+    });
+
+    it('should search users by display_name', async () => {
+      await createTestUser({ username: 'search_dn1', display_name: 'Zara Unique' });
+      const searcher = await createTestUser({ username: 'searcher2' });
+
+      const response = await request(getApp())
+        .get('/api/users/search?q=Zara')
+        .set('Authorization', `Bearer ${searcher.token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.some((u: any) => u.display_name === 'Zara Unique')).toBe(true);
+    });
+
+    it('should return empty for no matches', async () => {
+      const searcher = await createTestUser({ username: 'searcher3' });
+
+      const response = await request(getApp())
+        .get('/api/users/search?q=zzz_nonexistent_xyz')
+        .set('Authorization', `Bearer ${searcher.token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveLength(0);
+    });
+
+    it('should support pagination', async () => {
+      for (let i = 0; i < 5; i++) {
+        await createTestUser({ username: `pag_user_${i}`, display_name: 'PagTest' });
+      }
+      const searcher = await createTestUser({ username: 'pag_searcher' });
+
+      const page1 = await request(getApp())
+        .get('/api/users/search?q=PagTest&limit=2&offset=0')
+        .set('Authorization', `Bearer ${searcher.token}`);
+
+      const page2 = await request(getApp())
+        .get('/api/users/search?q=PagTest&limit=2&offset=2')
+        .set('Authorization', `Bearer ${searcher.token}`);
+
+      expect(page1.body).toHaveLength(2);
+      expect(page2.body).toHaveLength(2);
+    });
+  });
+
+  // ── Public Profile ─────────────────────────────────────────────
+
+  describe('GET /users/:id', () => {
+    it('should return user profile with stats', async () => {
+      const user = await createTestUser({ username: 'pub_profile_user', display_name: 'Public User' });
+
+      const response = await request(getApp())
+        .get(`/api/users/${user.user.id}`)
+        .set('Authorization', `Bearer ${user.token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.username).toBe('pub_profile_user');
+    });
+
+    it('should return 404 for non-existent user', async () => {
+      const user = await createTestUser({ username: 'profile_404' });
+
+      const response = await request(getApp())
+        .get('/api/users/non-existent-id')
+        .set('Authorization', `Bearer ${user.token}`);
+
+      expect(response.status).toBe(404);
+    });
+  });
+
+  // ── Activity Feed (from socialEnhancements) ────────────────────
+
+  describe('GET /users/activity', () => {
+    it('should return empty activity for new user', async () => {
+      const user = await createTestUser({ username: 'act_new' });
+
+      const response = await request(getApp())
+        .get('/api/users/activity')
+        .set('Authorization', `Bearer ${user.token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.activities).toHaveLength(0);
+    });
+
+    it('should require authentication', async () => {
+      const response = await request(getApp())
+        .get('/api/users/activity');
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should record room_created activity when creating a room', async () => {
+      const user = await createTestUser({ username: 'act_room_host' });
+
+      await request(getApp())
+        .post('/api/rooms/')
+        .set('Authorization', `Bearer ${user.token}`)
+        .send({ title: 'Activity Test Room' });
+
+      await new Promise(r => setTimeout(r, 100));
+
+      const response = await request(getApp())
+        .get('/api/users/activity')
+        .set('Authorization', `Bearer ${user.token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.activities.some((a: any) => a.type === 'room_created')).toBe(true);
+    });
+
+    it('should record follower_gained activity when someone follows you', async () => {
+      const target = await createTestUser({ username: 'act_follow_target' });
+      const follower = await createTestUser({ username: 'act_follower' });
+
+      await request(getApp())
+        .post(`/api/follow/${target.user.id}/follow`)
+        .set('Authorization', `Bearer ${follower.token}`)
+        .send({});
+
+      await new Promise(r => setTimeout(r, 100));
+
+      const response = await request(getApp())
+        .get('/api/users/activity')
+        .set('Authorization', `Bearer ${target.token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.activities.some((a: any) => a.type === 'follower_gained')).toBe(true);
     });
   });
 });

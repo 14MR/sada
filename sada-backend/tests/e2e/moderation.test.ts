@@ -1,3 +1,9 @@
+/**
+ * Moderation E2E Tests — Consolidated
+ *
+ * Merged from: moderation.test.ts + report-system.test.ts
+ * Unique tests: auto-flag, report lifecycle (admin CRUD)
+ */
 import request from 'supertest';
 import { setupTestDB, clearDatabase, createTestUser, getApp } from './helpers';
 
@@ -25,6 +31,7 @@ jest.mock('../../src/services/chat.service', () => ({
 
 describe('Moderation E2E', () => {
   beforeAll(async () => {
+    process.env.ADMIN_KEY = 'test-admin-key';
     await setupTestDB();
   });
 
@@ -32,52 +39,43 @@ describe('Moderation E2E', () => {
     await clearDatabase();
   });
 
-  describe('POST /moderation/report', () => {
+  // ── Report Submission ──────────────────────────────────────────
+
+  describe('Report submission', () => {
     it('should report a user', async () => {
-      const reporter = await createTestUser({ username: 'mod_reporter' });
-      const reported = await createTestUser({ username: 'mod_reported' });
+      const reporter = await createTestUser({ username: 'rep_reporter' });
+      const reported = await createTestUser({ username: 'rep_reported' });
 
       const response = await request(getApp())
-        .post('/api/moderation/report')
+        .post('/api/reports')
         .set('Authorization', `Bearer ${reporter.token}`)
         .send({ reportedUserId: reported.user.id, reason: 'harassment', description: 'Test report' });
 
       expect(response.status).toBe(201);
       expect(response.body.id).toBeDefined();
-      expect(response.body.status).toBe('submitted');
     });
 
-    it('should reject with missing reportedUserId', async () => {
+    it('should report a room', async () => {
+      const reporter = await createTestUser({ username: 'room_reporter' });
+      const host = await createTestUser({ username: 'room_report_host' });
+      const { createTestRoom } = require('./helpers');
+      const room = await createTestRoom(host.user.id);
+
+      const response = await request(getApp())
+        .post('/api/reports')
+        .set('Authorization', `Bearer ${reporter.token}`)
+        .send({ reportedUserId: host.user.id, roomId: room.id, reason: 'other' });
+
+      expect(response.status).toBe(201);
+    });
+
+    it('should reject without reportedUserId or roomId', async () => {
       const { token } = await createTestUser();
 
       const response = await request(getApp())
-        .post('/api/moderation/report')
+        .post('/api/reports')
         .set('Authorization', `Bearer ${token}`)
         .send({ reason: 'harassment' });
-
-      expect(response.status).toBe(400);
-    });
-
-    it('should reject with missing reason', async () => {
-      const reporter = await createTestUser();
-      const reported = await createTestUser();
-
-      const response = await request(getApp())
-        .post('/api/moderation/report')
-        .set('Authorization', `Bearer ${reporter.token}`)
-        .send({ reportedUserId: reported.user.id });
-
-      expect(response.status).toBe(400);
-    });
-
-    it('should reject invalid reason', async () => {
-      const reporter = await createTestUser();
-      const reported = await createTestUser();
-
-      const response = await request(getApp())
-        .post('/api/moderation/report')
-        .set('Authorization', `Bearer ${reporter.token}`)
-        .send({ reportedUserId: reported.user.id, reason: 'invalid_reason' });
 
       expect(response.status).toBe(400);
     });
@@ -86,103 +84,138 @@ describe('Moderation E2E', () => {
       const { user, token } = await createTestUser();
 
       const response = await request(getApp())
-        .post('/api/moderation/report')
+        .post('/api/reports')
         .set('Authorization', `Bearer ${token}`)
         .send({ reportedUserId: user.id, reason: 'harassment' });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toContain('yourself');
+    });
+
+    it('should auto-flag user with 3+ reports', async () => {
+      const reported = await createTestUser({ username: 'flagged_user' });
+      const { AppDataSource } = require('./testDb');
+      const User = require('../../src/models/User').User;
+
+      for (let i = 0; i < 3; i++) {
+        const reporter = await createTestUser({ username: `flag_reporter_${i}` });
+        await request(getApp())
+          .post('/api/reports')
+          .set('Authorization', `Bearer ${reporter.token}`)
+          .send({ reportedUserId: reported.user.id, reason: 'spam' });
+      }
+
+      const updated = await AppDataSource.getRepository(User).findOneBy({ id: reported.user.id });
+      expect(updated.flagged).toBe(true);
+    });
+
+    it('should NOT flag user with fewer than 3 reports', async () => {
+      const reported = await createTestUser({ username: 'unflagged_user' });
+      const { AppDataSource } = require('./testDb');
+      const User = require('../../src/models/User').User;
+
+      for (let i = 0; i < 2; i++) {
+        const reporter = await createTestUser({ username: `unflag_reporter_${i}` });
+        await request(getApp())
+          .post('/api/reports')
+          .set('Authorization', `Bearer ${reporter.token}`)
+          .send({ reportedUserId: reported.user.id, reason: 'spam' });
+      }
+
+      const updated = await AppDataSource.getRepository(User).findOneBy({ id: reported.user.id });
+      expect(updated.flagged).toBe(false);
     });
 
     it('should require authentication', async () => {
       const response = await request(getApp())
-        .post('/api/moderation/report')
+        .post('/api/reports')
         .send({ reportedUserId: 'some-id', reason: 'harassment' });
 
       expect(response.status).toBe(401);
     });
   });
 
-  describe('POST /moderation/block', () => {
-    it('should block a user', async () => {
-      const blocker = await createTestUser({ username: 'mod_blocker' });
-      const target = await createTestUser({ username: 'mod_blocked' });
+  // ── Admin Report Management ────────────────────────────────────
+
+  describe('Admin report management', () => {
+    it('should list reports for admin', async () => {
+      const adminUser = await createTestUser({ username: 'admin_list_auth' });
+      const reporter = await createTestUser({ username: 'admin_reporter' });
+      const reported = await createTestUser({ username: 'admin_reported' });
+
+      await request(getApp())
+        .post('/api/reports')
+        .set('Authorization', `Bearer ${reporter.token}`)
+        .send({ reportedUserId: reported.user.id, reason: 'harassment' });
 
       const response = await request(getApp())
-        .post('/api/moderation/block')
-        .set('Authorization', `Bearer ${blocker.token}`)
-        .send({ blockedId: target.user.id });
+        .get('/api/reports')
+        .set('Authorization', `Bearer ${adminUser.token}`)
+        .set('x-admin-key', process.env.ADMIN_KEY || 'test-admin-key');
 
       expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
+      expect(response.body.reports).toHaveLength(1);
     });
 
-    it('should reject with missing blockedId', async () => {
-      const { token } = await createTestUser();
+    it('should update report status', async () => {
+      const adminUser = await createTestUser({ username: 'admin_update_auth' });
+      const reporter = await createTestUser({ username: 'update_reporter' });
+      const reported = await createTestUser({ username: 'update_reported' });
+
+      const createRes = await request(getApp())
+        .post('/api/reports')
+        .set('Authorization', `Bearer ${reporter.token}`)
+        .send({ reportedUserId: reported.user.id, reason: 'harassment' });
 
       const response = await request(getApp())
-        .post('/api/moderation/block')
-        .set('Authorization', `Bearer ${token}`)
-        .send({});
+        .patch(`/api/reports/${createRes.body.id}`)
+        .set('Authorization', `Bearer ${adminUser.token}`)
+        .set('x-admin-key', process.env.ADMIN_KEY || 'test-admin-key')
+        .send({ status: 'reviewed' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe('reviewed');
+    });
+
+    it('should reject invalid status', async () => {
+      const adminUser = await createTestUser({ username: 'admin_inv_auth' });
+      const reporter = await createTestUser({ username: 'inv_reporter' });
+      const reported = await createTestUser({ username: 'inv_reported' });
+
+      const createRes = await request(getApp())
+        .post('/api/reports')
+        .set('Authorization', `Bearer ${reporter.token}`)
+        .send({ reportedUserId: reported.user.id, reason: 'harassment' });
+
+      const response = await request(getApp())
+        .patch(`/api/reports/${createRes.body.id}`)
+        .set('Authorization', `Bearer ${adminUser.token}`)
+        .set('x-admin-key', process.env.ADMIN_KEY || 'test-admin-key')
+        .send({ status: 'invalid' });
 
       expect(response.status).toBe(400);
     });
-  });
 
-  describe('POST /moderation/unblock', () => {
-    it('should unblock a user', async () => {
-      const blocker = await createTestUser({ username: 'ub_mod1' });
-      const target = await createTestUser({ username: 'ub_mod2' });
-
-      await request(getApp())
-        .post('/api/moderation/block')
-        .set('Authorization', `Bearer ${blocker.token}`)
-        .send({ blockedId: target.user.id });
+    it('should return 404 for non-existent report', async () => {
+      const adminUser = await createTestUser({ username: 'admin_404_auth' });
 
       const response = await request(getApp())
-        .post('/api/moderation/unblock')
-        .set('Authorization', `Bearer ${blocker.token}`)
-        .send({ blockedId: target.user.id });
-
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
-    });
-
-    it('should return 404 for non-blocked user', async () => {
-      const user = await createTestUser();
-      const other = await createTestUser();
-
-      const response = await request(getApp())
-        .post('/api/moderation/unblock')
-        .set('Authorization', `Bearer ${user.token}`)
-        .send({ blockedId: other.user.id });
+        .patch('/api/reports/nonexistent')
+        .set('Authorization', `Bearer ${adminUser.token}`)
+        .set('x-admin-key', process.env.ADMIN_KEY || 'test-admin-key')
+        .send({ status: 'reviewed' });
 
       expect(response.status).toBe(404);
     });
-  });
 
-  describe('GET /moderation/blocked', () => {
-    it('should list blocked users', async () => {
-      const user = await createTestUser({ username: 'mod_lister' });
-      const blocked1 = await createTestUser({ username: 'mod_b1' });
-      const blocked2 = await createTestUser({ username: 'mod_b2' });
-
-      await request(getApp())
-        .post('/api/moderation/block')
-        .set('Authorization', `Bearer ${user.token}`)
-        .send({ blockedId: blocked1.user.id });
-
-      await request(getApp())
-        .post('/api/moderation/block')
-        .set('Authorization', `Bearer ${user.token}`)
-        .send({ blockedId: blocked2.user.id });
+    it('should reject non-admin', async () => {
+      const { token } = await createTestUser({ username: 'non_admin' });
 
       const response = await request(getApp())
-        .get('/api/moderation/blocked')
-        .set('Authorization', `Bearer ${user.token}`);
+        .patch('/api/reports/some-id')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ status: 'reviewed' });
 
-      expect(response.status).toBe(200);
-      expect(response.body).toHaveLength(2);
+      expect(response.status).toBe(403);
     });
   });
 });
