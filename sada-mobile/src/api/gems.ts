@@ -4,6 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 export const GemService = {
     getBalance: async () => {
         const userId = await SecureStore.getItemAsync('user_id');
+        if (!userId) throw new Error('Not authenticated');
         const response = await client.get(`/gems/balance/${userId}`);
         return response.data;
     },
