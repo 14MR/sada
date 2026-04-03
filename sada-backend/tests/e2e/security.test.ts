@@ -109,7 +109,8 @@ describe('Security E2E', () => {
 
       const response = await request(getApp())
         .post(`/api/rooms/${room.id}/end`)
-        .set('Authorization', `Bearer ${intruder.token}`);
+        .set('Authorization', `Bearer ${intruder.token}`)
+        .send({});
 
       expect([403, 404]).toContain(response.status);
     });

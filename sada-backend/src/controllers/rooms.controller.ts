@@ -121,6 +121,9 @@ export class RoomController {
             await RoomService.endRoom(userId, id);
             return res.json({ success: true });
         } catch (error: any) {
+            if (error.message.includes("Only host")) {
+                return res.status(403).json({ error: error.message });
+            }
             return res.status(400).json({ error: error.message });
         }
     }

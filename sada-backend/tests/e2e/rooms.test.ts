@@ -258,7 +258,7 @@ describe('Rooms E2E', () => {
         .set('Authorization', `Bearer ${other.token}`)
         .send({ userId: other.user.id });
 
-      expect(endRes.status).toBe(400);
+      expect(endRes.status).toBe(403);
       expect(endRes.body.error).toContain('host');
     });
   });
