@@ -63,7 +63,6 @@ export class AudioController {
             // Check if this is a stub session (no real Cloudflare backend)
             if (session.sessionId.startsWith("stub-")) {
                 // Register participant in-memory but skip SDP exchange
-                const { CallsService: CS } = await import("../services/calls.service");
                 session.participants.set(userId, {
                     userId,
                     trackId: `stub-track-${userId}`,
