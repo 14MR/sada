@@ -15,6 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bitcode": false,
+      "usesAppleSignIn": true,
       "bundleIdentifier": "com.anonymous.sada-mobile",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "SADA needs microphone access for live audio rooms.",
@@ -65,7 +66,8 @@
     "extra": {
       "eas": {
         "projectId": "0a61c2c8-d8ff-4440-ac38-c14f08f281ad"
-      }
+      },
+      "apiUrl": "https://sada.mustafin.dev/api"
     }
   }
 }

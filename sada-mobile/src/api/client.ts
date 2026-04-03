@@ -3,7 +3,11 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-const rawBaseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://sada.mustafin.dev/api';
+// Priority: env var → app.json extra → production default
+const rawBaseUrl =
+    process.env.EXPO_PUBLIC_API_URL ||
+    Constants.expoConfig?.extra?.apiUrl ||
+    'https://sada.mustafin.dev/api';
 const isLocalDevHost = /^https?:\/\/(10\.0\.2\.2|localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(rawBaseUrl);
 
 // Local backend serves routes at root (e.g. /auth/signin), while production is behind /api.
