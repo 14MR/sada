@@ -20,10 +20,18 @@ export class UserController {
     static async updateProfile(req: Request, res: Response) {
         try {
             const id = req.params.id as string;
-            const updates = req.body;
+            const currentUser = (req as any).user?.id;
+            if (!currentUser) return res.status(401).json({ error: "Authentication required" });
+            if (currentUser !== id) return res.status(403).json({ error: "Forbidden" });
 
-            // In a real app, ensure the requester is the user itself or admin
-            // e.g. if (req.user.id !== id) return res.status(403)
+            // Whitelist allowed fields to prevent mass assignment
+            const allowedFields = ['display_name', 'bio', 'avatar_url', 'twitter_handle', 'instagram_handle', 'language', 'username'];
+            const updates: Record<string, any> = {};
+            for (const field of allowedFields) {
+                if (req.body[field] !== undefined) {
+                    updates[field] = req.body[field];
+                }
+            }
 
             const updatedUser = await UserService.updateProfile(id, updates);
             return res.status(200).json(updatedUser);
@@ -35,7 +43,9 @@ export class UserController {
     static async deleteAccount(req: Request, res: Response) {
         try {
             const id = req.params.id as string;
-            // TODO: Auth Check - Ensure only the user can delete themselves
+            const currentUser = (req as any).user?.id;
+            if (!currentUser) return res.status(401).json({ error: "Authentication required" });
+            if (currentUser !== id) return res.status(403).json({ error: "Forbidden" });
             await UserService.deleteUser(id);
             return res.status(200).json({ success: true, message: "Account deleted successfully" });
         } catch (error: any) {

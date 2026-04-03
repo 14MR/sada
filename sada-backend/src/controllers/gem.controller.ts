@@ -32,6 +32,9 @@ export class GemController {
     static async getBalance(req: Request, res: Response) {
         try {
             const userId = req.params.userId as string;
+            const currentUser = (req as any).user?.id;
+            if (!currentUser) return res.status(401).json({ error: "Authentication required" });
+            if (currentUser !== userId) return res.status(403).json({ error: "Forbidden" });
             const balance = await GemService.getBalance(userId);
             return res.json(balance);
         } catch (error: any) {
@@ -42,6 +45,9 @@ export class GemController {
     static async getHistory(req: Request, res: Response) {
         try {
             const userId = req.params.userId as string;
+            const currentUser = (req as any).user?.id;
+            if (!currentUser) return res.status(401).json({ error: "Authentication required" });
+            if (currentUser !== userId) return res.status(403).json({ error: "Forbidden" });
             const history = await GemService.getHistory(userId);
             return res.json(history);
         } catch (error: any) {
