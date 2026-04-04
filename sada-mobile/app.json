@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "sada-mobile",
+    "name": "SADA",
     "slug": "sada-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,16 +16,26 @@
       "supportsTablet": true,
       "bitcode": false,
       "usesAppleSignIn": true,
-      "bundleIdentifier": "com.anonymous.sada-mobile",
+      "bundleIdentifier": "com.sada.app",
+      "buildNumber": "1",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "SADA needs microphone access for live audio rooms.",
         "UIBackgroundModes": [
           "audio",
-          "voip",
-          "audio",
           "voip"
         ],
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "privacyManifest": {
+        "NSPrivacyTracking": false,
+        "NSPrivacyTrackingDomains": [],
+        "NSPrivacyCollectedData": [],
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": ["C617.1"]
+          }
+        ]
       }
     },
     "android": {
@@ -33,7 +43,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.sadamobile",
+      "package": "com.sada.app",
+      "versionCode": 1,
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
@@ -61,7 +72,8 @@
             "DefaultToSpeaker"
           ]
         }
-      ]
+      ],
+      "expo-dev-client"
     ],
     "extra": {
       "eas": {
