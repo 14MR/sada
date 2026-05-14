@@ -108,12 +108,6 @@ export class RoomController {
             const updatedParticipant = await RoomService.updateParticipantRole(requesterId, id, targetUserId, role);
             return res.json(updatedParticipant);
         } catch (error: any) {
-            if (error.message.includes("Only the host")) {
-                return res.status(403).json({ error: error.message });
-            }
-            if (error.message === "Room not found") {
-                return res.status(404).json({ error: error.message });
-            }
             return res.status(400).json({ error: error.message });
         }
     }
