@@ -10,16 +10,17 @@ export class ModerationService {
 
     static async createReport(
         reporterId: string,
-        reportedUserId: string,
+        reportedUserId: string | null | undefined,
         reason: ReportReason,
         description?: string,
         roomId?: string
     ) {
-        if (reporterId === reportedUserId) throw new Error("Cannot report yourself");
+        const targetUserId = reportedUserId || null;
+        if (targetUserId && reporterId === targetUserId) throw new Error("Cannot report yourself");
 
         const report = reportRepository.create({
             reporter_id: reporterId,
-            reported_user_id: reportedUserId,
+            reported_user_id: targetUserId,
             reason,
             description: description || null,
             room_id: roomId || null,

@@ -5,11 +5,11 @@
  * not an in-memory stub.
  */
 import request from 'supertest';
-import { setupTestDB, clearDatabase, createTestUser, getApp } from './e2e/helpers';
+import { setupTestDB, clearDatabase, createTestUser, getApp } from './helpers';
 
-jest.mock('../src/config/database', () => require('./e2e/testDb'));
+jest.mock('../../src/config/database', () => require('./testDb'));
 
-jest.mock('../src/services/audio.service', () => ({
+jest.mock('../../src/services/audio.service', () => ({
   AudioService: {
     createSession: jest.fn().mockResolvedValue({
       provider: 'test', sessionId: 'test-session', iceServers: [],
@@ -22,7 +22,7 @@ jest.mock('../src/services/audio.service', () => ({
   },
 }));
 
-jest.mock('../src/services/chat.service', () => ({
+jest.mock('../../src/services/chat.service', () => ({
   ChatService: {
     getInstance: jest.fn().mockReturnValue({ sendToUser: jest.fn() }),
     initialize: jest.fn(),

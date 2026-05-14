@@ -30,13 +30,13 @@ export class Report {
     @JoinColumn({ name: "reporter_id" })
     reporter!: User;
 
-    @Column({ type: "uuid" })
+    @Column({ type: "uuid", nullable: true })
     @Index()
-    reported_user_id!: string;
+    reported_user_id!: string | null;
 
-    @ManyToOne(() => User, { onDelete: "CASCADE" })
+    @ManyToOne(() => User, { onDelete: "CASCADE", nullable: true })
     @JoinColumn({ name: "reported_user_id" })
-    reported_user!: User;
+    reported_user!: User | null;
 
     @Column({ type: "enum", enum: ReportReason })
     reason!: ReportReason;

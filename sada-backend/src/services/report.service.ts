@@ -18,18 +18,20 @@ export class ReportService {
             throw new Error("Cannot report yourself");
         }
 
+        const reportedUserId = data.reportedUserId || null;
+
         // Delegate to ModerationService for consistent report creation
         const saved = await ModerationService.createReport(
             reporterId,
-            data.reportedUserId || "",
+            reportedUserId,
             data.reason,
             data.description,
             data.roomId
         );
 
         // Auto-flag users with 3+ pending reports
-        if (data.reportedUserId) {
-            await this.autoFlagUser(data.reportedUserId);
+        if (reportedUserId) {
+            await this.autoFlagUser(reportedUserId);
         }
 
         return saved;

@@ -13,7 +13,7 @@ export class AdminAction {
     action_type!: string;
 
     @Column({ nullable: true })
-    target_user_id!: string;
+    target_user_id!: string | null;
 
     @ManyToOne(() => User, { onDelete: "SET NULL", nullable: true })
     @JoinColumn({ name: "target_user_id" })

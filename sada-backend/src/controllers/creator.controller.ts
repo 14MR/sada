@@ -13,6 +13,7 @@ export class CreatorController {
             return res.json(stats);
         } catch (error: any) {
             if (error.message === "User not found") return res.status(404).json({ error: error.message });
+            if (error.message === "Creator access required") return res.status(403).json({ error: error.message });
             logger.error({ err: error }, "Creator Dashboard Error");
             return res.status(500).json({ error: "Failed to load dashboard" });
         }
@@ -32,6 +33,7 @@ export class CreatorController {
             );
             return res.json(earnings);
         } catch (error) {
+            if ((error as any).message === "Creator access required") return res.status(403).json({ error: (error as any).message });
             logger.error({ err: error }, "Creator Earnings Error");
             return res.status(500).json({ error: "Failed to load earnings" });
         }
@@ -48,6 +50,7 @@ export class CreatorController {
             const rooms = await CreatorService.getHostedRooms(userId, limit, offset);
             return res.json(rooms);
         } catch (error) {
+            if ((error as any).message === "Creator access required") return res.status(403).json({ error: (error as any).message });
             logger.error({ err: error }, "Creator Rooms Error");
             return res.status(500).json({ error: "Failed to load rooms" });
         }
@@ -63,6 +66,7 @@ export class CreatorController {
             const supporters = await CreatorService.getTopSupporters(userId, limit);
             return res.json(supporters);
         } catch (error) {
+            if ((error as any).message === "Creator access required") return res.status(403).json({ error: (error as any).message });
             logger.error({ err: error }, "Top Supporters Error");
             return res.status(500).json({ error: "Failed to load supporters" });
         }
