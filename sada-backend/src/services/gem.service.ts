@@ -12,6 +12,27 @@ import logger from "../config/logger";
 
 // In-memory receipt hash store for idempotency (prod should use Redis/DB)
 const processedReceipts = new Map<string, string>();
+const giftLocks = new Map<string, Promise<void>>();
+
+async function withGiftLock<T>(senderId: string, fn: () => Promise<T>): Promise<T> {
+    const previous = giftLocks.get(senderId) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>(resolve => {
+        release = resolve;
+    });
+    const chained = previous.then(() => current, () => current);
+    giftLocks.set(senderId, chained);
+
+    await previous.catch(() => {});
+    try {
+        return await fn();
+    } finally {
+        release();
+        if (giftLocks.get(senderId) === chained) {
+            giftLocks.delete(senderId);
+        }
+    }
+}
 
 export class PaymentService {
     /** Verify Apple App Store purchase receipt */
@@ -138,28 +159,35 @@ export class GemService {
         const isBlocked = await BlockService.isBlocked(senderId, receiverId);
         if (isBlocked) throw new Error("Cannot send gems to this user");
 
-        const savedTx = await AppDataSource.manager.transaction(async transactionalEntityManager => {
-            const sender = await transactionalEntityManager.findOne(User, { where: { id: senderId } });
+        const savedTx = await withGiftLock(senderId, () => AppDataSource.manager.transaction(async transactionalEntityManager => {
             const receiver = await transactionalEntityManager.findOne(User, { where: { id: receiverId } });
+            if (!receiver) throw new Error("User not found");
 
-            if (!sender || !receiver) throw new Error("User not found");
-            if (sender.gem_balance < amount) throw new Error("Insufficient balance");
+            const debited = await transactionalEntityManager
+                .createQueryBuilder()
+                .update(User)
+                .set({ gem_balance: () => "gem_balance - :amount" })
+                .where("id = :senderId", { senderId })
+                .andWhere("gem_balance >= :amount", { amount })
+                .execute();
 
-            sender.gem_balance -= amount;
-            await transactionalEntityManager.save(sender);
+            if (!debited.affected) {
+                const senderExists = await transactionalEntityManager.exists(User, { where: { id: senderId } });
+                if (!senderExists) throw new Error("User not found");
+                throw new Error("Insufficient balance");
+            }
 
-            receiver.gem_balance += amount;
-            await transactionalEntityManager.save(receiver);
+            await transactionalEntityManager.increment(User, { id: receiverId }, "gem_balance", amount);
 
             const tx = new GemTransaction();
-            tx.sender = sender;
+            tx.sender = { id: senderId } as User;
             tx.receiver = receiver;
             tx.amount = amount;
             tx.type = TransactionType.GIFT;
             if (roomId) tx.reference_id = roomId;
 
             return await transactionalEntityManager.save(tx);
-        });
+        }));
 
         // Notify Receiver (outside transaction so notification failure doesn't roll back the gem transfer)
         try {

@@ -225,6 +225,11 @@ class AudioServiceImpl {
             this.trackId = trackId;
             this.mid = mid;
 
+            if (!answerSdp) {
+                console.log('✅ Joined stub audio session. Skipping SFU remote description.');
+                return true;
+            }
+
             await pc.setRemoteDescription(
                 new RTCSessionDescription({
                     sdp: answerSdp,
