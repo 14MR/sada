@@ -117,7 +117,7 @@ describe('Auth E2E', () => {
     });
 
     it('should return data with valid token', async () => {
-      const { user, token } = await createTestUser();
+      const { user, token } = await createTestUser({ is_creator: true });
 
       const response = await request(getApp())
         .get('/api/creator/dashboard')

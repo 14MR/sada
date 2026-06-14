@@ -9,9 +9,9 @@ export const GemService = {
         return response.data;
     },
 
-    purchaseGems: async (amount: number) => {
+    purchaseGems: async (packageId: string) => {
         const response = await client.post('/gems/purchase', {
-            amount,
+            packageId,
             receiptData: 'mock-receipt-data',
             platform: 'apple',
         });

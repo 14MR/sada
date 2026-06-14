@@ -1,0 +1,11 @@
+name: Deploy
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-push-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "deploy placeholder"

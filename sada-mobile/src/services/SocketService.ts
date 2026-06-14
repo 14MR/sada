@@ -4,7 +4,9 @@ import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 
 const BASE_URL =
-    process.env.EXPO_PUBLIC_SOCKET_URL || 'https://sada.mustafin.dev';
+    process.env.EXPO_PUBLIC_SOCKET_URL ||
+    Constants.expoConfig?.extra?.socketUrl ||
+    'https://sada.mustafin.dev';
 
 console.log('🔌 Socket Base URL:', BASE_URL);
 

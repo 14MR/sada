@@ -9,14 +9,14 @@ const userRepository = AppDataSource.getRepository(User);
 
 export class AuthService {
     static async verifyAppleToken(identityToken: string): Promise<{ appleId: string; email: string | undefined }> {
-        // Mock fallback for test environment
-        if (process.env.NODE_ENV === "test" || process.env.NODE_ENV !== "production") {
+        // Mock fallback: skip real verification when APPLE_BUNDLE_ID is not configured (dev/test)
+        if (!process.env.APPLE_BUNDLE_ID) {
             return { appleId: identityToken, email: undefined };
         }
 
         try {
             const payload = await appleSignin.verifyIdToken(identityToken, {
-                audience: process.env.APPLE_CLIENT_ID,
+                audience: process.env.APPLE_BUNDLE_ID,
                 ignoreExpiration: false,
             });
 

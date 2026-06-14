@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main, fix/*]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: sada-backend/package-lock.json
+      - run: cd sada-backend && npm ci
+      - run: cd sada-backend && npm test
+
+  build-backend:
+    runs-on: ubuntu-latest
+    needs: test-backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: sada-backend/package-lock.json
+      - run: cd sada-backend && npm ci
+      - run: cd sada-backend && npm run build
+
+  lint-backend:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: sada-backend/package-lock.json
+      - run: cd sada-backend && npm ci
+      - run: cd sada-backend && npx eslint src/ --ext .ts

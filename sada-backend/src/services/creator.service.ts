@@ -12,6 +12,7 @@ export class CreatorService {
     static async getDashboard(userId: string) {
         const user = await userRepository.findOneBy({ id: userId });
         if (!user) throw new Error("User not found");
+        if (!user.is_creator) throw new Error("Creator access required");
 
         // Total rooms hosted
         const totalRooms = await roomRepository.count({
@@ -75,6 +76,8 @@ export class CreatorService {
 
     /** Earnings breakdown with optional date range */
     static async getEarnings(userId: string, from?: Date, to?: Date) {
+        await this.assertCreator(userId);
+
         const query = gemRepository
             .createQueryBuilder("tx")
             .leftJoinAndSelect("tx.sender", "sender")
@@ -106,6 +109,8 @@ export class CreatorService {
 
     /** Rooms hosted by this creator with stats */
     static async getHostedRooms(userId: string, limit: number, offset: number) {
+        await this.assertCreator(userId);
+
         const [rooms, total] = await roomRepository.findAndCount({
             where: { host_id: userId },
             order: { started_at: "DESC" },
@@ -118,6 +123,8 @@ export class CreatorService {
 
     /** Top supporters — users who gifted the most gems */
     static async getTopSupporters(userId: string, limit: number) {
+        await this.assertCreator(userId);
+
         const raw = await gemRepository
             .createQueryBuilder("tx")
             .leftJoinAndSelect("tx.sender", "sender")
@@ -137,5 +144,11 @@ export class CreatorService {
             totalGems: parseInt(row.totalGems, 10),
             giftCount: parseInt(row.giftCount, 10),
         }));
+    }
+
+    private static async assertCreator(userId: string) {
+        const user = await userRepository.findOneBy({ id: userId });
+        if (!user) throw new Error("User not found");
+        if (!user.is_creator) throw new Error("Creator access required");
     }
 }

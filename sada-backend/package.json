@@ -24,6 +24,7 @@
   "dependencies": {
     "@types/cors": "^2.8.19",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/pg": "^8.20.0",
     "@types/pino": "^7.0.4",
     "apple-signin-auth": "^2.0.0",
     "cors": "^2.8.6",
