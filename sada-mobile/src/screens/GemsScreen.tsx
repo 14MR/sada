@@ -16,7 +16,7 @@ export const GemsScreen = ({ navigation }: any) => {
     const handlePurchase = async (pack: typeof PACKAGES[0]) => {
         setLoading(true);
         try {
-            await GemService.purchaseGems(pack.id);
+            await GemService.purchaseGems(pack.gems);
             Alert.alert('Success', `You purchased ${pack.gems} Gems! 💎`);
             navigation.goBack();
         } catch (error) {

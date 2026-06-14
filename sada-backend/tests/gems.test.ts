@@ -139,7 +139,8 @@ describe('Gems E2E', () => {
       const failCount = responses.filter(r => r.status === 400).length;
 
       // Exactly one should succeed, one should fail
-      expect(successCount + failCount).toBe(2);
+      expect(successCount).toBe(1);
+      expect(failCount).toBe(1);
 
       // Total gems should be preserved
       const senderBal = await request(getApp())
