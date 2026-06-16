@@ -10,6 +10,13 @@ import {
 const reportRepository = AppDataSource.getRepository(Report);
 const userRepository = AppDataSource.getRepository(User);
 
+export class ReportNotFoundError extends Error {
+    constructor() {
+        super("Report not found");
+        this.name = "ReportNotFoundError";
+    }
+}
+
 export class ReportService {
     static async submitReport(
         reporterId: string,
@@ -64,7 +71,7 @@ export class ReportService {
 
     static async updateReportStatus(reportId: string, status: ReportStatus) {
         const report = await reportRepository.findOne({ where: { id: reportId } });
-        if (!report) throw new Error("Report not found");
+        if (!report) throw new ReportNotFoundError();
 
         report.status = status;
         report.reviewed_at = new Date();

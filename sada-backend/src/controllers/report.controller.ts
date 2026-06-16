@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ReportService } from "../services/report.service";
+import { ReportNotFoundError, ReportService } from "../services/report.service";
 import { ReportReason, ReportStatus } from "../models/Report";
 import {
     CannotReportSelfError,
@@ -62,7 +62,7 @@ export class ReportController {
             const report = await ReportService.updateReportStatus(reportId, status as ReportStatus);
             return res.json(report);
         } catch (error: any) {
-            if (error.message === "Report not found") {
+            if (error instanceof ReportNotFoundError) {
                 return res.status(404).json({ error: error.message });
             }
             logger.error({ err: error }, "Update Report Status Error");
