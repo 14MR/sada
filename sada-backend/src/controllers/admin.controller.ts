@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { AdminService } from "../services/admin.service";
+import { AdminReportNotFoundError, AdminService, AdminUserNotFoundError } from "../services/admin.service";
 import logger from "../config/logger";
 
 export class AdminController {
@@ -51,7 +51,7 @@ export class AdminController {
             const user = await AdminService.banUser(id, adminKey);
             return res.json({ id: user.id, username: user.username, banned: user.banned });
         } catch (error: any) {
-            if (error.message === "User not found") {
+            if (error instanceof AdminUserNotFoundError) {
                 return res.status(404).json({ error: error.message });
             }
             logger.error({ err: error }, "Ban User Error");
@@ -66,7 +66,7 @@ export class AdminController {
             const user = await AdminService.unbanUser(id, adminKey);
             return res.json({ id: user.id, username: user.username, banned: user.banned });
         } catch (error: any) {
-            if (error.message === "User not found") {
+            if (error instanceof AdminUserNotFoundError) {
                 return res.status(404).json({ error: error.message });
             }
             logger.error({ err: error }, "Unban User Error");
@@ -87,7 +87,7 @@ export class AdminController {
                 is_creator: user.is_creator,
             });
         } catch (error: any) {
-            if (error.message === "User not found") {
+            if (error instanceof AdminUserNotFoundError) {
                 return res.status(404).json({ error: error.message });
             }
             logger.error({ err: error }, "Patch User Error");
@@ -108,7 +108,7 @@ export class AdminController {
             const report = await AdminService.reviewReport(id, action, adminKey);
             return res.json(report);
         } catch (error: any) {
-            if (error.message === "Report not found") {
+            if (error instanceof AdminReportNotFoundError) {
                 return res.status(404).json({ error: error.message });
             }
             logger.error({ err: error }, "Review Report Error");

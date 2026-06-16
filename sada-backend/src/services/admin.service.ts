@@ -14,6 +14,20 @@ const gemRepo = AppDataSource.getRepository(GemTransaction);
 const adminActionRepo = AppDataSource.getRepository(AdminAction);
 const presenceRepo = AppDataSource.getRepository(UserPresence);
 
+export class AdminUserNotFoundError extends Error {
+    constructor() {
+        super("User not found");
+        this.name = "AdminUserNotFoundError";
+    }
+}
+
+export class AdminReportNotFoundError extends Error {
+    constructor() {
+        super("Report not found");
+        this.name = "AdminReportNotFoundError";
+    }
+}
+
 export class AdminService {
     static async getStats() {
         const today = new Date();
@@ -113,7 +127,7 @@ export class AdminService {
 
     static async banUser(userId: string, adminKey: string) {
         const user = await userRepo.findOneBy({ id: userId });
-        if (!user) throw new Error("User not found");
+        if (!user) throw new AdminUserNotFoundError();
 
         user.banned = true;
         await userRepo.save(user);
@@ -130,7 +144,7 @@ export class AdminService {
 
     static async unbanUser(userId: string, adminKey: string) {
         const user = await userRepo.findOneBy({ id: userId });
-        if (!user) throw new Error("User not found");
+        if (!user) throw new AdminUserNotFoundError();
 
         user.banned = false;
         await userRepo.save(user);
@@ -147,7 +161,7 @@ export class AdminService {
 
     static async patchUser(userId: string, updates: { banned?: boolean; verified?: boolean; is_creator?: boolean }, adminKey: string) {
         const user = await userRepo.findOneBy({ id: userId });
-        if (!user) throw new Error("User not found");
+        if (!user) throw new AdminUserNotFoundError();
 
         if (updates.banned !== undefined) user.banned = updates.banned;
         if (updates.verified !== undefined) user.verified = updates.verified;
@@ -167,7 +181,7 @@ export class AdminService {
 
     static async reviewReport(reportId: string, action: "reviewed" | "dismissed", adminKey: string) {
         const report = await reportRepo.findOne({ where: { id: reportId } });
-        if (!report) throw new Error("Report not found");
+        if (!report) throw new AdminReportNotFoundError();
 
         report.status = action === "reviewed" ? ReportStatus.ACTIONED : ReportStatus.DISMISSED;
         await reportRepo.save(report);
