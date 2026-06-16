@@ -5,7 +5,7 @@ import logger from "../config/logger";
 export class NotificationPreferenceController {
     static async get(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const preferences = await NotificationPreferenceService.getForUser(userId);
@@ -18,7 +18,7 @@ export class NotificationPreferenceController {
 
     static async bulkUpdate(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { preferences } = req.body;

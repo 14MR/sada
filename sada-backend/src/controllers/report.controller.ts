@@ -7,7 +7,7 @@ export class ReportController {
     /** POST /reports — submit a report */
     static async submit(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { reportedUserId, roomId, reason, description } = req.body;

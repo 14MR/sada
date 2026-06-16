@@ -6,7 +6,7 @@ import logger from "../config/logger";
 export class ConversationController {
     static async create(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { type } = req.body;
@@ -32,7 +32,7 @@ export class ConversationController {
 
     static async list(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const limit = parseInt(req.query.limit as string) || 20;
@@ -48,7 +48,7 @@ export class ConversationController {
 
     static async get(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const conversationId = req.params.id as string;
@@ -67,7 +67,7 @@ export class ConversationController {
 
     static async sendMessage(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const conversationId = req.params.id as string;
@@ -93,7 +93,7 @@ export class ConversationController {
 
     static async getMessages(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const conversationId = req.params.id as string;
@@ -114,7 +114,7 @@ export class ConversationController {
 
     static async editMessage(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const conversationId = req.params.id as string;
@@ -137,7 +137,7 @@ export class ConversationController {
 
     static async deleteMessage(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const conversationId = req.params.id as string;
@@ -156,7 +156,7 @@ export class ConversationController {
 
     static async markRead(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const conversationId = req.params.id as string;
@@ -173,7 +173,7 @@ export class ConversationController {
 
     static async update(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const conversationId = req.params.id as string;
@@ -192,7 +192,7 @@ export class ConversationController {
 
     static async addParticipant(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const conversationId = req.params.id as string;
@@ -211,7 +211,7 @@ export class ConversationController {
 
     static async removeParticipant(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const conversationId = req.params.id as string;

@@ -6,7 +6,7 @@ export class RecordingController {
     static async start(req: Request, res: Response) {
         try {
             const { roomId } = req.body;
-            const hostId = (req as any).user.id;
+            const hostId = req.user!.id;
 
             if (!roomId) return res.status(400).json({ error: "roomId is required" });
 
@@ -21,7 +21,7 @@ export class RecordingController {
     static async stop(req: Request, res: Response) {
         try {
             const { id } = req.params;
-            const hostId = (req as any).user.id;
+            const hostId = req.user!.id;
             const { roomId } = req.body;
 
             if (!roomId) return res.status(400).json({ error: "roomId is required" });
@@ -37,7 +37,7 @@ export class RecordingController {
     static async publish(req: Request, res: Response) {
         try {
             const id = req.params.id as string;
-            const hostId = (req as any).user.id;
+            const hostId = req.user!.id;
 
             const recording = await RecordingService.publishRecording(id, hostId);
             return res.json(recording);
@@ -76,7 +76,7 @@ export class RecordingController {
 
     static async mine(req: Request, res: Response) {
         try {
-            const hostId = (req as any).user.id;
+            const hostId = req.user!.id;
             const limit = parseInt(req.query.limit as string) || 20;
             const offset = parseInt(req.query.offset as string) || 0;
 
@@ -91,7 +91,7 @@ export class RecordingController {
     static async delete(req: Request, res: Response) {
         try {
             const id = req.params.id as string;
-            const hostId = (req as any).user.id;
+            const hostId = req.user!.id;
 
             await RecordingService.deleteRecording(id, hostId);
             return res.json({ success: true });

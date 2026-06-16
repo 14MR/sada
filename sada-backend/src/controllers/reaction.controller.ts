@@ -4,7 +4,7 @@ import { ReactionService } from "../services/reaction.service";
 export class ReactionController {
     static async addReaction(req: Request, res: Response) {
         try {
-            const userId = (req as any).user.id;
+            const userId = req.user!.id;
             const { messageId, roomId, emoji } = req.body;
 
             if (!messageId || !roomId || !emoji) {
@@ -24,7 +24,7 @@ export class ReactionController {
 
     static async removeReaction(req: Request, res: Response) {
         try {
-            const userId = (req as any).user.id;
+            const userId = req.user!.id;
             const messageId = req.query.messageId as string;
             const emoji = req.query.emoji as string;
 

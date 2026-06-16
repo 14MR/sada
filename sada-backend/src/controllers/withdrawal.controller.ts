@@ -5,7 +5,7 @@ import { PayoutMethod } from "../models/Withdrawal";
 export class WithdrawalController {
     static async request(req: Request, res: Response) {
         try {
-            const userId = (req as any).user.id;
+            const userId = req.user!.id;
             const { amount, payout_method, payout_details } = req.body;
 
             if (!amount || amount <= 0) {
@@ -27,7 +27,7 @@ export class WithdrawalController {
 
     static async list(req: Request, res: Response) {
         try {
-            const userId = (req as any).user.id;
+            const userId = req.user!.id;
             const limit = parseInt(req.query.limit as string) || 20;
             const offset = parseInt(req.query.offset as string) || 0;
 
@@ -61,7 +61,7 @@ export class WithdrawalController {
 
             const withdrawal = await WithdrawalService.processWithdrawal(
                 id,
-                (req as any).user?.id || "admin",
+                req.user?.id || "admin",
                 approve,
                 note
             );

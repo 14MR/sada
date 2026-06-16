@@ -5,7 +5,7 @@ import { PushService } from "../services/push.service";
 export class NotificationController {
     static async list(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const limit = parseInt(req.query.limit as string) || 20;
@@ -20,7 +20,7 @@ export class NotificationController {
 
     static async markRead(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const notificationId = req.params.id as string;
@@ -36,7 +36,7 @@ export class NotificationController {
 
     static async markAllRead(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const count = await NotificationService.markAllRead(userId);
@@ -48,7 +48,7 @@ export class NotificationController {
 
     static async unreadCount(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const count = await NotificationService.getUnreadCount(userId);
@@ -61,7 +61,7 @@ export class NotificationController {
     /** POST /notifications/register-token — register Expo push token */
     static async registerPushToken(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { token } = req.body;
