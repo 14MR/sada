@@ -5,6 +5,13 @@ import { Room } from "../models/Room";
 const recordingRepository = AppDataSource.getRepository(RoomRecording);
 const roomRepository = AppDataSource.getRepository(Room);
 
+export class RecordingNotFoundError extends Error {
+    constructor() {
+        super("Recording not found");
+        this.name = "RecordingNotFoundError";
+    }
+}
+
 export class RecordingService {
     static async startRecording(roomId: string, hostId: string) {
         const room = await roomRepository.findOne({
@@ -56,7 +63,7 @@ export class RecordingService {
             where: { id: recordingId },
         });
 
-        if (!recording) throw new Error("Recording not found");
+        if (!recording) throw new RecordingNotFoundError();
         if (recording.host_id !== hostId) throw new Error("Only the host can publish recording");
         if (recording.status !== RecordingStatus.STOPPED) throw new Error("Recording must be stopped before publishing");
 
@@ -80,7 +87,7 @@ export class RecordingService {
             relations: ["host", "room"],
         });
 
-        if (!recording) throw new Error("Recording not found");
+        if (!recording) throw new RecordingNotFoundError();
 
         // Increment play count
         recording.play_count += 1;
@@ -104,7 +111,7 @@ export class RecordingService {
             where: { id: recordingId },
         });
 
-        if (!recording) throw new Error("Recording not found");
+        if (!recording) throw new RecordingNotFoundError();
         if (recording.host_id !== hostId) throw new Error("Only the host can delete recording");
 
         recording.status = RecordingStatus.FAILED;

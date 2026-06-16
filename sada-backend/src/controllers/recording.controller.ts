@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { RecordingService } from "../services/recording.service";
+import { RecordingNotFoundError, RecordingService } from "../services/recording.service";
 import logger from "../config/logger";
 
 export class RecordingController {
@@ -66,7 +66,7 @@ export class RecordingController {
             const recording = await RecordingService.getRecording(id);
             return res.json(recording);
         } catch (error: any) {
-            if (error.message === "Recording not found") {
+            if (error instanceof RecordingNotFoundError) {
                 return res.status(404).json({ error: error.message });
             }
             logger.error({ err: error }, "Get Recording Error");
@@ -96,7 +96,7 @@ export class RecordingController {
             await RecordingService.deleteRecording(id, hostId);
             return res.json({ success: true });
         } catch (error: any) {
-            if (error.message === "Recording not found") {
+            if (error instanceof RecordingNotFoundError) {
                 return res.status(404).json({ error: error.message });
             }
             logger.error({ err: error }, "Delete Recording Error");
