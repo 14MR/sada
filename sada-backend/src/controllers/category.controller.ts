@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { CategoryService } from "../services/category.service";
+import { CategoryNotFoundError, CategoryService } from "../services/category.service";
 import logger from "../config/logger";
 
 export class CategoryController {
@@ -19,7 +19,7 @@ export class CategoryController {
             const rooms = await CategoryService.getRoomsByCategorySlug(slug);
             return res.json(rooms);
         } catch (error: any) {
-            if (error.message === "Category not found") {
+            if (error instanceof CategoryNotFoundError) {
                 return res.status(404).json({ error: error.message });
             }
             logger.error({ err: error }, "Get Category Rooms Error");
