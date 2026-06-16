@@ -74,6 +74,7 @@
 - [x] Room lookup failures use a typed domain error
 - [x] Room state and host-permission failures use typed domain errors
 - [x] Speaker request failures use typed domain errors
+- [x] Banned auth sign-in failures use a typed domain error
 - [ ] Replace remaining controller string-match error mapping with typed domain errors
 - [ ] Add mobile unit/component tests around auth and gem purchase flows
 - [ ] Implement real Apple App Store Server API and Google Play receipt verification
@@ -104,4 +105,4 @@
 **Last Updated:** 2026-06-16
 **Tests:** 184/184 passing
 **Branch:** main
-**Latest PR:** #52
+**Latest PR:** #54
