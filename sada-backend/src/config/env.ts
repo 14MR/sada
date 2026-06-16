@@ -2,6 +2,21 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+const isProduction = process.env.NODE_ENV === "production";
+
+function optionalEnv(name: string): string {
+    const value = process.env[name]?.trim();
+    return value || "";
+}
+
+function requiredEnv(name: string): string {
+    const value = optionalEnv(name);
+    if (isProduction && !value) {
+        throw new Error(`Missing required environment variable: ${name}`);
+    }
+    return value;
+}
+
 export const vars = {
     port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
     db: {
@@ -12,13 +27,9 @@ export const vars = {
         database: process.env.DB_NAME || "sada",
     },
     cloudflare: {
-        // WARNING: Defaults are for development convenience only.
-        // In production, ALWAYS use environment variables.
-        appId: process.env.CLOUDFLARE_APP_ID || "87cf1cf7-2e37-45c2-8593-2f3f622f83fb",
-        turnKeyId: process.env.CLOUDFLARE_TURN_KEY_ID || "7d4ab122357ca883ff212d09f1cbf856",
-        apiToken: process.env.CLOUDFLARE_API_TOKEN || "c7a14148ccad31352df1b25b2fb8e7137c7b9143c1dd2c5dcfef7d584b5e3d87",
-        // Cloudflare Calls SFU App Secret - used to authenticate with the Calls API
-        // This is different from the API token. Find it in Cloudflare Dashboard > Calls > your app.
-        appSecret: process.env.CLOUDFLARE_APP_SECRET || "",
+        appId: requiredEnv("CLOUDFLARE_APP_ID"),
+        turnKeyId: requiredEnv("CLOUDFLARE_TURN_KEY_ID"),
+        apiToken: requiredEnv("CLOUDFLARE_API_TOKEN"),
+        appSecret: requiredEnv("CLOUDFLARE_APP_SECRET"),
     }
 };
