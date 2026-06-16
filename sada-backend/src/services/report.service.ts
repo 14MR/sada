@@ -1,7 +1,11 @@
 import { AppDataSource } from "../config/database";
 import { Report, ReportReason, ReportStatus } from "../models/Report";
 import { User } from "../models/User";
-import { ModerationService } from "./moderation.service";
+import {
+    CannotReportSelfError,
+    InvalidReportTargetError,
+    ModerationService,
+} from "./moderation.service";
 
 const reportRepository = AppDataSource.getRepository(Report);
 const userRepository = AppDataSource.getRepository(User);
@@ -12,10 +16,10 @@ export class ReportService {
         data: { reportedUserId?: string; roomId?: string; reason: ReportReason; description?: string }
     ) {
         if (!data.reportedUserId && !data.roomId) {
-            throw new Error("Either reportedUserId or roomId is required");
+            throw new InvalidReportTargetError();
         }
         if (data.reportedUserId && data.reportedUserId === reporterId) {
-            throw new Error("Cannot report yourself");
+            throw new CannotReportSelfError();
         }
 
         const reportedUserId = data.reportedUserId || null;
