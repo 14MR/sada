@@ -6,6 +6,7 @@ import { Follow } from "../models/Follow";
 const roomRepository = AppDataSource.getRepository(Room);
 const participantRepository = AppDataSource.getRepository(RoomParticipant);
 const followRepository = AppDataSource.getRepository(Follow);
+const MAX_RECOMMENDATION_CANDIDATES = 200;
 
 export class RecommendationService {
     static async getRecommended(userId: string, limit: number = 20, offset: number = 0) {
@@ -46,13 +47,19 @@ export class RecommendationService {
             socialRoomIds = [...new Set(activeFollowingParticipants.map(p => p.room_id))];
         }
 
-        // 3. Get all live rooms for scoring
+        // 3. Get a bounded live-room candidate set for scoring
+        const candidateLimit = Math.min(
+            MAX_RECOMMENDATION_CANDIDATES,
+            Math.max(offset + limit, limit * 5)
+        );
         const liveRooms = await roomRepository
             .createQueryBuilder("room")
             .leftJoinAndSelect("room.host", "host")
             .leftJoinAndSelect("room.category", "category")
-            .leftJoinAndSelect("room.participants", "participant")
             .where("room.status = :status", { status: 'live' })
+            .orderBy("room.listener_count", "DESC")
+            .addOrderBy("room.started_at", "DESC")
+            .take(candidateLimit)
             .getMany();
 
         // If no history, fallback to trending
@@ -60,14 +67,10 @@ export class RecommendationService {
             const scored = liveRooms.map(room => {
                 const hoursSinceStart = (Date.now() - new Date(room.started_at).getTime()) / (1000 * 3600);
                 const recencyBoost = 1000 / (hoursSinceStart + 1);
-                const participantCount = room.participants?.length ?? 0;
-                return { room, score: room.listener_count * recencyBoost + participantCount };
+                return { room, score: room.listener_count * recencyBoost };
             });
             scored.sort((a, b) => b.score - a.score);
-            return scored.slice(offset, offset + limit).map(s => {
-                const { participants, ...rest } = s.room as any;
-                return rest;
-            });
+            return scored.slice(offset, offset + limit).map(s => s.room);
         }
 
         // Weighted scoring: category_affinity * 0.5 + social_signal * 0.3 + trending * 0.2
@@ -79,8 +82,7 @@ export class RecommendationService {
 
             const hoursSinceStart = (Date.now() - new Date(room.started_at).getTime()) / (1000 * 3600);
             const recencyBoost = 1000 / (hoursSinceStart + 1);
-            const participantCount = room.participants?.length ?? 0;
-            const trendingScore = (room.listener_count * recencyBoost + participantCount) / (liveRooms.length || 1);
+            const trendingScore = (room.listener_count * recencyBoost) / (liveRooms.length || 1);
 
             const score = catScore * 0.5 + socialScore * 0.3 + trendingScore * 0.2;
             return { room, score };
@@ -88,9 +90,6 @@ export class RecommendationService {
 
         scored.sort((a, b) => b.score - a.score);
 
-        return scored.slice(offset, offset + limit).map(s => {
-            const { participants, ...rest } = s.room as any;
-            return rest;
-        });
+        return scored.slice(offset, offset + limit).map(s => s.room);
     }
 }

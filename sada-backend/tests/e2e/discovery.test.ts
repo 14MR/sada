@@ -339,6 +339,48 @@ describe('Scheduled Rooms & Discovery', () => {
     });
   });
 
+  describe('GET /rooms/recommended — Recommended rooms', () => {
+    it('should require authentication', async () => {
+      const res = await request(getApp()).get('/api/rooms/recommended');
+
+      expect(res.status).toBe(401);
+    });
+
+    it('should fall back to trending order when user has no history', async () => {
+      const { user } = await createTestUser();
+      await createTestRoom(user.id, { title: 'Recommended Popular', status: 'live', listener_count: 50 });
+      await createTestRoom(user.id, { title: 'Recommended Quiet', status: 'live', listener_count: 2 });
+      await createTestRoom(user.id, { title: 'Recommended Ended', status: 'ended', listener_count: 500 });
+
+      const { token } = await createTestUser();
+      const res = await request(getApp())
+        .get('/api/rooms/recommended')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveLength(2);
+      expect(res.body[0].title).toBe('Recommended Popular');
+      expect(res.body.map((room: Room) => room.title)).not.toContain('Recommended Ended');
+    });
+
+    it('should paginate recommended results', async () => {
+      const { user } = await createTestUser();
+
+      for (let i = 0; i < 4; i++) {
+        await createTestRoom(user.id, { title: `Recommended ${i}`, status: 'live', listener_count: 20 - i });
+      }
+
+      const { token } = await createTestUser();
+      const res = await request(getApp())
+        .get('/api/rooms/recommended?limit=2&offset=1')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveLength(2);
+      expect(res.body[0].title).toBe('Recommended 1');
+    });
+  });
+
   describe('GET /rooms/categories/:slug — Rooms by category', () => {
     it('should return live rooms for a category', async () => {
       const { user } = await createTestUser();
