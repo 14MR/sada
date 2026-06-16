@@ -5,6 +5,27 @@ import { UserBlock } from "../models/UserBlock";
 const reportRepository = AppDataSource.getRepository(Report);
 const blockRepository = AppDataSource.getRepository(UserBlock);
 
+export class CannotBlockSelfError extends Error {
+    constructor() {
+        super("Cannot block yourself");
+        this.name = "CannotBlockSelfError";
+    }
+}
+
+export class AlreadyBlockedError extends Error {
+    constructor() {
+        super("Already blocked");
+        this.name = "AlreadyBlockedError";
+    }
+}
+
+export class BlockNotFoundError extends Error {
+    constructor() {
+        super("Block not found");
+        this.name = "BlockNotFoundError";
+    }
+}
+
 export class ModerationService {
     // === Reports ===
 
@@ -33,12 +54,12 @@ export class ModerationService {
     // === Blocks ===
 
     static async blockUser(blockerId: string, blockedId: string) {
-        if (blockerId === blockedId) throw new Error("Cannot block yourself");
+        if (blockerId === blockedId) throw new CannotBlockSelfError();
 
         const existing = await blockRepository.findOne({
             where: { blocker_id: blockerId, blocked_id: blockedId },
         });
-        if (existing) throw new Error("Already blocked");
+        if (existing) throw new AlreadyBlockedError();
 
         const block = blockRepository.create({ blocker_id: blockerId, blocked_id: blockedId });
         return await blockRepository.save(block);
@@ -48,7 +69,7 @@ export class ModerationService {
         const block = await blockRepository.findOne({
             where: { blocker_id: blockerId, blocked_id: blockedId },
         });
-        if (!block) throw new Error("Block not found");
+        if (!block) throw new BlockNotFoundError();
         await blockRepository.remove(block);
     }
 

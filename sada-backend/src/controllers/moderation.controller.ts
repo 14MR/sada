@@ -1,5 +1,10 @@
 import { Request, Response } from "express";
-import { ModerationService } from "../services/moderation.service";
+import {
+    AlreadyBlockedError,
+    BlockNotFoundError,
+    CannotBlockSelfError,
+    ModerationService,
+} from "../services/moderation.service";
 import { ReportReason } from "../models/Report";
 
 export class ModerationController {
@@ -39,7 +44,7 @@ export class ModerationController {
             await ModerationService.blockUser(userId, blockedId);
             return res.json({ success: true });
         } catch (error: any) {
-            if (error.message.includes("Cannot block") || error.message.includes("Already")) {
+            if (error instanceof CannotBlockSelfError || error instanceof AlreadyBlockedError) {
                 return res.status(400).json({ error: error.message });
             }
             return res.status(500).json({ error: "Failed to block user" });
@@ -58,7 +63,7 @@ export class ModerationController {
             await ModerationService.unblockUser(userId, blockedId);
             return res.json({ success: true });
         } catch (error: any) {
-            if (error.message === "Block not found") return res.status(404).json({ error: error.message });
+            if (error instanceof BlockNotFoundError) return res.status(404).json({ error: error.message });
             return res.status(500).json({ error: "Failed to unblock user" });
         }
     }

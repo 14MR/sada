@@ -1,5 +1,10 @@
 import { Request, Response } from "express";
 import { BlockService } from "../services/block.service";
+import {
+    AlreadyBlockedError,
+    BlockNotFoundError,
+    CannotBlockSelfError,
+} from "../services/moderation.service";
 
 export class BlockController {
     /** POST /users/block — block a user */
@@ -14,7 +19,7 @@ export class BlockController {
             await BlockService.blockUser(userId, blockedId);
             return res.json({ success: true });
         } catch (error: any) {
-            if (error.message.includes("Cannot block") || error.message.includes("Already")) {
+            if (error instanceof CannotBlockSelfError || error instanceof AlreadyBlockedError) {
                 return res.status(400).json({ error: error.message });
             }
             return res.status(500).json({ error: "Failed to block user" });
@@ -33,7 +38,7 @@ export class BlockController {
             await BlockService.unblockUser(blockerId, blockedId);
             return res.json({ success: true });
         } catch (error: any) {
-            if (error.message === "Block not found") return res.status(404).json({ error: error.message });
+            if (error instanceof BlockNotFoundError) return res.status(404).json({ error: error.message });
             return res.status(500).json({ error: "Failed to unblock user" });
         }
     }
