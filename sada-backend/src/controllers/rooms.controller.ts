@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { RoomService } from "../services/room.service";
+import { RoomNotFoundError, RoomService } from "../services/room.service";
 import { InviteService } from "../services/invite.service";
 import { RecommendationService } from "../services/recommendation.service";
 import { ClipService } from "../services/clip.service";
@@ -179,7 +179,7 @@ export class RoomController {
             if (error.message.includes("not in scheduled") || error.message.includes("Only the host")) {
                 return res.status(400).json({ error: error.message });
             }
-            if (error.message === "Room not found") {
+            if (error instanceof RoomNotFoundError) {
                 return res.status(404).json({ error: error.message });
             }
             logger.error({ err: error }, "Start Scheduled Room Error");
@@ -224,7 +224,7 @@ export class RoomController {
             const recordings = await RoomService.getRoomRecordings(roomId);
             return res.json(recordings);
         } catch (error: any) {
-            if (error.message === "Room not found") {
+            if (error instanceof RoomNotFoundError) {
                 return res.status(404).json({ error: error.message });
             }
             logger.error({ err: error }, "Get Room Recordings Error");
@@ -238,7 +238,7 @@ export class RoomController {
             const replay = await RoomService.getRoomReplay(roomId);
             return res.json(replay);
         } catch (error: any) {
-            if (error.message === "Room not found") {
+            if (error instanceof RoomNotFoundError) {
                 return res.status(404).json({ error: error.message });
             }
             if (error.message.includes("ended")) {
@@ -399,7 +399,7 @@ export class RoomController {
             const summary = await RoomService.getRoomSummary(roomId);
             return res.json(summary);
         } catch (error: any) {
-            if (error.message === "Room not found") {
+            if (error instanceof RoomNotFoundError) {
                 return res.status(404).json({ error: error.message });
             }
             if (error.message.includes("ended")) {

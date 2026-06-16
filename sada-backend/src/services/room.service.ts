@@ -21,6 +21,13 @@ const categoryRepository = AppDataSource.getRepository(Category);
 const recordingRepository = AppDataSource.getRepository(RoomRecording);
 const gemRepository = AppDataSource.getRepository(GemTransaction);
 
+export class RoomNotFoundError extends Error {
+    constructor() {
+        super("Room not found");
+        this.name = "RoomNotFoundError";
+    }
+}
+
 export class RoomService {
     static async createRoom(host: User, title: string, categoryId?: string, description?: string, scheduledAt?: Date, tags?: string[]) {
         const room = new Room();
@@ -120,7 +127,7 @@ export class RoomService {
 
     static async joinRoom(user: User, roomId: string) {
         const room = await roomRepository.findOneBy({ id: roomId });
-        if (!room) throw new Error("Room not found");
+        if (!room) throw new RoomNotFoundError();
         if (room.status !== 'live') throw new Error("Room has ended");
 
         // Block enforcement: check if the joining user is blocked by the host (or vice versa)
@@ -176,7 +183,7 @@ export class RoomService {
             relations: ["host"]
         });
 
-        if (!room) throw new Error("Room not found");
+        if (!room) throw new RoomNotFoundError();
 
         // Authorization: Only host can change roles
         if (room.host.id !== requesterId) {
@@ -202,7 +209,7 @@ export class RoomService {
             relations: ["host"]
         });
 
-        if (!room) throw new Error("Room not found");
+        if (!room) throw new RoomNotFoundError();
         if (room.host.id !== hostId) throw new Error("Only host can end room");
 
         room.status = 'ended';
@@ -234,7 +241,7 @@ export class RoomService {
             where: { id: roomId },
             relations: ["host", "category"],
         });
-        if (!room) throw new Error("Room not found");
+        if (!room) throw new RoomNotFoundError();
         if (room.status !== "ended") throw new Error("Summary is only available for ended rooms");
 
         return {
@@ -315,7 +322,7 @@ export class RoomService {
             relations: ["host"]
         });
 
-        if (!room) throw new Error("Room not found");
+        if (!room) throw new RoomNotFoundError();
         if (room.host.id !== hostId) throw new Error("Only the host can start this room");
         if (room.status !== 'scheduled') throw new Error("Room is not in scheduled status");
 
@@ -389,7 +396,7 @@ export class RoomService {
 
     static async getRoomRecordings(roomId: string) {
         const room = await roomRepository.findOneBy({ id: roomId });
-        if (!room) throw new Error("Room not found");
+        if (!room) throw new RoomNotFoundError();
 
         return await recordingRepository.find({
             where: { room_id: roomId, status: RecordingStatus.PUBLISHED },
@@ -403,7 +410,7 @@ export class RoomService {
             where: { id: roomId },
             relations: ["host", "category"],
         });
-        if (!room) throw new Error("Room not found");
+        if (!room) throw new RoomNotFoundError();
         if (room.status !== "ended") throw new Error("Replay is only available for ended rooms");
 
         const [recordings, participants] = await Promise.all([
