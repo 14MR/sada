@@ -5,6 +5,7 @@ import { authenticate } from './middleware/auth';
 import { sanitize } from './middleware/sanitize';
 import { requestLogger } from './middleware/requestLogger';
 import logger from './config/logger';
+import { getExpressCorsOptions } from './config/cors';
 import authRoutes from './routes/auth.routes';
 import usersRoutes from './routes/users.routes';
 import roomsRoutes from './routes/rooms.routes';
@@ -22,16 +23,6 @@ import audioRoutes from './routes/audio.routes';
 import reportRoutes from './routes/report.routes';
 import conversationRoutes from './routes/conversation.routes';
 
-function getCorsOptions(): cors.CorsOptions {
-  const origins = process.env.CORS_ORIGINS;
-  if (!origins || origins === '*') {
-    return {};
-  }
-  return {
-    origin: origins.split(',').map(o => o.trim()),
-  };
-}
-
 const authLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 5,
@@ -47,7 +38,7 @@ const apiLimiter = rateLimit({
 export function createApp() {
   const app = express();
 
-  app.use(cors(getCorsOptions()));
+  app.use(cors(getExpressCorsOptions()));
   app.use(express.json());
   app.use(sanitize);
 
