@@ -1,22 +1,73 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { theme } from '../theme';
 import { AuthService } from '../api/auth';
 import * as SecureStore from 'expo-secure-store';
 
 export const LoginScreen = ({ navigation }: any) => {
     const [loading, setLoading] = React.useState(false);
+    const [appleAvailable, setAppleAvailable] = React.useState(false);
+
+    React.useEffect(() => {
+        let mounted = true;
+        AppleAuthentication.isAvailableAsync()
+            .then((available) => {
+                if (mounted) setAppleAvailable(available);
+            })
+            .catch(() => {
+                if (mounted) setAppleAvailable(false);
+            });
+
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    const getAppleIdentity = async () => {
+        if (appleAvailable) {
+            const credential = await AppleAuthentication.signInAsync({
+                requestedScopes: [
+                    AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+                    AppleAuthentication.AppleAuthenticationScope.EMAIL,
+                ],
+            });
+
+            if (!credential.identityToken) {
+                throw new Error('Apple did not return an identity token');
+            }
+
+            const fullName = [
+                credential.fullName?.givenName,
+                credential.fullName?.familyName,
+            ].filter(Boolean).join(' ');
+
+            return {
+                identityToken: credential.identityToken,
+                fullName: fullName || undefined,
+            };
+        }
+
+        if (__DEV__) {
+            return {
+                identityToken: `dev-user-${Date.now()}`,
+                fullName: 'Mobile Dev User',
+            };
+        }
+
+        throw new Error(
+            Platform.OS === 'ios'
+                ? 'Apple Sign-In is not available on this device'
+                : 'Apple Sign-In requires iOS'
+        );
+    };
 
     const handleLogin = async () => {
         setLoading(true);
         try {
-            // MOCK Apple Identity Token for Development
-            // In a real app, use expo-apple-authentication
-            const mockIdentityToken = `dev-user-${Date.now()}`;
-            const mockName = "Mobile Dev User";
-
-            const data = await AuthService.signIn(mockIdentityToken, mockName);
+            const { identityToken, fullName } = await getAppleIdentity();
+            const data = await AuthService.signIn(identityToken, fullName);
 
             await AuthService.saveToken(data.token);
 
@@ -54,7 +105,7 @@ export const LoginScreen = ({ navigation }: any) => {
                     disabled={loading}
                 >
                     <Text style={styles.buttonText}>
-                        {loading ? "Signing in..." : "Sign in with Apple (Dev)"}
+                        {loading ? "Signing in..." : "Sign in with Apple"}
                     </Text>
                 </TouchableOpacity>
             </View>
