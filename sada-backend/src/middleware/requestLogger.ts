@@ -11,7 +11,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
             path: req.path,
             status: res.statusCode,
             duration,
-            user: (req as any).user?.id || null,
+            user: req.user?.id || null,
         });
     });
 

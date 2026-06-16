@@ -5,7 +5,7 @@ export class BlockController {
     /** POST /users/block — block a user */
     static async block(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { blockedId } = req.body as { blockedId: string };
@@ -24,7 +24,7 @@ export class BlockController {
     /** DELETE /users/block/:userId — unblock a user */
     static async unblock(req: Request, res: Response) {
         try {
-            const blockerId = (req as any).user?.id;
+            const blockerId = req.user?.id;
             if (!blockerId) return res.status(401).json({ error: "Authentication required" });
 
             const blockedId = req.params.userId as string;
@@ -41,7 +41,7 @@ export class BlockController {
     /** GET /users/blocked — list blocked users */
     static async listBlocked(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const blocked = await BlockService.getBlockedUsers(userId);

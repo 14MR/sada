@@ -6,7 +6,7 @@ export class ModerationController {
     /** POST /moderation/report — report a user */
     static async report(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { reportedUserId, reason, description, roomId } = req.body;
@@ -30,7 +30,7 @@ export class ModerationController {
     /** POST /moderation/block — block a user */
     static async block(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { blockedId } = req.body as { blockedId: string };
@@ -49,7 +49,7 @@ export class ModerationController {
     /** POST /moderation/unblock — unblock a user */
     static async unblock(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { blockedId } = req.body as { blockedId: string };
@@ -66,7 +66,7 @@ export class ModerationController {
     /** GET /moderation/blocked — list blocked users */
     static async listBlocked(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const blocked = await ModerationService.getBlockedUsers(userId);

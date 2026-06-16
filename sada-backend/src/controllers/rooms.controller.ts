@@ -8,7 +8,7 @@ import logger from "../config/logger";
 export class RoomController {
     static async create(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { title, categoryId, description, scheduledAt, tags } = req.body;
@@ -66,7 +66,7 @@ export class RoomController {
     static async join(req: Request, res: Response) {
         try {
             const id = req.params.id as string;
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { UserService } = require("../services/user.service");
@@ -83,7 +83,7 @@ export class RoomController {
     static async leave(req: Request, res: Response) {
         try {
             const id = req.params.id as string;
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             await RoomService.leaveRoom(userId, id);
@@ -96,7 +96,7 @@ export class RoomController {
     static async manageSpeaker(req: Request, res: Response) {
         try {
             const id = req.params.id as string;
-            const requesterId = (req as any).user?.id;
+            const requesterId = req.user?.id;
             if (!requesterId) return res.status(401).json({ error: "Authentication required" });
 
             const { targetUserId, role } = req.body;
@@ -115,7 +115,7 @@ export class RoomController {
     static async end(req: Request, res: Response) {
         try {
             const id = req.params.id as string;
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             await RoomService.endRoom(userId, id);
@@ -132,7 +132,7 @@ export class RoomController {
 
     static async schedule(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { title, description, categoryId, scheduledAt } = req.body;
@@ -169,7 +169,7 @@ export class RoomController {
     static async start(req: Request, res: Response) {
         try {
             const id = req.params.id as string;
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const result = await RoomService.startScheduledRoom(userId, id);
@@ -253,7 +253,7 @@ export class RoomController {
     static async createInvite(req: Request, res: Response) {
         try {
             const roomId = req.params.id as string;
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { type, inviteeId, maxUses, expiresAt } = req.body;
@@ -278,7 +278,7 @@ export class RoomController {
     static async acceptInvite(req: Request, res: Response) {
         try {
             const code = req.params.code as string;
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const result = await InviteService.acceptInvite(userId, code);
@@ -295,7 +295,7 @@ export class RoomController {
     static async listInvites(req: Request, res: Response) {
         try {
             const roomId = req.params.id as string;
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const invites = await InviteService.listInvites(roomId, userId);
@@ -313,7 +313,7 @@ export class RoomController {
 
     static async recommended(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const limit = parseInt(req.query.limit as string) || 20;
@@ -332,7 +332,7 @@ export class RoomController {
     static async createClip(req: Request, res: Response) {
         try {
             const roomId = req.params.id as string;
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { startTime, endTime, title } = req.body;
@@ -414,7 +414,7 @@ export class RoomController {
     static async bookmark(req: Request, res: Response) {
         try {
             const roomId = req.params.id as string;
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { BookmarkService } = require("../services/bookmark.service");
@@ -435,7 +435,7 @@ export class RoomController {
     static async removeBookmark(req: Request, res: Response) {
         try {
             const roomId = req.params.id as string;
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { BookmarkService } = require("../services/bookmark.service");

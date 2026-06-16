@@ -5,7 +5,7 @@ export class SpeakerRequestController {
     /** POST /rooms/:roomId/speaker-requests — listener raises hand */
     static async raiseHand(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { id: roomId } = req.params as { id: string };
@@ -33,7 +33,7 @@ export class SpeakerRequestController {
     /** PATCH /rooms/:roomId/speaker-requests/:requestId — host approves or rejects */
     static async resolve(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { id: roomId, requestId } = req.params as { id: string; requestId: string };
@@ -59,7 +59,7 @@ export class SpeakerRequestController {
     /** POST /rooms/:roomId/approve-speaker/:requestId — host approves (legacy) */
     static async approve(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { id: roomId, requestId } = req.params as { id: string; requestId: string };
@@ -76,7 +76,7 @@ export class SpeakerRequestController {
     /** POST /rooms/:roomId/reject-speaker/:requestId — host rejects (legacy) */
     static async reject(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { id: roomId, requestId } = req.params as { id: string; requestId: string };
@@ -93,7 +93,7 @@ export class SpeakerRequestController {
     /** POST /rooms/:roomId/cancel-hand — user cancels own request */
     static async cancel(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { id: roomId } = req.params as { id: string };

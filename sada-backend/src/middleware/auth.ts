@@ -28,7 +28,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
     const token = authHeader.split(" ")[1];
     try {
         const payload = jwt.verify(token, getJwtSecret()) as { id: string; username: string };
-        (req as any).user = payload;
+        req.user = payload;
         next();
     } catch {
         return res.status(401).json({ error: "Invalid or expired token" });

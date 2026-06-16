@@ -20,7 +20,7 @@ export class UserController {
     static async updateProfile(req: Request, res: Response) {
         try {
             const id = req.params.id as string;
-            const currentUser = (req as any).user?.id;
+            const currentUser = req.user?.id;
             if (!currentUser) return res.status(401).json({ error: "Authentication required" });
             if (currentUser !== id) return res.status(403).json({ error: "Forbidden" });
 
@@ -43,7 +43,7 @@ export class UserController {
     static async deleteAccount(req: Request, res: Response) {
         try {
             const id = req.params.id as string;
-            const currentUser = (req as any).user?.id;
+            const currentUser = req.user?.id;
             if (!currentUser) return res.status(401).json({ error: "Authentication required" });
             if (currentUser !== id) return res.status(403).json({ error: "Forbidden" });
             await UserService.deleteUser(id);

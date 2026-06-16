@@ -5,7 +5,7 @@ import logger from "../config/logger";
 export class PresenceController {
     static async update(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { status, currentRoomId } = req.body;
@@ -19,7 +19,7 @@ export class PresenceController {
 
     static async get(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const targetUserId = req.params.id as string;

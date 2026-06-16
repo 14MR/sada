@@ -6,7 +6,7 @@ export class CreatorController {
     /** GET /creator/dashboard — requires auth */
     static async dashboard(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const stats = await CreatorService.getDashboard(userId);
@@ -22,7 +22,7 @@ export class CreatorController {
     /** GET /creator/earnings — gem earnings breakdown */
     static async earnings(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { from, to } = req.query;
@@ -42,7 +42,7 @@ export class CreatorController {
     /** GET /creator/rooms — rooms hosted with stats */
     static async rooms(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const limit = parseInt(req.query.limit as string) || 20;
@@ -59,7 +59,7 @@ export class CreatorController {
     /** GET /creator/top-supporters — users who gifted the most */
     static async topSupporters(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const limit = parseInt(req.query.limit as string) || 10;

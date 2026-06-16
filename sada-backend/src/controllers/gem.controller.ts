@@ -4,7 +4,7 @@ import { GemService } from "../services/gem.service";
 export class GemController {
     static async purchase(req: Request, res: Response) {
         try {
-            const userId = (req as any).user?.id;
+            const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
             const { amount, receiptData, platform } = req.body;
@@ -18,7 +18,7 @@ export class GemController {
 
     static async gift(req: Request, res: Response) {
         try {
-            const senderId = (req as any).user?.id;
+            const senderId = req.user?.id;
             if (!senderId) return res.status(401).json({ error: "Authentication required" });
 
             const { receiverId, amount, roomId } = req.body;
@@ -32,7 +32,7 @@ export class GemController {
     static async getBalance(req: Request, res: Response) {
         try {
             const userId = req.params.userId as string;
-            const currentUser = (req as any).user?.id;
+            const currentUser = req.user?.id;
             if (!currentUser) return res.status(401).json({ error: "Authentication required" });
             if (currentUser !== userId) return res.status(403).json({ error: "Forbidden" });
             const balance = await GemService.getBalance(userId);
@@ -45,7 +45,7 @@ export class GemController {
     static async getHistory(req: Request, res: Response) {
         try {
             const userId = req.params.userId as string;
-            const currentUser = (req as any).user?.id;
+            const currentUser = req.user?.id;
             if (!currentUser) return res.status(401).json({ error: "Authentication required" });
             if (currentUser !== userId) return res.status(403).json({ error: "Forbidden" });
             const history = await GemService.getHistory(userId);

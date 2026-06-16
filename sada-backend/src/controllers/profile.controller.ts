@@ -6,8 +6,7 @@ export class ProfileController {
     static async getProfile(req: Request, res: Response) {
         try {
             const userId = req.params.id as string;
-            // In a real app, requesterId would come from auth middleware: req.user?.id
-            const requesterId = (req as any).user?.id as string | undefined;
+            const requesterId = req.user?.id as string | undefined;
 
             const profile = await ProfileService.getPublicProfile(userId, requesterId);
             if (!profile) {
@@ -22,8 +21,7 @@ export class ProfileController {
 
     static async updateProfile(req: Request, res: Response) {
         try {
-            // In a real app, userId would come from auth middleware: req.user.id
-            const userId = (req as any).user?.id as string;
+            const userId = req.user?.id as string;
             if (!userId) {
                 return res.status(401).json({ error: "Authentication required" });
             }
