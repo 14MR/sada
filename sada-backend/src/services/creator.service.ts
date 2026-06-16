@@ -7,12 +7,26 @@ const roomRepository = AppDataSource.getRepository(Room);
 const gemRepository = AppDataSource.getRepository(GemTransaction);
 const userRepository = AppDataSource.getRepository(User);
 
+export class CreatorUserNotFoundError extends Error {
+    constructor() {
+        super("User not found");
+        this.name = "CreatorUserNotFoundError";
+    }
+}
+
+export class CreatorAccessRequiredError extends Error {
+    constructor() {
+        super("Creator access required");
+        this.name = "CreatorAccessRequiredError";
+    }
+}
+
 export class CreatorService {
     /** Full creator dashboard: stats, earnings summary, recent rooms */
     static async getDashboard(userId: string) {
         const user = await userRepository.findOneBy({ id: userId });
-        if (!user) throw new Error("User not found");
-        if (!user.is_creator) throw new Error("Creator access required");
+        if (!user) throw new CreatorUserNotFoundError();
+        if (!user.is_creator) throw new CreatorAccessRequiredError();
 
         // Total rooms hosted
         const totalRooms = await roomRepository.count({
@@ -148,7 +162,7 @@ export class CreatorService {
 
     private static async assertCreator(userId: string) {
         const user = await userRepository.findOneBy({ id: userId });
-        if (!user) throw new Error("User not found");
-        if (!user.is_creator) throw new Error("Creator access required");
+        if (!user) throw new CreatorUserNotFoundError();
+        if (!user.is_creator) throw new CreatorAccessRequiredError();
     }
 }
