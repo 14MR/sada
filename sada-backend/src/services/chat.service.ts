@@ -3,14 +3,9 @@ import { Server as HttpServer } from "http";
 import jwt from "jsonwebtoken";
 import { getJwtSecret } from "../middleware/auth";
 import { AppDataSource } from "../config/database";
+import { getSocketCorsOrigin } from "../config/cors";
 import { RoomParticipant } from "../models/RoomParticipant";
 import { IsNull } from "typeorm";
-
-function getCorsOrigins(): string | string[] {
-    const origins = process.env.CORS_ORIGINS;
-    if (!origins || origins === "*") return "*";
-    return origins.split(",").map(o => o.trim());
-}
 
 export class ChatService {
     private static instance: ChatService;
@@ -19,7 +14,7 @@ export class ChatService {
     private constructor(httpServer: HttpServer) {
         this.io = new Server(httpServer, {
             cors: {
-                origin: getCorsOrigins(),
+                origin: getSocketCorsOrigin(),
                 methods: ["GET", "POST"]
             }
         });
