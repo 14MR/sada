@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { AppDataSource } from "../config/database";
 import { GemTransaction, TransactionType } from "../models/GemTransaction";
+import { PaymentReceipt, PaymentReceiptStatus } from "../models/PaymentReceipt";
 import { User } from "../models/User";
 import { ChatService } from "./chat.service";
 import { NotificationService } from "./notification.service";
@@ -10,8 +11,6 @@ import { ActivityService } from "./activity.service";
 import { ActivityType } from "../models/UserActivity";
 import logger from "../config/logger";
 
-// In-memory receipt hash store for idempotency (prod should use Redis/DB)
-const processedReceipts = new Map<string, string>();
 const giftLocks = new Map<string, Promise<void>>();
 
 async function withGiftLock<T>(senderId: string, fn: () => Promise<T>): Promise<T> {
@@ -66,23 +65,9 @@ export class PaymentService {
         return crypto.createHash("sha256").update(receiptData).digest("hex");
     }
 
-    /** Atomically check-and-reserve a receipt hash. Returns true if it was already claimed. */
-    static tryClaim(receiptHash: string): boolean {
-        if (processedReceipts.has(receiptHash)) {
-            return true; // already claimed — duplicate
-        }
-        processedReceipts.set(receiptHash, "pending");
-        return false;
-    }
-
-    /** Update receipt record with real transaction ID after commit */
-    static markProcessed(receiptHash: string, transactionId: string): void {
-        processedReceipts.set(receiptHash, transactionId);
-    }
-
-    /** Remove a claimed receipt if the transaction failed (rollback) */
-    static releaseClaim(receiptHash: string): void {
-        processedReceipts.delete(receiptHash);
+    static isDuplicateReceiptError(error: unknown): boolean {
+        if (!(error instanceof Error)) return false;
+        return /duplicate|unique|constraint|SQLITE_CONSTRAINT/i.test(error.message);
     }
 }
 
@@ -96,6 +81,7 @@ export class GemService {
         }
 
         // Payment verification when receipt is provided
+        let providerTransactionId: string | undefined;
         if (receiptData) {
             const verification = platform === "google"
                 ? await PaymentService.verifyGooglePurchase(receiptData, `gems_${amount}`)
@@ -104,21 +90,16 @@ export class GemService {
             if (!verification.valid) {
                 throw new Error("Payment verification failed");
             }
+            providerTransactionId = verification.transactionId;
         }
 
-        // Atomically check-and-reserve the receipt hash BEFORE the async transaction.
-        // This prevents the TOCTOU race where two concurrent requests both pass
-        // isDuplicate() at their respective await boundaries.
         let receiptHash: string | null = null;
         if (receiptData) {
             receiptHash = PaymentService.receiptHash(receiptData);
-            if (PaymentService.tryClaim(receiptHash)) {
-                throw new Error("Duplicate purchase — receipt already processed");
-            }
         }
 
         try {
-            const txResult = await AppDataSource.manager.transaction(async transactionalEntityManager => {
+            return await AppDataSource.manager.transaction(async transactionalEntityManager => {
                 const user = await transactionalEntityManager.findOne(User, { where: { id: userId } });
                 if (!user) throw new Error("User not found");
 
@@ -134,18 +115,23 @@ export class GemService {
                 }
 
                 const saved = await transactionalEntityManager.save(tx);
-                return { saved, transactionId: saved.id };
-            });
 
-            // Update the claim with the real transaction ID after commit
-            if (receiptHash) {
-                PaymentService.markProcessed(receiptHash, txResult.transactionId);
-            }
-            return txResult.saved;
+                if (receiptHash) {
+                    const receipt = new PaymentReceipt();
+                    receipt.receipt_hash = receiptHash;
+                    receipt.platform = platform || "apple";
+                    receipt.amount = amount;
+                    receipt.status = PaymentReceiptStatus.PROCESSED;
+                    receipt.provider_transaction_id = providerTransactionId || null;
+                    receipt.gem_transaction_id = saved.id;
+                    await transactionalEntityManager.insert(PaymentReceipt, receipt);
+                }
+
+                return saved;
+            });
         } catch (err) {
-            // Release the claim if the transaction failed so the receipt can be retried
-            if (receiptHash) {
-                PaymentService.releaseClaim(receiptHash);
+            if (receiptHash && PaymentService.isDuplicateReceiptError(err)) {
+                throw new Error("Duplicate purchase — receipt already processed");
             }
             throw err;
         }

@@ -6,6 +6,8 @@
  */
 import request from 'supertest';
 import { setupTestDB, clearDatabase, createTestUser, getApp } from './helpers';
+import { AppDataSource } from '../../src/config/database';
+import { PaymentReceipt } from '../../src/models/PaymentReceipt';
 
 jest.mock('../../src/config/database', () => require('./testDb'));
 
@@ -151,6 +153,53 @@ describe('Gems E2E', () => {
         .set('Authorization', `Bearer ${receiver.token}`);
 
       expect(senderBal.body.balance + receiverBal.body.balance).toBe(100);
+    });
+  });
+
+  describe('POST /gems/purchase', () => {
+    it('should persist receipt claims for purchase idempotency', async () => {
+      const buyer = await createTestUser({ username: 'gem_buyer', gem_balance: 0 });
+
+      const response = await request(getApp())
+        .post('/api/gems/purchase')
+        .set('Authorization', `Bearer ${buyer.token}`)
+        .send({ amount: 100, receiptData: 'apple-receipt-1', platform: 'apple' });
+
+      expect(response.status).toBe(200);
+
+      const receipts = await AppDataSource.getRepository(PaymentReceipt).find();
+      expect(receipts).toHaveLength(1);
+      expect(receipts[0].amount).toBe(100);
+      expect(receipts[0].platform).toBe('apple');
+      expect(receipts[0].gem_transaction_id).toBe(response.body.id);
+
+      const balance = await request(getApp())
+        .get(`/api/gems/balance/${buyer.user.id}`)
+        .set('Authorization', `Bearer ${buyer.token}`);
+      expect(balance.body.balance).toBe(100);
+    });
+
+    it('should reject duplicate purchase receipts from the database', async () => {
+      const buyer = await createTestUser({ username: 'gem_dup_buyer', gem_balance: 0 });
+      const payload = { amount: 50, receiptData: 'duplicate-apple-receipt', platform: 'apple' };
+
+      const first = await request(getApp())
+        .post('/api/gems/purchase')
+        .set('Authorization', `Bearer ${buyer.token}`)
+        .send(payload);
+
+      const duplicate = await request(getApp())
+        .post('/api/gems/purchase')
+        .set('Authorization', `Bearer ${buyer.token}`)
+        .send(payload);
+
+      expect(first.status).toBe(200);
+      expect(duplicate.status).toBe(409);
+
+      const balance = await request(getApp())
+        .get(`/api/gems/balance/${buyer.user.id}`)
+        .set('Authorization', `Bearer ${buyer.token}`);
+      expect(balance.body.balance).toBe(50);
     });
   });
 });
