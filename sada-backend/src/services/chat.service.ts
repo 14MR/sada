@@ -2,6 +2,9 @@ import { Server, Socket } from "socket.io";
 import { Server as HttpServer } from "http";
 import jwt from "jsonwebtoken";
 import { getJwtSecret } from "../middleware/auth";
+import { AppDataSource } from "../config/database";
+import { RoomParticipant } from "../models/RoomParticipant";
+import { IsNull } from "typeorm";
 
 function getCorsOrigins(): string | string[] {
     const origins = process.env.CORS_ORIGINS;
@@ -46,6 +49,23 @@ export class ChatService {
         this.io.to(roomId).emit(event, data);
     }
 
+    public static async canAccessRoom(userId: string, roomId: string): Promise<boolean> {
+        const participant = await AppDataSource.getRepository(RoomParticipant).findOne({
+            where: {
+                user_id: userId,
+                room_id: roomId,
+                left_at: IsNull(),
+            },
+            relations: ["room"],
+        });
+
+        return Boolean(
+            participant &&
+            participant.room?.status === "live" &&
+            participant.room.chat_enabled
+        );
+    }
+
     private initializeConnection() {
         this.io.use((socket: Socket, next) => {
             const token = socket.handshake.auth?.token || socket.handshake.query?.token as string;
@@ -68,12 +88,29 @@ export class ChatService {
                     socket.join(`user_${user.id}`);
                 }
             });
-            socket.on("join_room", (roomId: string) => {
+            socket.on("join_room", async (roomId: string) => {
+                const user = (socket as any).user;
+                if (!user?.id || typeof roomId !== "string") {
+                    socket.emit("room_error", { roomId, error: "Room access denied" });
+                    return;
+                }
+
+                const canAccess = await ChatService.canAccessRoom(user.id, roomId);
+                if (!canAccess) {
+                    socket.emit("room_error", { roomId, error: "Room access denied" });
+                    return;
+                }
+
                 socket.join(roomId);
                 socket.to(roomId).emit("user_joined", { socketId: socket.id });
             });
             socket.on("send_message", (data: { roomId: string, message: string }) => {
                 const user = (socket as any).user;
+                if (!data?.roomId || !socket.rooms.has(data.roomId)) {
+                    socket.emit("room_error", { roomId: data?.roomId, error: "Join room before sending messages" });
+                    return;
+                }
+
                 // Use authenticated identity — never trust client-provided userId/username
                 this.io.to(data.roomId).emit("receive_message", {
                     roomId: data.roomId,
@@ -83,6 +120,11 @@ export class ChatService {
                 });
             });
             socket.on("signal", (data: { roomId: string, signal: any }) => {
+                if (!data?.roomId || !socket.rooms.has(data.roomId)) {
+                    socket.emit("room_error", { roomId: data?.roomId, error: "Join room before signaling" });
+                    return;
+                }
+
                 socket.to(data.roomId).emit("signal", { senderId: socket.id, signal: data.signal });
             });
             socket.on("leave_room", (roomId: string) => { socket.leave(roomId); });
