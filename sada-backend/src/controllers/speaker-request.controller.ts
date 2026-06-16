@@ -1,5 +1,12 @@
 import { Request, Response } from "express";
-import { SpeakerRequestService } from "../services/speaker-request.service";
+import { RoomHostRequiredError, RoomNotFoundError } from "../services/room.service";
+import {
+    PendingSpeakerRequestNotFoundError,
+    SpeakerRequestAlreadyExistsError,
+    SpeakerRequestAlreadyResolvedError,
+    SpeakerRequestNotFoundError,
+    SpeakerRequestService,
+} from "../services/speaker-request.service";
 
 export class SpeakerRequestController {
     /** POST /rooms/:roomId/speaker-requests — listener raises hand */
@@ -14,7 +21,7 @@ export class SpeakerRequestController {
             const request = await SpeakerRequestService.raiseHand(roomId, userId, message);
             return res.status(201).json(request);
         } catch (error: any) {
-            if (error.message === "Already requested") return res.status(409).json({ error: error.message });
+            if (error instanceof SpeakerRequestAlreadyExistsError) return res.status(409).json({ error: error.message });
             return res.status(500).json({ error: "Failed to raise hand" });
         }
     }
@@ -49,7 +56,12 @@ export class SpeakerRequestController {
 
             return res.json(request);
         } catch (error: any) {
-            if (error.message.includes("not found") || error.message.includes("already resolved") || error.message.includes("Only the host")) {
+            if (
+                error instanceof RoomNotFoundError ||
+                error instanceof RoomHostRequiredError ||
+                error instanceof SpeakerRequestNotFoundError ||
+                error instanceof SpeakerRequestAlreadyResolvedError
+            ) {
                 return res.status(400).json({ error: error.message });
             }
             return res.status(500).json({ error: "Failed to resolve request" });
@@ -66,7 +78,12 @@ export class SpeakerRequestController {
             const request = await SpeakerRequestService.approve(roomId, requestId, userId);
             return res.json(request);
         } catch (error: any) {
-            if (error.message.includes("not found") || error.message.includes("already resolved")) {
+            if (
+                error instanceof RoomNotFoundError ||
+                error instanceof RoomHostRequiredError ||
+                error instanceof SpeakerRequestNotFoundError ||
+                error instanceof SpeakerRequestAlreadyResolvedError
+            ) {
                 return res.status(400).json({ error: error.message });
             }
             return res.status(500).json({ error: "Failed to approve" });
@@ -83,7 +100,12 @@ export class SpeakerRequestController {
             const request = await SpeakerRequestService.reject(roomId, requestId, userId);
             return res.json(request);
         } catch (error: any) {
-            if (error.message.includes("not found") || error.message.includes("already resolved")) {
+            if (
+                error instanceof RoomNotFoundError ||
+                error instanceof RoomHostRequiredError ||
+                error instanceof SpeakerRequestNotFoundError ||
+                error instanceof SpeakerRequestAlreadyResolvedError
+            ) {
                 return res.status(400).json({ error: error.message });
             }
             return res.status(500).json({ error: "Failed to reject" });
@@ -100,7 +122,7 @@ export class SpeakerRequestController {
             const request = await SpeakerRequestService.cancel(roomId, userId);
             return res.json(request);
         } catch (error: any) {
-            if (error.message === "No pending request found") {
+            if (error instanceof PendingSpeakerRequestNotFoundError) {
                 return res.status(404).json({ error: error.message });
             }
             return res.status(500).json({ error: "Failed to cancel" });
