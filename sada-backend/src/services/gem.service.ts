@@ -13,6 +13,13 @@ import logger from "../config/logger";
 
 const giftLocks = new Map<string, Promise<void>>();
 
+export class DuplicatePurchaseError extends Error {
+    constructor() {
+        super("Duplicate purchase — receipt already processed");
+        this.name = "DuplicatePurchaseError";
+    }
+}
+
 async function withGiftLock<T>(senderId: string, fn: () => Promise<T>): Promise<T> {
     const previous = giftLocks.get(senderId) ?? Promise.resolve();
     let release!: () => void;
@@ -131,7 +138,7 @@ export class GemService {
             });
         } catch (err) {
             if (receiptHash && PaymentService.isDuplicateReceiptError(err)) {
-                throw new Error("Duplicate purchase — receipt already processed");
+                throw new DuplicatePurchaseError();
             }
             throw err;
         }
