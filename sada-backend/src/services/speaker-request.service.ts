@@ -1,8 +1,37 @@
 import { AppDataSource } from "../config/database";
 import { SpeakerRequest } from "../models/SpeakerRequest";
 import { Room } from "../models/Room";
+import { RoomHostRequiredError, RoomNotFoundError, RoomService } from "./room.service";
 
 const requestRepository = AppDataSource.getRepository(SpeakerRequest);
+
+export class SpeakerRequestAlreadyExistsError extends Error {
+    constructor() {
+        super("Already requested");
+        this.name = "SpeakerRequestAlreadyExistsError";
+    }
+}
+
+export class SpeakerRequestNotFoundError extends Error {
+    constructor() {
+        super("Request not found");
+        this.name = "SpeakerRequestNotFoundError";
+    }
+}
+
+export class SpeakerRequestAlreadyResolvedError extends Error {
+    constructor() {
+        super("Request already resolved");
+        this.name = "SpeakerRequestAlreadyResolvedError";
+    }
+}
+
+export class PendingSpeakerRequestNotFoundError extends Error {
+    constructor() {
+        super("No pending request found");
+        this.name = "PendingSpeakerRequestNotFoundError";
+    }
+}
 
 export class SpeakerRequestService {
     /** Raise hand — create a pending request */
@@ -11,7 +40,7 @@ export class SpeakerRequestService {
         const existing = await requestRepository.findOne({
             where: { room_id: roomId, user_id: userId, status: "pending" },
         });
-        if (existing) throw new Error("Already requested");
+        if (existing) throw new SpeakerRequestAlreadyExistsError();
 
         const request = requestRepository.create({
             room_id: roomId,
@@ -37,8 +66,8 @@ export class SpeakerRequestService {
         const request = await requestRepository.findOne({
             where: { id: requestId, room_id: roomId },
         });
-        if (!request) throw new Error("Request not found");
-        if (request.status !== "pending") throw new Error("Request already resolved");
+        if (!request) throw new SpeakerRequestNotFoundError();
+        if (request.status !== "pending") throw new SpeakerRequestAlreadyResolvedError();
 
         request.status = "approved";
         request.resolved_at = new Date();
@@ -47,7 +76,6 @@ export class SpeakerRequestService {
         await requestRepository.save(request);
 
         // Update participant role to speaker
-        const { RoomService } = require("./room.service");
         await RoomService.updateParticipantRole(hostId, roomId, request.user_id, "speaker");
 
         return request;
@@ -58,14 +86,14 @@ export class SpeakerRequestService {
         // Verify the rejecting user is the room host
         const roomRepository = AppDataSource.getRepository(Room);
         const room = await roomRepository.findOne({ where: { id: roomId } });
-        if (!room) throw new Error("Room not found");
-        if (room.host_id !== hostId) throw new Error("Only the host can reject speaker requests");
+        if (!room) throw new RoomNotFoundError();
+        if (room.host_id !== hostId) throw new RoomHostRequiredError("Only the host can reject speaker requests");
 
         const request = await requestRepository.findOne({
             where: { id: requestId, room_id: roomId },
         });
-        if (!request) throw new Error("Request not found");
-        if (request.status !== "pending") throw new Error("Request already resolved");
+        if (!request) throw new SpeakerRequestNotFoundError();
+        if (request.status !== "pending") throw new SpeakerRequestAlreadyResolvedError();
 
         request.status = "rejected";
         request.resolved_at = new Date();
@@ -79,7 +107,7 @@ export class SpeakerRequestService {
         const request = await requestRepository.findOne({
             where: { room_id: roomId, user_id: userId, status: "pending" },
         });
-        if (!request) throw new Error("No pending request found");
+        if (!request) throw new PendingSpeakerRequestNotFoundError();
 
         request.status = "cancelled";
         return await requestRepository.save(request);
