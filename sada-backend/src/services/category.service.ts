@@ -5,6 +5,13 @@ import { Room } from "../models/Room";
 const categoryRepository = AppDataSource.getRepository(Category);
 const roomRepository = AppDataSource.getRepository(Room);
 
+export class CategoryNotFoundError extends Error {
+    constructor() {
+        super("Category not found");
+        this.name = "CategoryNotFoundError";
+    }
+}
+
 export class CategoryService {
     static async getAll() {
         return await categoryRepository.find({ order: { name: "ASC" } });
@@ -16,7 +23,7 @@ export class CategoryService {
 
     static async getRoomsByCategorySlug(slug: string) {
         const category = await this.getBySlug(slug);
-        if (!category) throw new Error("Category not found");
+        if (!category) throw new CategoryNotFoundError();
 
         return await roomRepository.find({
             where: { categoryId: category.id, status: "live" },

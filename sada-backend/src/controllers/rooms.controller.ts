@@ -3,6 +3,7 @@ import { RoomService } from "../services/room.service";
 import { InviteService } from "../services/invite.service";
 import { RecommendationService } from "../services/recommendation.service";
 import { ClipService } from "../services/clip.service";
+import { CategoryNotFoundError } from "../services/category.service";
 import logger from "../config/logger";
 
 export class RoomController {
@@ -144,7 +145,7 @@ export class RoomController {
             const room = await RoomService.scheduleRoom(host, title, description, categoryId, new Date(scheduledAt));
             return res.status(201).json(room);
         } catch (error: any) {
-            if (error.message.includes("future date") || error.message.includes("Category not found")) {
+            if (error instanceof CategoryNotFoundError || error.message.includes("future date")) {
                 return res.status(400).json({ error: error.message });
             }
             logger.error({ err: error }, "Schedule Room Error");

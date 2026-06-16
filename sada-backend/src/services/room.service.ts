@@ -3,6 +3,7 @@ import { Room } from "../models/Room";
 import { RoomParticipant } from "../models/RoomParticipant";
 import { User } from "../models/User";
 import { Category } from "../models/Category";
+import { CategoryNotFoundError } from "./category.service";
 import { RoomRecording, RecordingStatus } from "../models/RoomRecording";
 import { GemTransaction } from "../models/GemTransaction";
 import { AudioService } from "./audio.service";
@@ -250,7 +251,7 @@ export class RoomService {
 
     static async scheduleRoom(host: User, title: string, description: string, categoryId: string, scheduledAt: Date) {
         const category = await categoryRepository.findOneBy({ id: categoryId });
-        if (!category) throw new Error("Category not found");
+        if (!category) throw new CategoryNotFoundError();
         if (scheduledAt.getTime() <= Date.now()) throw new Error("scheduledAt must be a future date");
 
         const room = new Room();
