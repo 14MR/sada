@@ -66,6 +66,7 @@
 - [x] Recommended rooms score a bounded live-room candidate set
 - [x] Authenticated Express requests have typed `req.user` access
 - [x] Duplicate gem purchase conflicts use a typed domain error
+- [x] Report target validation uses typed domain errors
 - [ ] Replace remaining controller string-match error mapping with typed domain errors
 - [ ] Add mobile unit/component tests around auth and gem purchase flows
 - [ ] Implement real Apple App Store Server API and Google Play receipt verification
@@ -96,4 +97,4 @@
 **Last Updated:** 2026-06-16
 **Tests:** 184/184 passing
 **Branch:** main
-**Latest PR:** #35
+**Latest PR:** #38
