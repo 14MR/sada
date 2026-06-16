@@ -296,6 +296,11 @@ export class CallsService {
      */
     static async getIceServers() {
         const { turnKeyId, apiToken } = vars.cloudflare;
+        if (!turnKeyId || !apiToken) {
+            logger.warn("Cloudflare TURN is not configured; returning no ICE servers");
+            return [];
+        }
+
         const url = `https://rtc.live.cloudflare.com/v1/turn/keys/${turnKeyId}/credentials/generate-ice-servers`;
 
         try {
