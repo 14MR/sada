@@ -356,32 +356,15 @@ export class RoomService {
     // ── Trending / Discovery ─────────────────────────────────────────
 
     static async getTrendingRooms(limit: number = 20, offset: number = 0) {
-        // Fetch live rooms with participants for trending calculation
-        const rooms = await roomRepository.createQueryBuilder("room")
+        return await roomRepository.createQueryBuilder("room")
             .leftJoinAndSelect("room.host", "host")
             .leftJoinAndSelect("room.category", "category")
-            .leftJoinAndSelect("room.participants", "participant")
             .where("room.status = :status", { status: 'live' })
+            .orderBy("room.listener_count", "DESC")
+            .addOrderBy("room.started_at", "DESC")
+            .skip(offset)
+            .take(limit)
             .getMany();
-
-        // Compute trending score in JS for cross-DB compatibility:
-        // score = listener_count * recency_boost + participant_count
-        // recency_boost = 1000 / (hours_since_start + 1)
-        const scored = rooms.map((room) => {
-            const hoursSinceStart = (Date.now() - new Date(room.started_at).getTime()) / (1000 * 3600);
-            const recencyBoost = 1000 / (hoursSinceStart + 1);
-            const participantCount = room.participants?.length ?? 0;
-            const score = room.listener_count * recencyBoost + participantCount;
-            return { room, score };
-        });
-
-        scored.sort((a, b) => b.score - a.score);
-
-        return scored.slice(offset, offset + limit).map((s) => {
-            // Remove participants array from response to keep it clean
-            const { participants, ...rest } = s.room as any;
-            return rest;
-        });
     }
 
     static async getRoomsByCategory(slug: string, limit: number = 20, offset: number = 0) {
