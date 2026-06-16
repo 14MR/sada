@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
 import { ReportService } from "../services/report.service";
 import { ReportReason, ReportStatus } from "../models/Report";
+import {
+    CannotReportSelfError,
+    InvalidReportTargetError,
+} from "../services/moderation.service";
 import logger from "../config/logger";
 
 export class ReportController {
@@ -21,7 +25,7 @@ export class ReportController {
             });
             return res.status(201).json(report);
         } catch (error: any) {
-            if (error.message.includes("required") || error.message.includes("yourself")) {
+            if (error instanceof InvalidReportTargetError || error instanceof CannotReportSelfError) {
                 return res.status(400).json({ error: error.message });
             }
             logger.error({ err: error }, "Submit Report Error");

@@ -3,6 +3,7 @@ import {
     AlreadyBlockedError,
     BlockNotFoundError,
     CannotBlockSelfError,
+    CannotReportSelfError,
     ModerationService,
 } from "../services/moderation.service";
 import { ReportReason } from "../models/Report";
@@ -27,7 +28,7 @@ export class ModerationController {
             );
             return res.status(201).json({ id: report.id, status: "submitted" });
         } catch (error: any) {
-            if (error.message === "Cannot report yourself") return res.status(400).json({ error: error.message });
+            if (error instanceof CannotReportSelfError) return res.status(400).json({ error: error.message });
             return res.status(500).json({ error: "Failed to submit report" });
         }
     }

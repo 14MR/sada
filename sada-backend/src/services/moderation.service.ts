@@ -26,6 +26,20 @@ export class BlockNotFoundError extends Error {
     }
 }
 
+export class InvalidReportTargetError extends Error {
+    constructor() {
+        super("Either reportedUserId or roomId is required");
+        this.name = "InvalidReportTargetError";
+    }
+}
+
+export class CannotReportSelfError extends Error {
+    constructor() {
+        super("Cannot report yourself");
+        this.name = "CannotReportSelfError";
+    }
+}
+
 export class ModerationService {
     // === Reports ===
 
@@ -37,7 +51,7 @@ export class ModerationService {
         roomId?: string
     ) {
         const targetUserId = reportedUserId || null;
-        if (targetUserId && reporterId === targetUserId) throw new Error("Cannot report yourself");
+        if (targetUserId && reporterId === targetUserId) throw new CannotReportSelfError();
 
         const report = reportRepository.create({
             reporter_id: reporterId,
