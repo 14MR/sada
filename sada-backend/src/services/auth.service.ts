@@ -7,6 +7,13 @@ import logger from "../config/logger";
 
 const userRepository = AppDataSource.getRepository(User);
 
+export class BannedUserError extends Error {
+    constructor() {
+        super("User is banned");
+        this.name = "BannedUserError";
+    }
+}
+
 export class AuthService {
     static async verifyAppleToken(identityToken: string): Promise<{ appleId: string; email: string | undefined }> {
         // Mock fallback: skip real verification when APPLE_BUNDLE_ID is not configured (dev/test)
@@ -34,7 +41,7 @@ export class AuthService {
         let user = await userRepository.findOneBy({ apple_id: appleId });
 
         if (user && user.banned) {
-            throw new Error("User is banned");
+            throw new BannedUserError();
         }
 
         if (!user) {

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { AuthService } from "../services/auth.service";
+import { AuthService, BannedUserError } from "../services/auth.service";
 import logger from "../config/logger";
 
 export class AuthController {
@@ -14,7 +14,7 @@ export class AuthController {
             const result = await AuthService.signInWithApple(identityToken, fullName);
             return res.json(result);
         } catch (error: any) {
-            if (error.message === "User is banned") {
+            if (error instanceof BannedUserError) {
                 return res.status(403).json({ error: "Account is banned" });
             }
             logger.error({ err: error }, "Signin Error");
