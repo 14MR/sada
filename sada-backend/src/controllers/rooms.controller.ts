@@ -1,5 +1,12 @@
 import { Request, Response } from "express";
-import { RoomNotFoundError, RoomService } from "../services/room.service";
+import {
+    RoomHostRequiredError,
+    RoomNotEndedError,
+    RoomNotFoundError,
+    RoomNotScheduledError,
+    RoomService,
+    ScheduledAtMustBeFutureError,
+} from "../services/room.service";
 import { InviteService } from "../services/invite.service";
 import { RecommendationService } from "../services/recommendation.service";
 import { ClipService } from "../services/clip.service";
@@ -122,7 +129,7 @@ export class RoomController {
             await RoomService.endRoom(userId, id);
             return res.json({ success: true });
         } catch (error: any) {
-            if (error.message.includes("Only host")) {
+            if (error instanceof RoomHostRequiredError) {
                 return res.status(403).json({ error: error.message });
             }
             return res.status(400).json({ error: error.message });
@@ -145,7 +152,7 @@ export class RoomController {
             const room = await RoomService.scheduleRoom(host, title, description, categoryId, new Date(scheduledAt));
             return res.status(201).json(room);
         } catch (error: any) {
-            if (error instanceof CategoryNotFoundError || error.message.includes("future date")) {
+            if (error instanceof CategoryNotFoundError || error instanceof ScheduledAtMustBeFutureError) {
                 return res.status(400).json({ error: error.message });
             }
             logger.error({ err: error }, "Schedule Room Error");
@@ -176,7 +183,7 @@ export class RoomController {
             const result = await RoomService.startScheduledRoom(userId, id);
             return res.json(result);
         } catch (error: any) {
-            if (error.message.includes("not in scheduled") || error.message.includes("Only the host")) {
+            if (error instanceof RoomNotScheduledError || error instanceof RoomHostRequiredError) {
                 return res.status(400).json({ error: error.message });
             }
             if (error instanceof RoomNotFoundError) {
@@ -241,7 +248,7 @@ export class RoomController {
             if (error instanceof RoomNotFoundError) {
                 return res.status(404).json({ error: error.message });
             }
-            if (error.message.includes("ended")) {
+            if (error instanceof RoomNotEndedError) {
                 return res.status(400).json({ error: error.message });
             }
             logger.error({ err: error }, "Get Room Replay Error");
@@ -402,7 +409,7 @@ export class RoomController {
             if (error instanceof RoomNotFoundError) {
                 return res.status(404).json({ error: error.message });
             }
-            if (error.message.includes("ended")) {
+            if (error instanceof RoomNotEndedError) {
                 return res.status(400).json({ error: error.message });
             }
             logger.error({ err: error }, "Get Room Summary Error");

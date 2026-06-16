@@ -28,6 +28,34 @@ export class RoomNotFoundError extends Error {
     }
 }
 
+export class RoomHostRequiredError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "RoomHostRequiredError";
+    }
+}
+
+export class RoomNotEndedError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "RoomNotEndedError";
+    }
+}
+
+export class RoomNotScheduledError extends Error {
+    constructor() {
+        super("Room is not in scheduled status");
+        this.name = "RoomNotScheduledError";
+    }
+}
+
+export class ScheduledAtMustBeFutureError extends Error {
+    constructor() {
+        super("scheduledAt must be a future date");
+        this.name = "ScheduledAtMustBeFutureError";
+    }
+}
+
 export class RoomService {
     static async createRoom(host: User, title: string, categoryId?: string, description?: string, scheduledAt?: Date, tags?: string[]) {
         const room = new Room();
@@ -187,7 +215,7 @@ export class RoomService {
 
         // Authorization: Only host can change roles
         if (room.host.id !== requesterId) {
-            throw new Error("Only the host can manage speakers");
+            throw new RoomHostRequiredError("Only the host can manage speakers");
         }
 
         const participant = await participantRepository.findOne({
@@ -210,7 +238,7 @@ export class RoomService {
         });
 
         if (!room) throw new RoomNotFoundError();
-        if (room.host.id !== hostId) throw new Error("Only host can end room");
+        if (room.host.id !== hostId) throw new RoomHostRequiredError("Only host can end room");
 
         room.status = 'ended';
         room.ended_at = new Date();
@@ -242,7 +270,7 @@ export class RoomService {
             relations: ["host", "category"],
         });
         if (!room) throw new RoomNotFoundError();
-        if (room.status !== "ended") throw new Error("Summary is only available for ended rooms");
+        if (room.status !== "ended") throw new RoomNotEndedError("Summary is only available for ended rooms");
 
         return {
             id: room.id,
@@ -259,7 +287,7 @@ export class RoomService {
     static async scheduleRoom(host: User, title: string, description: string, categoryId: string, scheduledAt: Date) {
         const category = await categoryRepository.findOneBy({ id: categoryId });
         if (!category) throw new CategoryNotFoundError();
-        if (scheduledAt.getTime() <= Date.now()) throw new Error("scheduledAt must be a future date");
+        if (scheduledAt.getTime() <= Date.now()) throw new ScheduledAtMustBeFutureError();
 
         const room = new Room();
         room.host = host;
@@ -323,8 +351,8 @@ export class RoomService {
         });
 
         if (!room) throw new RoomNotFoundError();
-        if (room.host.id !== hostId) throw new Error("Only the host can start this room");
-        if (room.status !== 'scheduled') throw new Error("Room is not in scheduled status");
+        if (room.host.id !== hostId) throw new RoomHostRequiredError("Only the host can start this room");
+        if (room.status !== 'scheduled') throw new RoomNotScheduledError();
 
         room.status = 'live';
         room.started_at = new Date();
@@ -411,7 +439,7 @@ export class RoomService {
             relations: ["host", "category"],
         });
         if (!room) throw new RoomNotFoundError();
-        if (room.status !== "ended") throw new Error("Replay is only available for ended rooms");
+        if (room.status !== "ended") throw new RoomNotEndedError("Replay is only available for ended rooms");
 
         const [recordings, participants] = await Promise.all([
             recordingRepository.find({
