@@ -105,6 +105,6 @@
 ---
 
 **Last Updated:** 2026-06-18
-**Tests:** 184/184 passing
+**Tests:** 184/184 backend passing + 5/5 mobile unit passing
 **Branch:** main
-**Latest PR:** #60
+**Latest PR:** #61
