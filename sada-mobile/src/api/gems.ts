@@ -1,29 +1,5 @@
 import client from './client';
 import * as SecureStore from 'expo-secure-store';
+import { createGemService } from './gemsCore';
 
-export const GemService = {
-    getBalance: async () => {
-        const userId = await SecureStore.getItemAsync('user_id');
-        if (!userId) throw new Error('Not authenticated');
-        const response = await client.get(`/gems/balance/${userId}`);
-        return response.data;
-    },
-
-    purchaseGems: async (amount: number) => {
-        const response = await client.post('/gems/purchase', {
-            amount,
-            receiptData: 'mock-receipt-data',
-            platform: 'apple',
-        });
-        return response.data;
-    },
-
-    sendGift: async (receiverId: string, amount: number, roomId?: string) => {
-        const response = await client.post('/gems/gift', {
-            receiverId,
-            amount,
-            roomId,
-        });
-        return response.data;
-    }
-};
+export const GemService = createGemService(client, SecureStore);

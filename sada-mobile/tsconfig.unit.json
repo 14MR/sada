@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist-unit",
+    "rootDir": "src",
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "target": "es2020",
+    "noEmit": false,
+    "declaration": false,
+    "sourceMap": false
+  },
+  "include": [
+    "src/api/authCore.ts",
+    "src/api/gemsCore.ts"
+  ]
+}
