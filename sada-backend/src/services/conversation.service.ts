@@ -13,23 +13,114 @@ const participantRepository = AppDataSource.getRepository(ConversationParticipan
 const messageRepository = AppDataSource.getRepository(Message);
 const userRepository = AppDataSource.getRepository(User);
 
+export class CannotCreateConversationWithSelfError extends Error {
+    constructor() {
+        super("Cannot create a conversation with yourself");
+        this.name = "CannotCreateConversationWithSelfError";
+    }
+}
+
+export class ConversationUserNotFoundError extends Error {
+    constructor(message: string = "User not found") {
+        super(message);
+        this.name = "ConversationUserNotFoundError";
+    }
+}
+
+export class ConversationBlockedUserError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "ConversationBlockedUserError";
+    }
+}
+
+export class ConversationParticipantLimitError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "ConversationParticipantLimitError";
+    }
+}
+
+export class ConversationParticipantRequiredError extends Error {
+    constructor() {
+        super("Not a participant in this conversation");
+        this.name = "ConversationParticipantRequiredError";
+    }
+}
+
+export class ConversationNotFoundError extends Error {
+    constructor() {
+        super("Conversation not found");
+        this.name = "ConversationNotFoundError";
+    }
+}
+
+export class ConversationGroupRequiredError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "ConversationGroupRequiredError";
+    }
+}
+
+export class ConversationAdminRequiredError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "ConversationAdminRequiredError";
+    }
+}
+
+export class ConversationParticipantExistsError extends Error {
+    constructor() {
+        super("User is already a participant");
+        this.name = "ConversationParticipantExistsError";
+    }
+}
+
+export class ConversationTargetNotParticipantError extends Error {
+    constructor() {
+        super("User is not a participant");
+        this.name = "ConversationTargetNotParticipantError";
+    }
+}
+
+export class ConversationMessageNotFoundError extends Error {
+    constructor() {
+        super("Message not found");
+        this.name = "ConversationMessageNotFoundError";
+    }
+}
+
+export class ConversationMessageOwnershipError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "ConversationMessageOwnershipError";
+    }
+}
+
+export class ConversationMessageDeletedError extends Error {
+    constructor() {
+        super("Cannot edit a deleted message");
+        this.name = "ConversationMessageDeletedError";
+    }
+}
+
 export class ConversationService {
     // ── Create Conversation ──────────────────────────────────────────
 
     static async createDirectConversation(userId: string, targetUserId: string) {
         if (userId === targetUserId) {
-            throw new Error("Cannot create a conversation with yourself");
+            throw new CannotCreateConversationWithSelfError();
         }
 
         const target = await userRepository.findOneBy({ id: targetUserId });
         if (!target) {
-            throw new Error("User not found");
+            throw new ConversationUserNotFoundError();
         }
 
         // Check bidirectional block
         const isBlocked = await BlockService.isBlocked(userId, targetUserId);
         if (isBlocked) {
-            throw new Error("Cannot message this user");
+            throw new ConversationBlockedUserError("Cannot message this user");
         }
 
         // Check if direct conversation already exists between these two users
@@ -91,13 +182,13 @@ export class ConversationService {
         const allUserIds = [...new Set([userId, ...userIds])];
 
         if (allUserIds.length > 50) {
-            throw new Error("Group can have at most 50 participants");
+            throw new ConversationParticipantLimitError("Group can have at most 50 participants");
         }
 
         // Verify all users exist
         const users = await userRepository.findBy({ id: In(allUserIds) });
         if (users.length !== allUserIds.length) {
-            throw new Error("One or more users not found");
+            throw new ConversationUserNotFoundError("One or more users not found");
         }
 
         // Check blocks between creator and all members
@@ -105,7 +196,7 @@ export class ConversationService {
             if (memberId !== userId) {
                 const isBlocked = await BlockService.isBlocked(userId, memberId);
                 if (isBlocked) {
-                    throw new Error("Cannot add a blocked user to the group");
+                    throw new ConversationBlockedUserError("Cannot add a blocked user to the group");
                 }
             }
         }
@@ -206,7 +297,7 @@ export class ConversationService {
             where: { conversationId, userId },
         });
         if (!isParticipant) {
-            throw new Error("Not a participant in this conversation");
+            throw new ConversationParticipantRequiredError();
         }
 
         const conversation = await conversationRepository.findOne({
@@ -214,7 +305,7 @@ export class ConversationService {
             relations: ["participants", "participants.user"],
         });
         if (!conversation) {
-            throw new Error("Conversation not found");
+            throw new ConversationNotFoundError();
         }
 
         const messages = await messageRepository
@@ -239,7 +330,7 @@ export class ConversationService {
             where: { conversationId, userId },
         });
         if (!participant) {
-            throw new Error("Not a participant in this conversation");
+            throw new ConversationParticipantRequiredError();
         }
 
         const message = new Message();
@@ -284,7 +375,7 @@ export class ConversationService {
             where: { conversationId, userId },
         });
         if (!participant) {
-            throw new Error("Not a participant in this conversation");
+            throw new ConversationParticipantRequiredError();
         }
 
         const query = messageRepository
@@ -321,13 +412,13 @@ export class ConversationService {
             where: { id: messageId, conversationId },
         });
         if (!message) {
-            throw new Error("Message not found");
+            throw new ConversationMessageNotFoundError();
         }
         if (message.senderId !== userId) {
-            throw new Error("Can only edit your own messages");
+            throw new ConversationMessageOwnershipError("Can only edit your own messages");
         }
         if (message.deleted_at) {
-            throw new Error("Cannot edit a deleted message");
+            throw new ConversationMessageDeletedError();
         }
 
         message.content = content;
@@ -363,10 +454,10 @@ export class ConversationService {
             where: { id: messageId, conversationId },
         });
         if (!message) {
-            throw new Error("Message not found");
+            throw new ConversationMessageNotFoundError();
         }
         if (message.senderId !== userId) {
-            throw new Error("Can only delete your own messages");
+            throw new ConversationMessageOwnershipError("Can only delete your own messages");
         }
 
         message.deleted_at = new Date();
@@ -396,7 +487,7 @@ export class ConversationService {
             where: { conversationId, userId },
         });
         if (!participant) {
-            throw new Error("Not a participant in this conversation");
+            throw new ConversationParticipantRequiredError();
         }
 
         participant.last_read_at = new Date();
@@ -412,20 +503,20 @@ export class ConversationService {
             where: { id: conversationId },
         });
         if (!conversation) {
-            throw new Error("Conversation not found");
+            throw new ConversationNotFoundError();
         }
         if (conversation.type !== ConversationType.GROUP) {
-            throw new Error("Can only update group conversations");
+            throw new ConversationGroupRequiredError("Can only update group conversations");
         }
 
         const participant = await participantRepository.findOne({
             where: { conversationId, userId },
         });
         if (!participant) {
-            throw new Error("Not a participant in this conversation");
+            throw new ConversationParticipantRequiredError();
         }
         if (participant.role !== ParticipantRole.ADMIN) {
-            throw new Error("Only admins can update the conversation");
+            throw new ConversationAdminRequiredError("Only admins can update the conversation");
         }
 
         if (updates.name) {
@@ -458,20 +549,20 @@ export class ConversationService {
             where: { id: conversationId },
         });
         if (!conversation) {
-            throw new Error("Conversation not found");
+            throw new ConversationNotFoundError();
         }
         if (conversation.type !== ConversationType.GROUP) {
-            throw new Error("Can only add participants to group conversations");
+            throw new ConversationGroupRequiredError("Can only add participants to group conversations");
         }
 
         const participant = await participantRepository.findOne({
             where: { conversationId, userId },
         });
         if (!participant) {
-            throw new Error("Not a participant in this conversation");
+            throw new ConversationParticipantRequiredError();
         }
         if (participant.role !== ParticipantRole.ADMIN) {
-            throw new Error("Only admins can add participants");
+            throw new ConversationAdminRequiredError("Only admins can add participants");
         }
 
         // Check if already a participant
@@ -479,7 +570,7 @@ export class ConversationService {
             where: { conversationId, userId: targetUserId },
         });
         if (existing) {
-            throw new Error("User is already a participant");
+            throw new ConversationParticipantExistsError();
         }
 
         // Check current participant count
@@ -487,13 +578,13 @@ export class ConversationService {
             where: { conversationId },
         });
         if (count >= 50) {
-            throw new Error("Group has reached maximum participants");
+            throw new ConversationParticipantLimitError("Group has reached maximum participants");
         }
 
         // Check blocks
         const isBlocked = await BlockService.isBlocked(userId, targetUserId);
         if (isBlocked) {
-            throw new Error("Cannot add a blocked user");
+            throw new ConversationBlockedUserError("Cannot add a blocked user");
         }
 
         const newParticipant = new ConversationParticipant();
@@ -529,10 +620,10 @@ export class ConversationService {
             where: { id: conversationId },
         });
         if (!conversation) {
-            throw new Error("Conversation not found");
+            throw new ConversationNotFoundError();
         }
         if (conversation.type !== ConversationType.GROUP) {
-            throw new Error("Can only remove participants from group conversations");
+            throw new ConversationGroupRequiredError("Can only remove participants from group conversations");
         }
 
         // Self-leave is always allowed
@@ -543,10 +634,10 @@ export class ConversationService {
                 where: { conversationId, userId },
             });
             if (!participant) {
-                throw new Error("Not a participant in this conversation");
+                throw new ConversationParticipantRequiredError();
             }
             if (participant.role !== ParticipantRole.ADMIN) {
-                throw new Error("Only admins can remove participants");
+                throw new ConversationAdminRequiredError("Only admins can remove participants");
             }
         }
 
@@ -554,7 +645,7 @@ export class ConversationService {
             where: { conversationId, userId: targetUserId },
         });
         if (!targetParticipant) {
-            throw new Error("User is not a participant");
+            throw new ConversationTargetNotParticipantError();
         }
 
         await participantRepository.remove(targetParticipant);

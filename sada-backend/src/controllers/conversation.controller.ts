@@ -1,7 +1,50 @@
 import { Request, Response } from "express";
-import { ConversationService } from "../services/conversation.service";
+import {
+    CannotCreateConversationWithSelfError,
+    ConversationAdminRequiredError,
+    ConversationBlockedUserError,
+    ConversationGroupRequiredError,
+    ConversationMessageDeletedError,
+    ConversationMessageNotFoundError,
+    ConversationMessageOwnershipError,
+    ConversationNotFoundError,
+    ConversationParticipantExistsError,
+    ConversationParticipantLimitError,
+    ConversationParticipantRequiredError,
+    ConversationService,
+    ConversationTargetNotParticipantError,
+    ConversationUserNotFoundError,
+} from "../services/conversation.service";
 import { MessageType } from "../models/Message";
 import logger from "../config/logger";
+
+function isConversationCreateError(error: unknown): boolean {
+    return error instanceof CannotCreateConversationWithSelfError ||
+        error instanceof ConversationUserNotFoundError ||
+        error instanceof ConversationBlockedUserError ||
+        error instanceof ConversationParticipantLimitError;
+}
+
+function isMessageMutationError(error: unknown): boolean {
+    return error instanceof ConversationMessageNotFoundError ||
+        error instanceof ConversationMessageOwnershipError ||
+        error instanceof ConversationMessageDeletedError;
+}
+
+function isConversationAdminMutationError(error: unknown): boolean {
+    return error instanceof ConversationNotFoundError ||
+        error instanceof ConversationGroupRequiredError ||
+        error instanceof ConversationParticipantRequiredError ||
+        error instanceof ConversationAdminRequiredError;
+}
+
+function isParticipantMutationError(error: unknown): boolean {
+    return isConversationAdminMutationError(error) ||
+        error instanceof ConversationParticipantExistsError ||
+        error instanceof ConversationParticipantLimitError ||
+        error instanceof ConversationBlockedUserError ||
+        error instanceof ConversationTargetNotParticipantError;
+}
 
 export class ConversationController {
     static async create(req: Request, res: Response) {
@@ -22,7 +65,7 @@ export class ConversationController {
 
             return res.status(201).json(conversation);
         } catch (error: any) {
-            if (error.message.includes("not found") || error.message.includes("Cannot") || error.message.includes("yourself") || error.message.includes("at most")) {
+            if (isConversationCreateError(error)) {
                 return res.status(400).json({ error: error.message });
             }
             logger.error({ err: error }, "Create Conversation Error");
@@ -57,7 +100,8 @@ export class ConversationController {
             const conversation = await ConversationService.getConversation(userId, conversationId, messageLimit);
             return res.json(conversation);
         } catch (error: any) {
-            if (error.message.includes("Not a participant") || error.message.includes("not found")) {
+            if (error instanceof ConversationParticipantRequiredError ||
+                error instanceof ConversationNotFoundError) {
                 return res.status(403).json({ error: error.message });
             }
             logger.error({ err: error }, "Get Conversation Error");
@@ -83,7 +127,7 @@ export class ConversationController {
 
             return res.status(201).json(message);
         } catch (error: any) {
-            if (error.message.includes("Not a participant")) {
+            if (error instanceof ConversationParticipantRequiredError) {
                 return res.status(403).json({ error: error.message });
             }
             logger.error({ err: error }, "Send Message Error");
@@ -104,7 +148,7 @@ export class ConversationController {
             const messages = await ConversationService.getMessages(userId, conversationId, limit, before, after);
             return res.json(messages);
         } catch (error: any) {
-            if (error.message.includes("Not a participant")) {
+            if (error instanceof ConversationParticipantRequiredError) {
                 return res.status(403).json({ error: error.message });
             }
             logger.error({ err: error }, "Get Messages Error");
@@ -124,10 +168,10 @@ export class ConversationController {
             const message = await ConversationService.editMessage(userId, conversationId, messageId, content);
             return res.json(message);
         } catch (error: any) {
-            if (error.message.includes("not found") || error.message.includes("own messages") || error.message.includes("deleted")) {
+            if (isMessageMutationError(error)) {
                 return res.status(400).json({ error: error.message });
             }
-            if (error.message.includes("Not a participant")) {
+            if (error instanceof ConversationParticipantRequiredError) {
                 return res.status(403).json({ error: error.message });
             }
             logger.error({ err: error }, "Edit Message Error");
@@ -146,7 +190,7 @@ export class ConversationController {
             const result = await ConversationService.deleteMessage(userId, conversationId, messageId);
             return res.json(result);
         } catch (error: any) {
-            if (error.message.includes("not found") || error.message.includes("own messages")) {
+            if (isMessageMutationError(error)) {
                 return res.status(400).json({ error: error.message });
             }
             logger.error({ err: error }, "Delete Message Error");
@@ -163,7 +207,7 @@ export class ConversationController {
             const result = await ConversationService.markAsRead(userId, conversationId);
             return res.json(result);
         } catch (error: any) {
-            if (error.message.includes("Not a participant")) {
+            if (error instanceof ConversationParticipantRequiredError) {
                 return res.status(403).json({ error: error.message });
             }
             logger.error({ err: error }, "Mark Read Error");
@@ -182,7 +226,7 @@ export class ConversationController {
             const conversation = await ConversationService.updateConversation(userId, conversationId, updates);
             return res.json(conversation);
         } catch (error: any) {
-            if (error.message.includes("Not a participant") || error.message.includes("Only admins") || error.message.includes("not found") || error.message.includes("group")) {
+            if (isConversationAdminMutationError(error)) {
                 return res.status(403).json({ error: error.message });
             }
             logger.error({ err: error }, "Update Conversation Error");
@@ -201,7 +245,7 @@ export class ConversationController {
             const conversation = await ConversationService.addParticipant(userId, conversationId, targetUserId);
             return res.json(conversation);
         } catch (error: any) {
-            if (error.message.includes("not found") || error.message.includes("Cannot") || error.message.includes("Only admins") || error.message.includes("already") || error.message.includes("maximum") || error.message.includes("group")) {
+            if (isParticipantMutationError(error)) {
                 return res.status(400).json({ error: error.message });
             }
             logger.error({ err: error }, "Add Participant Error");
@@ -220,7 +264,7 @@ export class ConversationController {
             const result = await ConversationService.removeParticipant(userId, conversationId, targetUserId);
             return res.json(result);
         } catch (error: any) {
-            if (error.message.includes("not found") || error.message.includes("Only admins") || error.message.includes("not a participant") || error.message.includes("group")) {
+            if (isParticipantMutationError(error)) {
                 return res.status(400).json({ error: error.message });
             }
             logger.error({ err: error }, "Remove Participant Error");
