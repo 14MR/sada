@@ -1,5 +1,9 @@
 import { Request, Response } from "express";
-import { CallsService } from "../services/calls.service";
+import {
+    CallsParticipantNotFoundError,
+    CallsService,
+    CallsSessionNotFoundError,
+} from "../services/calls.service";
 import { ChatService } from "../services/chat.service";
 import logger from "../config/logger";
 
@@ -115,7 +119,7 @@ export class AudioController {
             });
         } catch (error: any) {
             logger.error({ err: error }, "Join audio session error");
-            const status = error.message?.includes("not found") ? 404 : 500;
+            const status = error instanceof CallsSessionNotFoundError ? 404 : 500;
             return res.status(status).json({ error: error.message || "Failed to join audio session" });
         }
     }
@@ -194,7 +198,8 @@ export class AudioController {
             });
         } catch (error: any) {
             logger.error({ err: error }, "Renegotiate error");
-            const status = error.message?.includes("not found") ? 404 : 500;
+            const status = error instanceof CallsSessionNotFoundError ||
+                error instanceof CallsParticipantNotFoundError ? 404 : 500;
             return res.status(status).json({ error: error.message || "Renegotiation failed" });
         }
     }

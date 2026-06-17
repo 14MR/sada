@@ -33,6 +33,20 @@ interface TrackResponse {
 const sessions = new Map<string, SessionInfo>();       // sessionId → SessionInfo
 const roomSessionIndex = new Map<string, string>();     // roomId → sessionId
 
+export class CallsSessionNotFoundError extends Error {
+    constructor(sessionId: string) {
+        super(`Session ${sessionId} not found`);
+        this.name = "CallsSessionNotFoundError";
+    }
+}
+
+export class CallsParticipantNotFoundError extends Error {
+    constructor(userId: string, sessionId: string) {
+        super(`Participant ${userId} not found in session ${sessionId}`);
+        this.name = "CallsParticipantNotFoundError";
+    }
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function callsUrl(path: string): string {
@@ -111,7 +125,7 @@ export class CallsService {
     ): Promise<{ answer: TrackResponse; session: SessionInfo }> {
         const session = sessions.get(sessionId);
         if (!session) {
-            throw new Error(`Session ${sessionId} not found`);
+            throw new CallsSessionNotFoundError(sessionId);
         }
 
         const url = callsUrl(`/sessions/${sessionId}/tracks/new`);
@@ -166,12 +180,12 @@ export class CallsService {
     ): Promise<TrackResponse> {
         const session = sessions.get(sessionId);
         if (!session) {
-            throw new Error(`Session ${sessionId} not found`);
+            throw new CallsSessionNotFoundError(sessionId);
         }
 
         const participant = session.participants.get(userId);
         if (!participant) {
-            throw new Error(`Participant ${userId} not found in session ${sessionId}`);
+            throw new CallsParticipantNotFoundError(userId, sessionId);
         }
 
         const url = callsUrl(`/sessions/${sessionId}/renegotiate`);
