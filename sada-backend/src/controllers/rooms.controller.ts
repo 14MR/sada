@@ -7,9 +7,27 @@ import {
     RoomService,
     ScheduledAtMustBeFutureError,
 } from "../services/room.service";
-import { InviteService } from "../services/invite.service";
+import {
+    CannotInviteSelfError,
+    InvalidInviteError,
+    InviteHostRequiredError,
+    InviteJoinBlockedError,
+    InviteNotFoundError,
+    InviteService,
+    InviteUserNotFoundError,
+} from "../services/invite.service";
 import { RecommendationService } from "../services/recommendation.service";
-import { ClipService } from "../services/clip.service";
+import {
+    ClipRoomNotFoundError,
+    ClipService,
+    InvalidClipRangeError,
+} from "../services/clip.service";
+import {
+    BookmarkNotFoundError,
+    BookmarkRoomNotFoundError,
+    BookmarkService,
+    RoomAlreadyBookmarkedError,
+} from "../services/bookmark.service";
 import { CategoryNotFoundError } from "../services/category.service";
 import logger from "../config/logger";
 
@@ -275,7 +293,10 @@ export class RoomController {
 
             return res.status(201).json(invite);
         } catch (error: any) {
-            if (error.message.includes("not found") || error.message.includes("Only the host") || error.message.includes("not live") || error.message.includes("not active") || error.message.includes("yourself")) {
+            if (error instanceof InviteNotFoundError ||
+                error instanceof InvalidInviteError ||
+                error instanceof InviteHostRequiredError ||
+                error instanceof CannotInviteSelfError) {
                 return res.status(400).json({ error: error.message });
             }
             logger.error({ err: error }, "Create Invite Error");
@@ -292,7 +313,10 @@ export class RoomController {
             const result = await InviteService.acceptInvite(userId, code);
             return res.json(result);
         } catch (error: any) {
-            if (error.message.includes("not found") || error.message.includes("expired") || error.message.includes("maximum") || error.message.includes("not live") || error.message.includes("Cannot join") || error.message.includes("Invalid")) {
+            if (error instanceof InviteNotFoundError ||
+                error instanceof InvalidInviteError ||
+                error instanceof InviteJoinBlockedError ||
+                error instanceof InviteUserNotFoundError) {
                 return res.status(400).json({ error: error.message });
             }
             logger.error({ err: error }, "Accept Invite Error");
@@ -309,7 +333,7 @@ export class RoomController {
             const invites = await InviteService.listInvites(roomId, userId);
             return res.json(invites);
         } catch (error: any) {
-            if (error.message.includes("not found") || error.message.includes("Only the host")) {
+            if (error instanceof InviteNotFoundError || error instanceof InviteHostRequiredError) {
                 return res.status(403).json({ error: error.message });
             }
             logger.error({ err: error }, "List Invites Error");
@@ -348,7 +372,7 @@ export class RoomController {
             const clip = await ClipService.createClip(userId, roomId, startTime, endTime, title);
             return res.status(201).json(clip);
         } catch (error: any) {
-            if (error.message.includes("not found") || error.message.includes("must be")) {
+            if (error instanceof ClipRoomNotFoundError || error instanceof InvalidClipRangeError) {
                 return res.status(400).json({ error: error.message });
             }
             logger.error({ err: error }, "Create Clip Error");
@@ -425,14 +449,13 @@ export class RoomController {
             const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
-            const { BookmarkService } = require("../services/bookmark.service");
             const bookmark = await BookmarkService.bookmark(userId, roomId);
             return res.status(201).json(bookmark);
         } catch (error: any) {
-            if (error.message.includes("not found")) {
+            if (error instanceof BookmarkRoomNotFoundError) {
                 return res.status(404).json({ error: error.message });
             }
-            if (error.message.includes("already")) {
+            if (error instanceof RoomAlreadyBookmarkedError) {
                 return res.status(409).json({ error: error.message });
             }
             logger.error({ err: error }, "Bookmark Error");
@@ -446,11 +469,10 @@ export class RoomController {
             const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
-            const { BookmarkService } = require("../services/bookmark.service");
             await BookmarkService.removeBookmark(userId, roomId);
             return res.json({ success: true });
         } catch (error: any) {
-            if (error.message.includes("not found")) {
+            if (error instanceof BookmarkNotFoundError) {
                 return res.status(404).json({ error: error.message });
             }
             logger.error({ err: error }, "Remove Bookmark Error");

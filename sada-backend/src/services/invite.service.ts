@@ -13,14 +13,56 @@ const inviteRepository = AppDataSource.getRepository(RoomInvite);
 const roomRepository = AppDataSource.getRepository(Room);
 const participantRepository = AppDataSource.getRepository(RoomParticipant);
 
+export class InviteNotFoundError extends Error {
+    constructor() {
+        super("Invite not found");
+        this.name = "InviteNotFoundError";
+    }
+}
+
+export class InvalidInviteError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "InvalidInviteError";
+    }
+}
+
+export class InviteHostRequiredError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "InviteHostRequiredError";
+    }
+}
+
+export class CannotInviteSelfError extends Error {
+    constructor() {
+        super("Cannot invite yourself");
+        this.name = "CannotInviteSelfError";
+    }
+}
+
+export class InviteJoinBlockedError extends Error {
+    constructor() {
+        super("Cannot join this room");
+        this.name = "InviteJoinBlockedError";
+    }
+}
+
+export class InviteUserNotFoundError extends Error {
+    constructor() {
+        super("User not found");
+        this.name = "InviteUserNotFoundError";
+    }
+}
+
 export class InviteService {
     static async createDirectInvite(inviterId: string, roomId: string, inviteeId: string): Promise<RoomInvite> {
         const room = await roomRepository.findOneBy({ id: roomId });
-        if (!room) throw new Error("Room not found");
-        if (room.status !== 'live') throw new Error("Room is not live");
-        if (room.host_id !== inviterId) throw new Error("Only the host can invite");
+        if (!room) throw new InviteNotFoundError();
+        if (room.status !== 'live') throw new InvalidInviteError("Room is not live");
+        if (room.host_id !== inviterId) throw new InviteHostRequiredError("Only the host can invite");
 
-        if (inviterId === inviteeId) throw new Error("Cannot invite yourself");
+        if (inviterId === inviteeId) throw new CannotInviteSelfError();
 
         const invite = new RoomInvite();
         invite.roomId = roomId;
@@ -33,9 +75,9 @@ export class InviteService {
 
     static async createLinkInvite(inviterId: string, roomId: string, maxUses?: number, expiresAt?: Date): Promise<RoomInvite> {
         const room = await roomRepository.findOneBy({ id: roomId });
-        if (!room) throw new Error("Room not found");
-        if (room.status !== 'live' && room.status !== 'scheduled') throw new Error("Room is not active");
-        if (room.host_id !== inviterId) throw new Error("Only the host can create invite links");
+        if (!room) throw new InviteNotFoundError();
+        if (room.status !== 'live' && room.status !== 'scheduled') throw new InvalidInviteError("Room is not active");
+        if (room.host_id !== inviterId) throw new InviteHostRequiredError("Only the host can create invite links");
 
         const code = randomBytes(6).toString("hex");
 
@@ -56,23 +98,23 @@ export class InviteService {
             relations: ["room"],
         });
 
-        if (!invite) throw new Error("Invite not found");
-        if (invite.type !== 'link') throw new Error("Invalid invite code");
+        if (!invite) throw new InviteNotFoundError();
+        if (invite.type !== 'link') throw new InvalidInviteError("Invalid invite code");
 
         if (invite.expiresAt && new Date() > new Date(invite.expiresAt)) {
-            throw new Error("Invite has expired");
+            throw new InvalidInviteError("Invite has expired");
         }
 
         if (invite.maxUses !== null && invite.uses >= invite.maxUses) {
-            throw new Error("Invite has reached maximum uses");
+            throw new InvalidInviteError("Invite has reached maximum uses");
         }
 
         const room = invite.room;
-        if (room.status !== 'live') throw new Error("Room is not live");
+        if (room.status !== 'live') throw new InvalidInviteError("Room is not live");
 
         // Block check
         const isBlocked = await BlockService.isBlocked(userId, room.host_id);
-        if (isBlocked) throw new Error("Cannot join this room");
+        if (isBlocked) throw new InviteJoinBlockedError();
 
         // Increment uses
         invite.uses += 1;
@@ -81,7 +123,7 @@ export class InviteService {
         // Add as participant
         const userRepository = AppDataSource.getRepository(User);
         const user = await userRepository.findOneBy({ id: userId });
-        if (!user) throw new Error("User not found");
+        if (!user) throw new InviteUserNotFoundError();
 
         let participant = await participantRepository.findOne({
             where: { room: { id: room.id }, user: { id: userId } },
@@ -112,18 +154,18 @@ export class InviteService {
             relations: ["room"],
         });
 
-        if (!invite) throw new Error("Invite not found");
+        if (!invite) throw new InviteNotFoundError();
 
         if (invite.expiresAt && new Date() > new Date(invite.expiresAt)) {
-            throw new Error("Invite has expired");
+            throw new InvalidInviteError("Invite has expired");
         }
 
         const room = invite.room;
-        if (room.status !== 'live') throw new Error("Room is not live");
+        if (room.status !== 'live') throw new InvalidInviteError("Room is not live");
 
         // Block check
         const isBlocked = await BlockService.isBlocked(userId, room.host_id);
-        if (isBlocked) throw new Error("Cannot join this room");
+        if (isBlocked) throw new InviteJoinBlockedError();
 
         // Mark as used
         invite.uses += 1;
@@ -131,7 +173,7 @@ export class InviteService {
 
         const userRepository = AppDataSource.getRepository(User);
         const user = await userRepository.findOneBy({ id: userId });
-        if (!user) throw new Error("User not found");
+        if (!user) throw new InviteUserNotFoundError();
 
         let participant = await participantRepository.findOne({
             where: { room: { id: room.id }, user: { id: userId } },
@@ -157,8 +199,8 @@ export class InviteService {
 
     static async listInvites(roomId: string, requesterId: string): Promise<RoomInvite[]> {
         const room = await roomRepository.findOneBy({ id: roomId });
-        if (!room) throw new Error("Room not found");
-        if (room.host_id !== requesterId) throw new Error("Only the host can list invites");
+        if (!room) throw new InviteNotFoundError();
+        if (room.host_id !== requesterId) throw new InviteHostRequiredError("Only the host can list invites");
 
         return await inviteRepository.find({
             where: { roomId },
