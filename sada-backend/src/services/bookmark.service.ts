@@ -5,15 +5,36 @@ import { Room } from "../models/Room";
 const bookmarkRepository = AppDataSource.getRepository(RoomBookmark);
 const roomRepository = AppDataSource.getRepository(Room);
 
+export class BookmarkRoomNotFoundError extends Error {
+    constructor() {
+        super("Room not found");
+        this.name = "BookmarkRoomNotFoundError";
+    }
+}
+
+export class RoomAlreadyBookmarkedError extends Error {
+    constructor() {
+        super("Room already bookmarked");
+        this.name = "RoomAlreadyBookmarkedError";
+    }
+}
+
+export class BookmarkNotFoundError extends Error {
+    constructor() {
+        super("Bookmark not found");
+        this.name = "BookmarkNotFoundError";
+    }
+}
+
 export class BookmarkService {
     static async bookmark(userId: string, roomId: string) {
         const room = await roomRepository.findOneBy({ id: roomId });
-        if (!room) throw new Error("Room not found");
+        if (!room) throw new BookmarkRoomNotFoundError();
 
         const existing = await bookmarkRepository.findOne({
             where: { user_id: userId, room_id: roomId },
         });
-        if (existing) throw new Error("Room already bookmarked");
+        if (existing) throw new RoomAlreadyBookmarkedError();
 
         const bm = new RoomBookmark();
         bm.user_id = userId;
@@ -25,7 +46,7 @@ export class BookmarkService {
         const bm = await bookmarkRepository.findOne({
             where: { user_id: userId, room_id: roomId },
         });
-        if (!bm) throw new Error("Bookmark not found");
+        if (!bm) throw new BookmarkNotFoundError();
         await bookmarkRepository.remove(bm);
     }
 

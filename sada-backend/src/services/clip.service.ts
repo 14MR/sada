@@ -5,13 +5,27 @@ import { Room } from "../models/Room";
 const clipRepository = AppDataSource.getRepository(RoomClip);
 const roomRepository = AppDataSource.getRepository(Room);
 
+export class ClipRoomNotFoundError extends Error {
+    constructor() {
+        super("Room not found");
+        this.name = "ClipRoomNotFoundError";
+    }
+}
+
+export class InvalidClipRangeError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "InvalidClipRangeError";
+    }
+}
+
 export class ClipService {
     static async createClip(creatorId: string, roomId: string, startTime: number, endTime: number, title: string): Promise<RoomClip> {
         const room = await roomRepository.findOneBy({ id: roomId });
-        if (!room) throw new Error("Room not found");
+        if (!room) throw new ClipRoomNotFoundError();
 
-        if (endTime <= startTime) throw new Error("End time must be after start time");
-        if (startTime < 0) throw new Error("Start time must be non-negative");
+        if (endTime <= startTime) throw new InvalidClipRangeError("End time must be after start time");
+        if (startTime < 0) throw new InvalidClipRangeError("Start time must be non-negative");
 
         const clip = new RoomClip();
         clip.roomId = roomId;
