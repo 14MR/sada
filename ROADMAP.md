@@ -79,7 +79,7 @@
 - [x] Conversation and message failures use typed domain errors
 - [x] Replace remaining controller string-match error mapping with typed domain errors
 - [x] Add mobile unit/component tests around auth and gem purchase flows
-- [ ] Implement real Apple App Store Server API and Google Play receipt verification
+- [x] Implement real Apple App Store Server API and Google Play receipt verification
 
 ---
 
@@ -99,12 +99,12 @@
 
 ## Test Coverage
 - **Suites:** 11 (admin, auth, chat-service, CORS, discovery, gems, messaging, moderation, rooms, security, social)
-- **Tests:** 184 passing
+- **Tests:** 188 passing
 - **Types:** E2e integration tests with auth
 
 ---
 
 **Last Updated:** 2026-06-18
-**Tests:** 184/184 backend passing + 5/5 mobile unit passing
+**Tests:** 188/188 backend passing + 5/5 mobile unit passing
 **Branch:** main
-**Latest PR:** #61
+**Latest PR:** #63
