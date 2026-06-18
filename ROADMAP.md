@@ -59,7 +59,7 @@
 - [x] Production Docker health check points at `/health`
 - [x] Production CORS requires explicit origins
 
-## Phase 6: Post-Launch Hardening ✅ IN PROGRESS
+## Phase 6: Post-Launch Hardening ✅ DONE
 - [x] Socket room joins require live room participation
 - [x] Chat messages and signals require the socket to join the room first
 - [x] Trending rooms query applies ordering and pagination in SQL
