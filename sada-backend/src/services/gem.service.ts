@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import { AppDataSource } from "../config/database";
 import { GemTransaction, TransactionType } from "../models/GemTransaction";
 import { PaymentReceipt, PaymentReceiptStatus } from "../models/PaymentReceipt";
@@ -9,6 +8,7 @@ import { NotificationType } from "../models/Notification";
 import { BlockService } from "./block.service";
 import { ActivityService } from "./activity.service";
 import { ActivityType } from "../models/UserActivity";
+import { PaymentVerificationService } from "./payment-verification.service";
 import logger from "../config/logger";
 
 const giftLocks = new Map<string, Promise<void>>();
@@ -40,44 +40,6 @@ async function withGiftLock<T>(senderId: string, fn: () => Promise<T>): Promise<
     }
 }
 
-export class PaymentService {
-    /** Verify Apple App Store purchase receipt */
-    static async verifyApplePurchase(receiptData: string): Promise<{ valid: boolean; transactionId?: string }> {
-        if (process.env.NODE_ENV === "test") {
-            return { valid: true, transactionId: `apple_test_${Date.now()}` };
-        }
-
-        // TODO: Integrate with Apple App Store Server API v2
-        // - Decode JWS receipt from Apple
-        // - Verify signature against Apple's root CA
-        // - Validate bundleId, environment, transactionId
-        throw new Error("Apple purchase verification not yet configured for production");
-    }
-
-    /** Verify Google Play purchase receipt */
-    static async verifyGooglePurchase(receiptData: string, productId: string): Promise<{ valid: boolean; transactionId?: string }> {
-        if (process.env.NODE_ENV === "test") {
-            return { valid: true, transactionId: `google_test_${Date.now()}` };
-        }
-
-        // TODO: Integrate with Google Play Developer API
-        // - Use service account credentials
-        // - Call purchases.products.get or purchases.subscriptionsv2.get
-        // - Verify purchaseState, consumptionState, orderId
-        throw new Error("Google purchase verification not yet configured for production");
-    }
-
-    /** Compute receipt hash for idempotency */
-    static receiptHash(receiptData: string): string {
-        return crypto.createHash("sha256").update(receiptData).digest("hex");
-    }
-
-    static isDuplicateReceiptError(error: unknown): boolean {
-        if (!(error instanceof Error)) return false;
-        return /duplicate|unique|constraint|SQLITE_CONSTRAINT/i.test(error.message);
-    }
-}
-
 export class GemService {
     static async purchaseGems(userId: string, amount: number, receiptData?: string, platform?: "apple" | "google") {
         if (amount <= 0) throw new Error("Amount must be positive");
@@ -90,9 +52,10 @@ export class GemService {
         // Payment verification when receipt is provided
         let providerTransactionId: string | undefined;
         if (receiptData) {
+            const productId = `gems_${amount}`;
             const verification = platform === "google"
-                ? await PaymentService.verifyGooglePurchase(receiptData, `gems_${amount}`)
-                : await PaymentService.verifyApplePurchase(receiptData);
+                ? await PaymentVerificationService.verifyGooglePurchase(receiptData, productId)
+                : await PaymentVerificationService.verifyApplePurchase(receiptData, productId);
 
             if (!verification.valid) {
                 throw new Error("Payment verification failed");
@@ -102,7 +65,7 @@ export class GemService {
 
         let receiptHash: string | null = null;
         if (receiptData) {
-            receiptHash = PaymentService.receiptHash(receiptData);
+            receiptHash = PaymentVerificationService.receiptHash(receiptData);
         }
 
         try {
@@ -137,7 +100,7 @@ export class GemService {
                 return saved;
             });
         } catch (err) {
-            if (receiptHash && PaymentService.isDuplicateReceiptError(err)) {
+            if (receiptHash && PaymentVerificationService.isDuplicateReceiptError(err)) {
                 throw new DuplicatePurchaseError();
             }
             throw err;
