@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { createAuthService } = require('../dist-unit/api/authCore');
+const { createAuthService, getLoginErrorMessage } = require('../dist-unit/api/authCore');
 const { createGemService } = require('../dist-unit/api/gemsCore');
 
 const createMemoryStore = (initial = {}) => {
@@ -73,6 +73,28 @@ test('AuthService.signOut clears auth token and cached profile', async () => {
     ['delete', 'auth_token'],
     ['delete', 'user_profile'],
   ]);
+});
+
+test('getLoginErrorMessage maps auth failures without exposing raw internals', () => {
+  const message = getLoginErrorMessage({
+    message: 'Invalid Apple Identity Token from https://api.example.test/auth/signin',
+    response: { status: 401 },
+  });
+
+  assert.equal(message, 'We could not verify your Apple Sign-In. Please try again.');
+  assert.equal(message.includes('Invalid Apple Identity Token'), false);
+  assert.equal(message.includes('https://'), false);
+});
+
+test('getLoginErrorMessage maps network and server failures to user-safe copy', () => {
+  assert.equal(
+    getLoginErrorMessage({ code: 'ERR_NETWORK', message: 'Network Error' }),
+    'Please check your connection and try again.',
+  );
+  assert.equal(
+    getLoginErrorMessage({ response: { status: 503 }, message: 'database connection failed' }),
+    'SADA is having trouble signing you in right now. Please try again soon.',
+  );
 });
 
 test('GemService.getBalance requires a stored user id', async () => {

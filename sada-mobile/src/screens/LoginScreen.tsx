@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { theme } from '../theme';
-import { AuthService } from '../api/auth';
+import { AuthService, getLoginErrorMessage } from '../api/auth';
 import * as SecureStore from 'expo-secure-store';
 
 export const LoginScreen = ({ navigation }: any) => {
@@ -85,7 +85,7 @@ export const LoginScreen = ({ navigation }: any) => {
 
             Alert.alert(
                 'Login Failed',
-                `Error: ${error.message}\n\nCheck console for details`,
+                getLoginErrorMessage(error),
                 [{ text: 'OK' }]
             );
         } finally {
