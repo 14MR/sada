@@ -2,6 +2,7 @@ import request from 'supertest';
 import { setupTestDB, clearDatabase, createTestUser, getApp } from './helpers';
 import { AppDataSource } from '../../src/config/database';
 import { User } from '../../src/models/User';
+import { AuthService } from '../../src/services/auth.service';
 
 // Mock database to use in-memory SQLite
 jest.mock('../../src/config/database', () => require('./testDb'));
@@ -79,6 +80,30 @@ describe('Auth E2E', () => {
 
       const users = await AppDataSource.getRepository(User).find();
       expect(users).toHaveLength(1);
+    });
+
+    it('should recover if concurrent first sign-in wins the user insert race', async () => {
+      const repository = AppDataSource.getRepository(User);
+      const winningUser = await createTestUser({ apple_id: 'raced-apple-id' });
+      const duplicateError = Object.assign(new Error('UNIQUE constraint failed: users.apple_id'), {
+        code: 'SQLITE_CONSTRAINT',
+      });
+
+      const findSpy = jest.spyOn(repository, 'findOneBy')
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(winningUser.user);
+      const saveSpy = jest.spyOn(repository, 'save').mockRejectedValueOnce(duplicateError);
+
+      try {
+        const user = await AuthService.mapUser('raced-apple-id', undefined, 'Raced User');
+
+        expect(user.id).toBe(winningUser.user.id);
+        expect(findSpy).toHaveBeenCalledTimes(2);
+        expect(saveSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        findSpy.mockRestore();
+        saveSpy.mockRestore();
+      }
     });
 
     it('should return 400 if identityToken is missing', async () => {

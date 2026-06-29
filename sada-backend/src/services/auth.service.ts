@@ -7,6 +7,21 @@ import logger from "../config/logger";
 
 const userRepository = AppDataSource.getRepository(User);
 
+export function isUniqueConstraintError(error: unknown): boolean {
+    if (!error || typeof error !== "object") return false;
+
+    const err = error as { code?: unknown; errno?: unknown; message?: unknown };
+    const code = typeof err.code === "string" ? err.code : undefined;
+    const errno = typeof err.errno === "number" ? err.errno : undefined;
+    const message = typeof err.message === "string" ? err.message : "";
+
+    return code === "23505" ||
+        code === "SQLITE_CONSTRAINT" ||
+        code === "ER_DUP_ENTRY" ||
+        errno === 1062 ||
+        /duplicate|unique|constraint/i.test(message);
+}
+
 export class BannedUserError extends Error {
     constructor() {
         super("User is banned");
@@ -44,13 +59,25 @@ export class AuthService {
             throw new BannedUserError();
         }
 
-        if (!user) {
-            user = new User();
-            user.apple_id = appleId;
-            user.username = `user_${Date.now()}`;
-            user.display_name = fullName || "New User";
+        if (user) {
+            return user;
+        }
 
+        user = new User();
+        user.apple_id = appleId;
+        user.username = `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        user.display_name = fullName || "New User";
+
+        try {
             await userRepository.save(user);
+        } catch (error) {
+            if (!isUniqueConstraintError(error)) throw error;
+
+            const existingUser = await userRepository.findOneBy({ apple_id: appleId });
+            if (!existingUser) throw error;
+            if (existingUser.banned) throw new BannedUserError();
+
+            return existingUser;
         }
 
         return user;
