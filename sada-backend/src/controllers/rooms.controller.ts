@@ -29,6 +29,7 @@ import {
     RoomAlreadyBookmarkedError,
 } from "../services/bookmark.service";
 import { CategoryNotFoundError } from "../services/category.service";
+import { UserService } from "../services/user.service";
 import logger from "../config/logger";
 
 export class RoomController {
@@ -39,7 +40,6 @@ export class RoomController {
 
             const { title, categoryId, description, scheduledAt, tags } = req.body;
 
-            const { UserService } = require("../services/user.service");
             const host = await UserService.getProfile(userId);
 
             if (!host) return res.status(404).json({ error: "Host not found" });
@@ -95,7 +95,6 @@ export class RoomController {
             const userId = req.user?.id;
             if (!userId) return res.status(401).json({ error: "Authentication required" });
 
-            const { UserService } = require("../services/user.service");
             const user = await UserService.getProfile(userId);
             if (!user) return res.status(404).json({ error: "User not found" });
 
@@ -163,7 +162,6 @@ export class RoomController {
 
             const { title, description, categoryId, scheduledAt } = req.body;
 
-            const { UserService } = require("../services/user.service");
             const host = await UserService.getProfile(userId);
             if (!host) return res.status(404).json({ error: "Host not found" });
 
