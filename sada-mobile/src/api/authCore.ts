@@ -23,6 +23,38 @@ export interface AuthTokenStore {
     deleteItemAsync: (key: string) => Promise<void>;
 }
 
+export interface LoginErrorLike {
+    message?: string;
+    response?: {
+        status?: number;
+    };
+    code?: string;
+}
+
+export const getLoginErrorMessage = (error: LoginErrorLike = {}): string => {
+    const status = error.response?.status;
+
+    if (status === 401 || status === 403) {
+        return 'We could not verify your Apple Sign-In. Please try again.';
+    }
+
+    if (status && status >= 500) {
+        return 'SADA is having trouble signing you in right now. Please try again soon.';
+    }
+
+    if (error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED') {
+        return 'Please check your connection and try again.';
+    }
+
+    const message = error.message || '';
+
+    if (message.includes('identity token') || message.includes('Apple Sign-In')) {
+        return 'Apple Sign-In could not be completed. Please try again.';
+    }
+
+    return 'Something went wrong while signing you in. Please try again.';
+};
+
 export const createAuthService = (client: AuthHttpClient, store: AuthTokenStore) => ({
     signIn: async (identityToken: string, fullName?: string): Promise<AuthResponse> => {
         const response = await client.post('/auth/signin', {
