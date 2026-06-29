@@ -85,6 +85,7 @@
 - [x] Add mobile unit/component tests around auth and gem purchase flows
 - [x] Implement real Apple App Store Server API and Google Play receipt verification
 - [x] Mobile sign-out clears cached user profile data
+- [x] Rooms controller uses typed imports instead of dynamic require
 
 ---
 
@@ -108,6 +109,7 @@
 - ✅ Apple first sign-in handles concurrent user creation races
 - ✅ Gem history responses omit private user fields and enforce pagination caps
 - ✅ Mobile sign-out clears cached profile data
+- ✅ Rooms controller dependencies are statically typed
 
 ## Test Coverage
 - **Suites:** 13 (admin, auth, chat-service, CORS, discovery, env, gems, messaging, moderation, payment verification, rooms, security, social)
@@ -119,4 +121,4 @@
 **Last Updated:** 2026-06-29
 **Tests:** 197/197 backend passing + 6/6 mobile unit passing
 **Branch:** main
-**Latest PR:** #70
+**Latest PR:** #71
