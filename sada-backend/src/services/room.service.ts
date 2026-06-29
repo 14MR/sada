@@ -5,7 +5,7 @@ import { User } from "../models/User";
 import { Category } from "../models/Category";
 import { CategoryNotFoundError } from "./category.service";
 import { RoomRecording, RecordingStatus } from "../models/RoomRecording";
-import { GemTransaction } from "../models/GemTransaction";
+import { GemTransaction, GemTransactionReferenceType, TransactionType } from "../models/GemTransaction";
 import { AudioService } from "./audio.service";
 import { NotificationService } from "./notification.service";
 import { NotificationType } from "../models/Notification";
@@ -248,7 +248,8 @@ export class RoomService {
             participantRepository.find({ where: { room: { id: roomId } } }),
             gemRepository.createQueryBuilder("gt")
                 .where("gt.reference_id = :roomId", { roomId })
-                .andWhere("gt.type = 'gift'")
+                .andWhere("gt.reference_type = :referenceType", { referenceType: GemTransactionReferenceType.ROOM_ID })
+                .andWhere("gt.type = :type", { type: TransactionType.GIFT })
                 .select("COALESCE(SUM(gt.amount), 0)", "total")
                 .getRawOne(),
         ]);
