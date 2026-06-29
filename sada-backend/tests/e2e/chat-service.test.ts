@@ -1,7 +1,13 @@
 import { AppDataSource } from '../../src/config/database';
 import { Room } from '../../src/models/Room';
 import { RoomParticipant } from '../../src/models/RoomParticipant';
-import { ChatService } from '../../src/services/chat.service';
+import {
+  ChatService,
+  MAX_CHAT_MESSAGE_LENGTH,
+  MAX_SIGNAL_PAYLOAD_BYTES,
+  isValidChatMessage,
+  isValidSignalPayload,
+} from '../../src/services/chat.service';
 import { clearDatabase, createTestRoom, createTestUser, setupTestDB } from './helpers';
 
 jest.mock('../../src/config/database', () => require('./testDb'));
@@ -53,5 +59,24 @@ describe('ChatService room authorization', () => {
 
     await expect(ChatService.canAccessRoom(listener.user.id, endedRoom.id)).resolves.toBe(false);
     await expect(ChatService.canAccessRoom(listener.user.id, mutedRoom.id)).resolves.toBe(false);
+  });
+
+  it('bounds chat message payloads', () => {
+    expect(isValidChatMessage('hello')).toBe(true);
+    expect(isValidChatMessage('')).toBe(false);
+    expect(isValidChatMessage('   ')).toBe(false);
+    expect(isValidChatMessage('x'.repeat(MAX_CHAT_MESSAGE_LENGTH + 1))).toBe(false);
+    expect(isValidChatMessage({ text: 'hello' })).toBe(false);
+  });
+
+  it('bounds signaling payloads', () => {
+    expect(isValidSignalPayload({ type: 'offer', sdp: 'v=0' })).toBe(true);
+    expect(isValidSignalPayload(null)).toBe(false);
+    expect(isValidSignalPayload('offer')).toBe(false);
+    expect(isValidSignalPayload({ sdp: 'x'.repeat(MAX_SIGNAL_PAYLOAD_BYTES) })).toBe(false);
+
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    expect(isValidSignalPayload(circular)).toBe(false);
   });
 });

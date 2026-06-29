@@ -7,6 +7,25 @@ import { getSocketCorsOrigin } from "../config/cors";
 import { RoomParticipant } from "../models/RoomParticipant";
 import { IsNull } from "typeorm";
 
+export const MAX_CHAT_MESSAGE_LENGTH = 2000;
+export const MAX_SIGNAL_PAYLOAD_BYTES = 16 * 1024;
+
+export function isValidChatMessage(message: unknown): message is string {
+    return typeof message === "string" &&
+        message.trim().length > 0 &&
+        Buffer.byteLength(message, "utf8") <= MAX_CHAT_MESSAGE_LENGTH;
+}
+
+export function isValidSignalPayload(signal: unknown): boolean {
+    if (!signal || typeof signal !== "object") return false;
+
+    try {
+        return Buffer.byteLength(JSON.stringify(signal), "utf8") <= MAX_SIGNAL_PAYLOAD_BYTES;
+    } catch {
+        return false;
+    }
+}
+
 export class ChatService {
     private static instance: ChatService;
     private io: Server;
@@ -105,6 +124,10 @@ export class ChatService {
                     socket.emit("room_error", { roomId: data?.roomId, error: "Join room before sending messages" });
                     return;
                 }
+                if (!isValidChatMessage(data.message)) {
+                    socket.emit("room_error", { roomId: data.roomId, error: "Invalid message" });
+                    return;
+                }
 
                 // Use authenticated identity — never trust client-provided userId/username
                 this.io.to(data.roomId).emit("receive_message", {
@@ -117,6 +140,10 @@ export class ChatService {
             socket.on("signal", (data: { roomId: string, signal: any }) => {
                 if (!data?.roomId || !socket.rooms.has(data.roomId)) {
                     socket.emit("room_error", { roomId: data?.roomId, error: "Join room before signaling" });
+                    return;
+                }
+                if (!isValidSignalPayload(data.signal)) {
+                    socket.emit("room_error", { roomId: data.roomId, error: "Invalid signal" });
                     return;
                 }
 
