@@ -98,15 +98,16 @@
 - ✅ No hardcoded secrets
 - ✅ Production CORS fails fast without explicit origins
 - ✅ Socket room access checks participant membership
+- ✅ Socket chat and signaling payload sizes are bounded
 
 ## Test Coverage
 - **Suites:** 11 (admin, auth, chat-service, CORS, discovery, gems, messaging, moderation, rooms, security, social)
-- **Tests:** 188 passing
+- **Tests:** 190 passing
 - **Types:** E2e integration tests with auth
 
 ---
 
 **Last Updated:** 2026-06-29
-**Tests:** 188/188 backend passing + 6/6 mobile unit passing
+**Tests:** 190/190 backend passing + 6/6 mobile unit passing
 **Branch:** main
-**Latest PR:** #65
+**Latest PR:** #66
