@@ -3,11 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { GemService } from '../api/gems';
+import { finishGemPurchase, purchaseGemPackage } from '../services/gemIap';
 
 const PACKAGES = [
-    { id: 'pack_small', gems: 100, price: '$0.99' },
-    { id: 'pack_medium', gems: 550, price: '$4.99' },
-    { id: 'pack_large', gems: 1200, price: '$9.99' },
+    { id: 'pack_small', productId: 'gems_100', gems: 100, price: '$0.99' },
+    { id: 'pack_medium', productId: 'gems_550', gems: 550, price: '$4.99' },
+    { id: 'pack_large', productId: 'gems_1200', gems: 1200, price: '$9.99' },
 ];
 
 export const GemsScreen = ({ navigation }: any) => {
@@ -16,7 +17,9 @@ export const GemsScreen = ({ navigation }: any) => {
     const handlePurchase = async (pack: typeof PACKAGES[0]) => {
         setLoading(true);
         try {
-            await GemService.purchaseGems(pack.gems);
+            const purchase = await purchaseGemPackage(pack);
+            await GemService.purchaseGems(pack.gems, purchase.receipt);
+            await finishGemPurchase(purchase);
             Alert.alert('Success', `You purchased ${pack.gems} Gems! 💎`);
             navigation.goBack();
         } catch (error) {
