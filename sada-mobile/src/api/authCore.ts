@@ -48,6 +48,7 @@ export const createAuthService = (client: AuthHttpClient, store: AuthTokenStore)
 
     signOut: async () => {
         await store.deleteItemAsync('auth_token');
+        await store.deleteItemAsync('user_profile');
     },
 
     getCurrentUser: async (id: string): Promise<User> => {
