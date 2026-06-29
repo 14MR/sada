@@ -187,6 +187,7 @@ User taps "Sign in with Apple"
 - ✅ Emoji support (🎤❤️💎)
 - ✅ Tap username to view profile
 - ✅ Message timestamp
+- ✅ Ephemeral by design: room chat is broadcast live and is not stored for late joiners/history
 
 **Send Gifts:**
 - ✅ Gift button with gem options (1, 5, 10, 50)
@@ -463,7 +464,7 @@ Earning Gems (Creator)
 | **Frontend** | React Native + Expo | iOS rapid dev, OTA updates, live reload |
 | **Backend** | Node.js 18 + Express + TypeScript | Single language, type safety, fast |
 | **Database** | PostgreSQL (Local) | ACID, structured, proven at scale |
-| **Real-time Chat** | Socket.io + Redis | WebSocket, message delivery, caching |
+| **Real-time Room Chat** | Socket.io + Redis | Ephemeral WebSocket delivery for live rooms |
 | **Audio Streaming** | Cloudflare RealtimeKit | Only managed service - multi-user mixing |
 | **File Storage** | Local Filesystem (/var/sada/uploads) | Fast, no cloud costs |
 | **Web Server** | Nginx | Reverse proxy, SSL/TLS, compression |
@@ -511,7 +512,7 @@ Earning Gems (Creator)
 ┌─ PostgreSQL (Local Database)
 │  ├─ Users (profiles, auth)
 │  ├─ Rooms (metadata, status)
-│  ├─ Messages (chat logs)
+│  ├─ Messages (direct/group conversations)
 │  ├─ Followers (relationships)
 │  ├─ Gem_transactions (monetization)
 │  ├─ Gem_balance (user balances)
@@ -520,7 +521,7 @@ Earning Gems (Creator)
 ├─ Redis (Cache + Real-time)
 │  ├─ Active rooms cache
 │  ├─ User online status
-│  └─ Message queue
+│  └─ Socket fanout queue
 │
 ├─ HTTPS (External Only)
 │
@@ -579,12 +580,34 @@ CREATE TABLE room_participants (
   left_at TIMESTAMP
 );
 
--- Messages (Chat)
+-- Conversations
+CREATE TABLE conversations (
+  id UUID PRIMARY KEY,
+  type VARCHAR(20) DEFAULT 'direct',
+  name VARCHAR(100),
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Conversation Participants
+CREATE TABLE conversation_participants (
+  id UUID PRIMARY KEY,
+  conversationId UUID REFERENCES conversations(id) NOT NULL,
+  userId UUID REFERENCES users(id) NOT NULL,
+  role VARCHAR(20) DEFAULT 'member',
+  joined_at TIMESTAMP DEFAULT NOW(),
+  last_read_at TIMESTAMP,
+  UNIQUE(conversationId, userId)
+);
+
+-- Messages (Direct/group conversations, not live room chat)
 CREATE TABLE messages (
   id UUID PRIMARY KEY,
-  room_id UUID REFERENCES rooms(id) NOT NULL,
-  user_id UUID REFERENCES users(id) NOT NULL,
+  conversationId UUID REFERENCES conversations(id) NOT NULL,
+  senderId UUID REFERENCES users(id) NOT NULL,
   content TEXT NOT NULL,
+  type VARCHAR(20) DEFAULT 'text',
+  metadata JSONB,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -617,9 +640,12 @@ CREATE TABLE gem_balance (
 -- Performance Indexes
 CREATE INDEX idx_rooms_status ON rooms(status);
 CREATE INDEX idx_rooms_created_at ON rooms(created_at DESC);
-CREATE INDEX idx_messages_room_id ON messages(room_id);
+CREATE INDEX idx_conversation_participants_user_id ON conversation_participants(userId);
+CREATE INDEX idx_messages_conversation_id ON messages(conversationId);
 CREATE INDEX idx_followers_following ON followers(following_id);
 ```
+
+Room chat persistence decision: live room chat is deliberately ephemeral in the MVP. `ChatService` validates and broadcasts `send_message` payloads only to sockets currently joined to a live, chat-enabled room. Messages are not written to the `messages` table, are not replayed to late joiners, and are not part of a room history API. Persistent text history belongs to the direct/group conversation APIs backed by `conversations`, `conversation_participants`, and `messages`.
 
 ### Core API Endpoints
 
@@ -655,7 +681,7 @@ GET    /api/users/:id/gems           # Get gem balance
 GET    /api/gems/transactions/:id    # Get transaction history
 
 Chat (WebSocket):
-WS     /ws/rooms/:id/chat            # Join room chat
+WS     /ws/rooms/:id/chat            # Join ephemeral live room chat
 
 Notifications:
 GET    /api/notifications            # Get all notifications
