@@ -39,7 +39,8 @@
 ## Phase 4: Mobile ↔ Backend Integration ✅ DONE
 - [x] Apple Sign-In verification (real via jwks-rsa/jose, mock in test)
 - [x] Native mobile Apple Sign-In wired with development-only mock fallback
-- [x] Payment integration stubs (Apple/Google IAP with idempotency)
+- [x] Payment integration (Apple/Google IAP with idempotency)
+- [x] Mobile gem store initiates real Apple/Google IAP and sends store receipts to backend
 - [x] Mobile gem purchase request shape aligned with backend API
 - [x] Push notification service (Expo push tokens, register/send)
 - [x] Speaker request endpoints (POST raise, PATCH approve/reject, GET list)
@@ -92,6 +93,7 @@
 - ✅ Rate limiting (auth + API)
 - ✅ Socket.io JWT verification
 - ✅ Payment verification required in production
+- ✅ Mobile gem store uses native IAP instead of mock receipts
 - ✅ Receipt idempotency persisted in the database
 - ✅ No hardcoded secrets
 - ✅ Production CORS fails fast without explicit origins
@@ -104,7 +106,7 @@
 
 ---
 
-**Last Updated:** 2026-06-18
-**Tests:** 188/188 backend passing + 5/5 mobile unit passing
+**Last Updated:** 2026-06-29
+**Tests:** 188/188 backend passing + 6/6 mobile unit passing
 **Branch:** main
-**Latest PR:** #64
+**Latest PR:** #65
