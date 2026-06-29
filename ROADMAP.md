@@ -78,6 +78,7 @@
 - [x] Speaker request failures use typed domain errors
 - [x] Banned auth sign-in failures use a typed domain error
 - [x] Concurrent Apple first sign-in recovers from unique insert races
+- [x] Gem history responses are paginated and expose only public user fields
 - [x] Audio session failures use typed domain errors
 - [x] Conversation and message failures use typed domain errors
 - [x] Replace remaining controller string-match error mapping with typed domain errors
@@ -104,15 +105,16 @@
 - ✅ Admin key validation uses timing-safe comparison
 - ✅ Production admin and Apple bundle env vars fail fast
 - ✅ Apple first sign-in handles concurrent user creation races
+- ✅ Gem history responses omit private user fields and enforce pagination caps
 
 ## Test Coverage
 - **Suites:** 13 (admin, auth, chat-service, CORS, discovery, env, gems, messaging, moderation, payment verification, rooms, security, social)
-- **Tests:** 195 passing
+- **Tests:** 197 passing
 - **Types:** E2e integration tests with auth
 
 ---
 
 **Last Updated:** 2026-06-29
-**Tests:** 195/195 backend passing + 6/6 mobile unit passing
+**Tests:** 197/197 backend passing + 6/6 mobile unit passing
 **Branch:** main
-**Latest PR:** #68
+**Latest PR:** #69
