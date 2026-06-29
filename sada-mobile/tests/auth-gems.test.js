@@ -63,13 +63,16 @@ test('AuthService.signIn posts the Apple identity token and persists auth state'
   ]);
 });
 
-test('AuthService.signOut clears only the auth token', async () => {
+test('AuthService.signOut clears auth token and cached profile', async () => {
   const store = createMemoryStore({ auth_token: 'jwt-token', user_profile: '{}' });
   const auth = createAuthService({ post: async () => ({}), get: async () => ({}) }, store);
 
   await auth.signOut();
 
-  assert.deepEqual(store.calls, [['delete', 'auth_token']]);
+  assert.deepEqual(store.calls, [
+    ['delete', 'auth_token'],
+    ['delete', 'user_profile'],
+  ]);
 });
 
 test('GemService.getBalance requires a stored user id', async () => {
