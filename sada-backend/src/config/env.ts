@@ -31,5 +31,11 @@ export const vars = {
         turnKeyId: requiredEnv("CLOUDFLARE_TURN_KEY_ID"),
         apiToken: requiredEnv("CLOUDFLARE_API_TOKEN"),
         appSecret: requiredEnv("CLOUDFLARE_APP_SECRET"),
-    }
+    },
+    admin: {
+        key: requiredEnv("ADMIN_KEY"),
+    },
+    apple: {
+        bundleId: requiredEnv("APPLE_BUNDLE_ID"),
+    },
 };
