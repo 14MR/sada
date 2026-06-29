@@ -12,14 +12,16 @@ export interface GemServiceOptions {
     platform?: 'apple' | 'google';
 }
 
+export interface GemPurchaseReceipt {
+    receiptData: string;
+    platform: 'apple' | 'google';
+}
+
 export const createGemService = (
     client: GemHttpClient,
     store: GemTokenStore,
     options: GemServiceOptions = {},
 ) => {
-    const receiptData = options.receiptData || 'mock-receipt-data';
-    const platform = options.platform || 'apple';
-
     return {
         getBalance: async () => {
             const userId = await store.getItemAsync('user_id');
@@ -29,11 +31,20 @@ export const createGemService = (
             return response.data;
         },
 
-        purchaseGems: async (amount: number) => {
+        purchaseGems: async (amount: number, receipt?: GemPurchaseReceipt) => {
+            const resolvedReceipt = receipt || (options.receiptData
+                ? {
+                    receiptData: options.receiptData,
+                    platform: options.platform || 'apple',
+                }
+                : undefined);
+
             const response = await client.post('/gems/purchase', {
                 amount,
-                receiptData,
-                platform,
+                ...(resolvedReceipt ? {
+                    receiptData: resolvedReceipt.receiptData,
+                    platform: resolvedReceipt.platform,
+                } : {}),
             });
             return response.data;
         },

@@ -132,3 +132,30 @@ test('GemService.purchaseGems sends numeric amount with receipt metadata', async
   }]);
   assert.equal(Object.prototype.hasOwnProperty.call(requests[0].body, 'packageId'), false);
 });
+
+test('GemService.purchaseGems does not invent a mock receipt', async () => {
+  const requests = [];
+  const gems = createGemService(
+    {
+      async get() {
+        throw new Error('unexpected get');
+      },
+      async post(url, body) {
+        requests.push({ method: 'post', url, body });
+        return { data: { ok: true } };
+      },
+    },
+    createMemoryStore({ user_id: 'user-1' }),
+  );
+
+  const result = await gems.purchaseGems(100);
+
+  assert.deepEqual(result, { ok: true });
+  assert.deepEqual(requests, [{
+    method: 'post',
+    url: '/gems/purchase',
+    body: {
+      amount: 100,
+    },
+  }]);
+});
