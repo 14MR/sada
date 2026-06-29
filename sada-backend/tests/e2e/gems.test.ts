@@ -7,6 +7,7 @@
 import request from 'supertest';
 import { setupTestDB, clearDatabase, createTestUser, getApp } from './helpers';
 import { AppDataSource } from '../../src/config/database';
+import { GemTransaction, TransactionType } from '../../src/models/GemTransaction';
 import { PaymentReceipt } from '../../src/models/PaymentReceipt';
 
 jest.mock('../../src/config/database', () => require('./testDb'));
@@ -153,6 +154,99 @@ describe('Gems E2E', () => {
         .set('Authorization', `Bearer ${receiver.token}`);
 
       expect(senderBal.body.balance + receiverBal.body.balance).toBe(100);
+    });
+  });
+
+  describe('GET /gems/history/:userId', () => {
+    async function createGiftTransaction(
+      sender: Awaited<ReturnType<typeof createTestUser>>,
+      receiver: Awaited<ReturnType<typeof createTestUser>>,
+      amount: number,
+      created_at: Date,
+    ): Promise<GemTransaction> {
+      const repo = AppDataSource.getRepository(GemTransaction);
+      const transaction = repo.create({
+        sender: sender.user,
+        receiver: receiver.user,
+        amount,
+        type: TransactionType.GIFT,
+        created_at,
+      });
+      return await repo.save(transaction);
+    }
+
+    it('should return paginated history with public user fields only', async () => {
+      const sender = await createTestUser({
+        username: 'gem_history_sender',
+        display_name: 'History Sender',
+        gem_balance: 100,
+      });
+      const receiver = await createTestUser({
+        username: 'gem_history_receiver',
+        display_name: 'History Receiver',
+        gem_balance: 0,
+      });
+
+      await createGiftTransaction(sender, receiver, 10, new Date('2026-06-29T10:00:00.000Z'));
+      await createGiftTransaction(sender, receiver, 15, new Date('2026-06-29T10:01:00.000Z'));
+
+      const response = await request(getApp())
+        .get(`/api/gems/history/${sender.user.id}?limit=1`)
+        .set('Authorization', `Bearer ${sender.token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0]).toMatchObject({
+        amount: expect.any(Number),
+        type: 'gift',
+        sender: {
+          id: sender.user.id,
+          username: 'gem_history_sender',
+          display_name: 'History Sender',
+        },
+        receiver: {
+          id: receiver.user.id,
+          username: 'gem_history_receiver',
+          display_name: 'History Receiver',
+        },
+      });
+      expect(Object.keys(response.body[0].sender).sort()).toEqual([
+        'avatar_url',
+        'display_name',
+        'id',
+        'username',
+      ]);
+      expect(Object.keys(response.body[0].receiver).sort()).toEqual([
+        'avatar_url',
+        'display_name',
+        'id',
+        'username',
+      ]);
+      expect(response.body[0].sender.apple_id).toBeUndefined();
+      expect(response.body[0].receiver.gem_balance).toBeUndefined();
+      expect(response.body[0].receiver.banned).toBeUndefined();
+    });
+
+    it('should apply offset when paging gem history', async () => {
+      const sender = await createTestUser({ username: 'gem_history_page_sender', gem_balance: 100 });
+      const receiver = await createTestUser({ username: 'gem_history_page_receiver', gem_balance: 0 });
+
+      await createGiftTransaction(sender, receiver, 5, new Date('2026-06-29T10:00:00.000Z'));
+      await createGiftTransaction(sender, receiver, 10, new Date('2026-06-29T10:01:00.000Z'));
+      await createGiftTransaction(sender, receiver, 15, new Date('2026-06-29T10:02:00.000Z'));
+
+      const firstPage = await request(getApp())
+        .get(`/api/gems/history/${sender.user.id}?limit=1`)
+        .set('Authorization', `Bearer ${sender.token}`);
+      const secondPage = await request(getApp())
+        .get(`/api/gems/history/${sender.user.id}?limit=1&offset=1`)
+        .set('Authorization', `Bearer ${sender.token}`);
+
+      expect(firstPage.status).toBe(200);
+      expect(secondPage.status).toBe(200);
+      expect(firstPage.body).toHaveLength(1);
+      expect(secondPage.body).toHaveLength(1);
+      expect(secondPage.body[0].id).not.toBe(firstPage.body[0].id);
     });
   });
 

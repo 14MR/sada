@@ -12,6 +12,40 @@ import { PaymentVerificationService } from "./payment-verification.service";
 import logger from "../config/logger";
 
 const giftLocks = new Map<string, Promise<void>>();
+const DEFAULT_HISTORY_LIMIT = 50;
+const MAX_HISTORY_LIMIT = 100;
+
+type PublicGemUser = Pick<User, "id" | "username" | "display_name" | "avatar_url">;
+
+export type GemHistoryItem = {
+    id: string;
+    amount: number;
+    type: TransactionType;
+    reference_id: string | null;
+    created_at: Date;
+    sender: PublicGemUser | null;
+    receiver: PublicGemUser | null;
+};
+
+function clampHistoryLimit(limit?: number): number {
+    if (!Number.isFinite(limit)) return DEFAULT_HISTORY_LIMIT;
+    return Math.min(Math.max(Math.trunc(limit as number), 1), MAX_HISTORY_LIMIT);
+}
+
+function clampHistoryOffset(offset?: number): number {
+    if (!Number.isFinite(offset)) return 0;
+    return Math.max(Math.trunc(offset as number), 0);
+}
+
+function toPublicGemUser(user: User | null): PublicGemUser | null {
+    if (!user) return null;
+    return {
+        id: user.id,
+        username: user.username,
+        display_name: user.display_name,
+        avatar_url: user.avatar_url,
+    };
+}
 
 export class DuplicatePurchaseError extends Error {
     constructor() {
@@ -182,15 +216,45 @@ export class GemService {
         return { balance: user.gem_balance };
     }
 
-    static async getHistory(userId: string) {
+    static async getHistory(userId: string, options: { limit?: number; offset?: number } = {}): Promise<GemHistoryItem[]> {
         const transactionRepository = AppDataSource.getRepository(GemTransaction);
-        return await transactionRepository.find({
-            where: [
-                { receiver: { id: userId } },
-                { sender: { id: userId } }
-            ],
-            order: { created_at: "DESC" },
-            relations: ["sender", "receiver"]
-        });
+        const limit = clampHistoryLimit(options.limit);
+        const offset = clampHistoryOffset(options.offset);
+
+        const transactions = await transactionRepository
+            .createQueryBuilder("tx")
+            .leftJoin("tx.sender", "sender")
+            .leftJoin("tx.receiver", "receiver")
+            .select([
+                "tx.id",
+                "tx.amount",
+                "tx.type",
+                "tx.reference_id",
+                "tx.created_at",
+                "sender.id",
+                "sender.username",
+                "sender.display_name",
+                "sender.avatar_url",
+                "receiver.id",
+                "receiver.username",
+                "receiver.display_name",
+                "receiver.avatar_url",
+            ])
+            .where("sender.id = :userId OR receiver.id = :userId", { userId })
+            .orderBy("tx.created_at", "DESC")
+            .addOrderBy("tx.id", "DESC")
+            .skip(offset)
+            .take(limit)
+            .getMany();
+
+        return transactions.map(tx => ({
+            id: tx.id,
+            amount: tx.amount,
+            type: tx.type,
+            reference_id: tx.reference_id,
+            created_at: tx.created_at,
+            sender: toPublicGemUser(tx.sender),
+            receiver: toPublicGemUser(tx.receiver),
+        }));
     }
 }

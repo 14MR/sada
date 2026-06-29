@@ -1,6 +1,14 @@
 import { Request, Response } from "express";
 import { DuplicatePurchaseError, GemService } from "../services/gem.service";
 
+function parseOptionalNonNegativeInt(value: unknown, fallback: number): number {
+    if (value === undefined) return fallback;
+    const raw = Array.isArray(value) ? value[0] : value;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.max(Math.trunc(parsed), 0);
+}
+
 export class GemController {
     static async purchase(req: Request, res: Response) {
         try {
@@ -48,7 +56,9 @@ export class GemController {
             const currentUser = req.user?.id;
             if (!currentUser) return res.status(401).json({ error: "Authentication required" });
             if (currentUser !== userId) return res.status(403).json({ error: "Forbidden" });
-            const history = await GemService.getHistory(userId);
+            const limit = parseOptionalNonNegativeInt(req.query.limit, 50);
+            const offset = parseOptionalNonNegativeInt(req.query.offset, 0);
+            const history = await GemService.getHistory(userId, { limit, offset });
             return res.json(history);
         } catch (error: any) {
             return res.status(500).json({ error: error.message });
