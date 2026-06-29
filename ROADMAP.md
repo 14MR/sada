@@ -86,6 +86,7 @@
 - [x] Implement real Apple App Store Server API and Google Play receipt verification
 - [x] Mobile sign-out clears cached user profile data
 - [x] Rooms controller uses typed imports instead of dynamic require
+- [x] Mobile login errors use user-safe alert messages
 
 ---
 
@@ -110,6 +111,7 @@
 - ✅ Gem history responses omit private user fields and enforce pagination caps
 - ✅ Mobile sign-out clears cached profile data
 - ✅ Rooms controller dependencies are statically typed
+- ✅ Mobile login alerts do not expose raw internal error details
 
 ## Test Coverage
 - **Suites:** 13 (admin, auth, chat-service, CORS, discovery, env, gems, messaging, moderation, payment verification, rooms, security, social)
@@ -119,6 +121,6 @@
 ---
 
 **Last Updated:** 2026-06-29
-**Tests:** 197/197 backend passing + 6/6 mobile unit passing
+**Tests:** 197/197 backend passing + 8/8 mobile unit passing
 **Branch:** main
-**Latest PR:** #71
+**Latest PR:** #72
