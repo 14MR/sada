@@ -87,6 +87,7 @@
 - [x] Mobile sign-out clears cached user profile data
 - [x] Rooms controller uses typed imports instead of dynamic require
 - [x] Mobile login errors use user-safe alert messages
+- [x] Gem transaction references distinguish receipt hashes from room ids
 
 ---
 
@@ -112,15 +113,16 @@
 - ✅ Mobile sign-out clears cached profile data
 - ✅ Rooms controller dependencies are statically typed
 - ✅ Mobile login alerts do not expose raw internal error details
+- ✅ Gem transaction reference ids are tagged by purpose
 
 ## Test Coverage
 - **Suites:** 13 (admin, auth, chat-service, CORS, discovery, env, gems, messaging, moderation, payment verification, rooms, security, social)
-- **Tests:** 197 passing
+- **Tests:** 198 passing
 - **Types:** E2e integration tests with auth
 
 ---
 
 **Last Updated:** 2026-06-29
-**Tests:** 197/197 backend passing + 8/8 mobile unit passing
+**Tests:** 198/198 backend passing + 8/8 mobile unit passing
 **Branch:** main
-**Latest PR:** #72
+**Latest PR:** #73
