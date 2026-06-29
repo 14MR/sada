@@ -108,6 +108,12 @@ Required environment variables in `.env.production`:
 4. Regularly update Docker images for security patches
 5. Set up proper database backups
 
+## Chat Persistence Semantics
+
+Live room chat is intentionally ephemeral in the MVP. Socket.io `send_message` payloads are authenticated, room-gated, size-limited, and broadcast only to sockets that have joined the live room. They are not persisted to PostgreSQL, are not replayed to late joiners, and are not exposed through a room chat history endpoint.
+
+Persistent text history is handled by the direct/group conversation APIs and the `messages` table. Do not use the room WebSocket path for audit logs, moderation archives, or offline delivery without adding an explicit persistence design first.
+
 ## Monitoring
 
 Monitor your services:

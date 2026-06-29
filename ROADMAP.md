@@ -88,6 +88,7 @@
 - [x] Rooms controller uses typed imports instead of dynamic require
 - [x] Mobile login errors use user-safe alert messages
 - [x] Gem transaction references distinguish receipt hashes from room ids
+- [x] Room chat persistence semantics are documented as ephemeral live-room chat
 
 ---
 
@@ -114,6 +115,7 @@
 - ✅ Rooms controller dependencies are statically typed
 - ✅ Mobile login alerts do not expose raw internal error details
 - ✅ Gem transaction reference ids are tagged by purpose
+- ✅ Room chat is documented as ephemeral; persistent text history uses conversation APIs
 
 ## Test Coverage
 - **Suites:** 13 (admin, auth, chat-service, CORS, discovery, env, gems, messaging, moderation, payment verification, rooms, security, social)
@@ -125,4 +127,4 @@
 **Last Updated:** 2026-06-29
 **Tests:** 198/198 backend passing + 8/8 mobile unit passing
 **Branch:** main
-**Latest PR:** #73
+**Latest PR:** #74
