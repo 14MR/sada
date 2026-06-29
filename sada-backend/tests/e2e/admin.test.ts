@@ -4,6 +4,7 @@
  * Merged from: admin.test.ts + admin-analytics.test.ts
  */
 import request from 'supertest';
+import { isValidAdminKey } from '../../src/middleware/admin';
 import { setupTestDB, clearDatabase, createTestUser, createTestRoom, getApp } from './helpers';
 
 jest.mock('../../src/config/database', () => require('./testDb'));
@@ -38,6 +39,16 @@ describe('Admin E2E', () => {
 
   beforeEach(async () => {
     await clearDatabase();
+  });
+
+  describe('admin key validation', () => {
+    it('uses exact constant-time-safe key validation', () => {
+      expect(isValidAdminKey(ADMIN_KEY, ADMIN_KEY)).toBe(true);
+      expect(isValidAdminKey(`${ADMIN_KEY}-wrong`, ADMIN_KEY)).toBe(false);
+      expect(isValidAdminKey(ADMIN_KEY.slice(0, -1), ADMIN_KEY)).toBe(false);
+      expect(isValidAdminKey(undefined, ADMIN_KEY)).toBe(false);
+      expect(isValidAdminKey(ADMIN_KEY, undefined)).toBe(false);
+    });
   });
 
   describe('GET /admin/stats', () => {
