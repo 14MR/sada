@@ -7,7 +7,7 @@
 import request from 'supertest';
 import { setupTestDB, clearDatabase, createTestUser, getApp } from './helpers';
 import { AppDataSource } from '../../src/config/database';
-import { GemTransaction, TransactionType } from '../../src/models/GemTransaction';
+import { GemTransaction, GemTransactionReferenceType, TransactionType } from '../../src/models/GemTransaction';
 import { PaymentReceipt } from '../../src/models/PaymentReceipt';
 
 jest.mock('../../src/config/database', () => require('./testDb'));
@@ -199,6 +199,8 @@ describe('Gems E2E', () => {
       expect(response.body[0]).toMatchObject({
         amount: expect.any(Number),
         type: 'gift',
+        reference_id: null,
+        reference_type: null,
         sender: {
           id: sender.user.id,
           username: 'gem_history_sender',
@@ -266,6 +268,7 @@ describe('Gems E2E', () => {
       expect(receipts[0].amount).toBe(100);
       expect(receipts[0].platform).toBe('apple');
       expect(receipts[0].gem_transaction_id).toBe(response.body.id);
+      expect(response.body.reference_type).toBe(GemTransactionReferenceType.RECEIPT_HASH);
 
       const balance = await request(getApp())
         .get(`/api/gems/balance/${buyer.user.id}`)
@@ -294,6 +297,35 @@ describe('Gems E2E', () => {
         .get(`/api/gems/balance/${buyer.user.id}`)
         .set('Authorization', `Bearer ${buyer.token}`);
       expect(balance.body.balance).toBe(50);
+    });
+
+    it('should tag purchase and room gift reference ids by purpose', async () => {
+      const sender = await createTestUser({ username: 'gem_ref_sender', gem_balance: 100 });
+      const receiver = await createTestUser({ username: 'gem_ref_receiver', gem_balance: 0 });
+      const roomId = 'room-reference-123';
+
+      const purchase = await request(getApp())
+        .post('/api/gems/purchase')
+        .set('Authorization', `Bearer ${sender.token}`)
+        .send({ amount: 25, receiptData: 'reference-receipt', platform: 'apple' });
+      const gift = await request(getApp())
+        .post('/api/gems/gift')
+        .set('Authorization', `Bearer ${sender.token}`)
+        .send({ receiverId: receiver.user.id, amount: 10, roomId });
+
+      expect(purchase.status).toBe(200);
+      expect(gift.status).toBe(200);
+
+      const transactions = await AppDataSource.getRepository(GemTransaction).find({
+        order: { created_at: 'ASC' },
+      });
+      const purchaseTx = transactions.find(tx => tx.type === TransactionType.PURCHASE);
+      const giftTx = transactions.find(tx => tx.type === TransactionType.GIFT);
+
+      expect(purchaseTx?.reference_type).toBe(GemTransactionReferenceType.RECEIPT_HASH);
+      expect(purchaseTx?.reference_id).toBeTruthy();
+      expect(giftTx?.reference_id).toBe(roomId);
+      expect(giftTx?.reference_type).toBe(GemTransactionReferenceType.ROOM_ID);
     });
   });
 });

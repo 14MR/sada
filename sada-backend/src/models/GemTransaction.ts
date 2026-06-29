@@ -7,6 +7,11 @@ export enum TransactionType {
     BONUS = "bonus"
 }
 
+export enum GemTransactionReferenceType {
+    RECEIPT_HASH = "receipt_hash",
+    ROOM_ID = "room_id"
+}
+
 @Entity("gem_transactions")
 export class GemTransaction {
     @PrimaryGeneratedColumn("uuid")
@@ -30,8 +35,11 @@ export class GemTransaction {
     })
     type!: TransactionType;
 
-    @Column({ nullable: true })
-    reference_id!: string; // e.g., Room ID if gifted in a room, or Payment ID
+    @Column({ type: "varchar", nullable: true })
+    reference_id!: string | null;
+
+    @Column({ type: "varchar", nullable: true })
+    reference_type!: GemTransactionReferenceType | null;
 
     @CreateDateColumn()
     created_at!: Date;

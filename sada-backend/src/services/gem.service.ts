@@ -1,5 +1,5 @@
 import { AppDataSource } from "../config/database";
-import { GemTransaction, TransactionType } from "../models/GemTransaction";
+import { GemTransaction, GemTransactionReferenceType, TransactionType } from "../models/GemTransaction";
 import { PaymentReceipt, PaymentReceiptStatus } from "../models/PaymentReceipt";
 import { User } from "../models/User";
 import { ChatService } from "./chat.service";
@@ -22,6 +22,7 @@ export type GemHistoryItem = {
     amount: number;
     type: TransactionType;
     reference_id: string | null;
+    reference_type: GemTransactionReferenceType | null;
     created_at: Date;
     sender: PublicGemUser | null;
     receiver: PublicGemUser | null;
@@ -116,6 +117,7 @@ export class GemService {
                 tx.type = TransactionType.PURCHASE;
                 if (receiptHash) {
                     tx.reference_id = receiptHash;
+                    tx.reference_type = GemTransactionReferenceType.RECEIPT_HASH;
                 }
 
                 const saved = await transactionalEntityManager.save(tx);
@@ -174,7 +176,10 @@ export class GemService {
             tx.receiver = receiver;
             tx.amount = amount;
             tx.type = TransactionType.GIFT;
-            if (roomId) tx.reference_id = roomId;
+            if (roomId) {
+                tx.reference_id = roomId;
+                tx.reference_type = GemTransactionReferenceType.ROOM_ID;
+            }
 
             return await transactionalEntityManager.save(tx);
         }));
@@ -230,6 +235,7 @@ export class GemService {
                 "tx.amount",
                 "tx.type",
                 "tx.reference_id",
+                "tx.reference_type",
                 "tx.created_at",
                 "sender.id",
                 "sender.username",
@@ -252,6 +258,7 @@ export class GemService {
             amount: tx.amount,
             type: tx.type,
             reference_id: tx.reference_id,
+            reference_type: tx.reference_type,
             created_at: tx.created_at,
             sender: toPublicGemUser(tx.sender),
             receiver: toPublicGemUser(tx.receiver),
