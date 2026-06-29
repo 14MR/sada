@@ -59,6 +59,7 @@
 - [x] Production Cloudflare config fails fast instead of using baked defaults
 - [x] Production Docker health check points at `/health`
 - [x] Production CORS requires explicit origins
+- [x] Production admin and Apple bundle configuration fails fast
 
 ## Phase 6: Post-Launch Hardening ✅ DONE
 - [x] Socket room joins require live room participation
@@ -99,15 +100,17 @@
 - ✅ Production CORS fails fast without explicit origins
 - ✅ Socket room access checks participant membership
 - ✅ Socket chat and signaling payload sizes are bounded
+- ✅ Admin key validation uses timing-safe comparison
+- ✅ Production admin and Apple bundle env vars fail fast
 
 ## Test Coverage
-- **Suites:** 11 (admin, auth, chat-service, CORS, discovery, gems, messaging, moderation, rooms, security, social)
-- **Tests:** 190 passing
+- **Suites:** 13 (admin, auth, chat-service, CORS, discovery, env, gems, messaging, moderation, payment verification, rooms, security, social)
+- **Tests:** 194 passing
 - **Types:** E2e integration tests with auth
 
 ---
 
 **Last Updated:** 2026-06-29
-**Tests:** 190/190 backend passing + 6/6 mobile unit passing
+**Tests:** 194/194 backend passing + 6/6 mobile unit passing
 **Branch:** main
-**Latest PR:** #66
+**Latest PR:** #67
